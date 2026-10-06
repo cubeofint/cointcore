@@ -67,6 +67,10 @@ public final class InvSeeTarget {
         return generation;
     }
 
+    public InvSeeEditLock editLock() {
+        return editLock;
+    }
+
     MinecraftServer server() {
         return server;
     }
