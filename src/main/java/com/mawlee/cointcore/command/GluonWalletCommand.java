@@ -4,6 +4,8 @@ import com.mawlee.cointcore.lang.CointCoreMessages;
 import com.mawlee.cointcore.mute.MuteService;
 import com.mawlee.cointcore.permission.CointPermissionNodes;
 import com.mawlee.cointcore.permission.PermissionService;
+import com.mawlee.cointcore.shop.CurrencyMovementService;
+import com.mawlee.cointcore.shop.CurrencyMovementType;
 import com.mawlee.cointcore.shop.GluonWallet;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.LongArgumentType;
@@ -76,7 +78,18 @@ public final class GluonWalletCommand {
         CommandSourceStack source = context.getSource();
         ResolvedTarget target = resolveTarget(source, StringArgumentType.getString(context, "player"));
         long amount = LongArgumentType.getLong(context, "amount");
+        long previous = GluonWallet.get(source.getServer(), target.id());
         long balance = GluonWallet.set(source.getServer(), target.id(), amount);
+        CurrencyMovementService.record(
+                source.getServer(),
+                operatorId(source),
+                source.getTextName(),
+                target.id(),
+                target.name(),
+                balance,
+                CurrencyMovementType.ADMIN_SET,
+                "previous=" + previous
+        );
         source.sendSuccess(
                 () -> CointCoreMessages.forSource(source, CointCoreMessages.GLUONS_SET, target.name(), balance),
                 true
@@ -89,6 +102,16 @@ public final class GluonWalletCommand {
         ResolvedTarget target = resolveTarget(source, StringArgumentType.getString(context, "player"));
         long amount = LongArgumentType.getLong(context, "amount");
         long balance = GluonWallet.add(source.getServer(), target.id(), amount);
+        CurrencyMovementService.record(
+                source.getServer(),
+                operatorId(source),
+                source.getTextName(),
+                target.id(),
+                target.name(),
+                amount,
+                CurrencyMovementType.ADMIN_ADD,
+                "balance=" + balance
+        );
         source.sendSuccess(
                 () -> CointCoreMessages.forSource(source, CointCoreMessages.GLUONS_ADD, amount, target.name(), balance),
                 true
@@ -105,6 +128,13 @@ public final class GluonWalletCommand {
         }
         String resolvedName = MuteService.resolveName(source.getServer(), targetId.get()).orElse(targetName);
         return new ResolvedTarget(targetId.get(), resolvedName);
+    }
+
+    private static UUID operatorId(CommandSourceStack source) {
+        if (source.getEntity() instanceof ServerPlayer player) {
+            return player.getUUID();
+        }
+        return null;
     }
 
     private static List<String> suggestPlayerNames(CommandSourceStack source) {

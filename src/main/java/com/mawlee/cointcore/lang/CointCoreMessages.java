@@ -216,6 +216,17 @@ public final class CointCoreMessages {
     public static final String GLUONS_SET = "message.cointcore.gluons.set";
     public static final String GLUONS_ADD = "message.cointcore.gluons.add";
     public static final String GLUONS_PLAYER_NOT_FOUND = "message.cointcore.gluons.player_not_found";
+    public static final String GLUONS_BALANCE = "message.cointcore.gluons.balance";
+    public static final String GLUONS_PAY_SENT = "message.cointcore.gluons.pay.sent";
+    public static final String GLUONS_PAY_RECEIVED = "message.cointcore.gluons.pay.received";
+    public static final String GLUONS_PAY_SELF = "message.cointcore.gluons.pay.self";
+    public static final String GLUONS_PAY_NOT_ENOUGH = "message.cointcore.gluons.pay.not_enough";
+    public static final String TRADER_OFFER_UNAVAILABLE = "message.cointcore.trader.offer_unavailable";
+    public static final String TRADER_INVENTORY_FULL = "message.cointcore.trader.inventory_full";
+    public static final String TRADER_NOT_ENOUGH = "message.cointcore.trader.not_enough";
+    public static final String TRADER_NOT_ENOUGH_ITEMS = "message.cointcore.trader.not_enough_items";
+    public static final String TRADER_BOUGHT = "message.cointcore.trader.bought";
+    public static final String TRADER_SOLD = "message.cointcore.trader.sold";
 
     private CointCoreMessages() {
     }

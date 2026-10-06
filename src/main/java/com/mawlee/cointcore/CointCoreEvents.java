@@ -39,6 +39,8 @@ import com.mawlee.cointcore.config.ExplosionTerrainConfig;
 import com.mawlee.cointcore.config.SpawnerByproductConfig;
 import com.mawlee.cointcore.config.SparkProfilerConfig;
 import com.mawlee.cointcore.config.TickWatchdogConfig;
+import com.mawlee.cointcore.config.TraderOffersConfig;
+import com.mawlee.cointcore.config.CurrencyMovementConfig;
 import com.mawlee.cointcore.config.DimensionWipeConfig;
 import com.mawlee.cointcore.config.StarterKitConfig;
 import com.mawlee.cointcore.kit.StarterKitService;
@@ -88,6 +90,8 @@ public final class CointCoreEvents {
             ServerAutomationConfig.load();
             SparkProfilerConfig.load();
             TickWatchdogConfig.load();
+            TraderOffersConfig.load();
+            CurrencyMovementConfig.load();
             TickThrottleConfigs.load();
             SoulSurgePerfConfig.load();
             SoulSurgeDenyConfig.load();
