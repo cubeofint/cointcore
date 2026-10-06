@@ -20,6 +20,7 @@
 - [InvSee](#invsee)
 - [Права доступа](#права-доступа)
 - [Конфигурация](#конфигурация)
+- [Лаг-фиксы ATM10 8.2](#лаг-фиксы-atm10-82)
 - [Интеграции](#интеграции)
 - [Структура проекта](#структура-проекта)
 
@@ -303,9 +304,103 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `config/cointcore/admin-chat.json` | Формат админ-чата |
 | `config/cointcore/spark-profiler.json` | Автопрофилирование Spark |
 | `config/cointcore/me-unique-filter.json` | Уникальные фильтры ME (AE2) |
+| `config/cointcore/storage-perf.json` | Кэш AE2 fuzzy search, RS importer idle-skip |
+| `config/cointcore/tick-throttles.json` | Throttle машин (MGU Saw, RFTools Builder и др.) |
+| `config/cointcore/lag-fixes.json` | Лаг-фиксы ATM10 8.2 (см. ниже) |
 | `config/relpchatprefix/config.json` | Префиксы relay-чата |
 
 Данные игроков (муты, киты, флаги чанков, история наказаний) хранятся в `world/data/` через Minecraft SavedData.
+
+## Лаг-фиксы ATM10 8.2
+
+Файл: `config/cointcore/lag-fixes.json`. **Все опции по умолчанию выключены** — просто положить JAR на прод ничего не меняет, пока админ не включит нужные секции.
+
+### Рекомендуемый конфиг для нового сервера ATM10 8.2
+
+```json
+{
+  "jdt_portals": {
+    "enabled": true,
+    "mode": "none",
+    "clear_stale_tickets_on_start": true
+  },
+  "enderio_item_conduits": {
+    "enabled": true,
+    "tick_interval": 10,
+    "max_slots_per_pass": 64,
+    "idle_backoff_ticks": 40,
+    "skip_unchanged_inventories": true
+  },
+  "relics_backpack_scan": {
+    "enabled": true,
+    "mode": "skip_nested",
+    "scan_interval_ticks": 20
+  },
+  "chunk_loaders": {
+    "enabled": true,
+    "disable_ae2_spatial_anchor": true,
+    "disable_compact_machines_chunkloader": true,
+    "disable_hnn_data_center": true,
+    "disable_ie_chunk_loader": true,
+    "disable_railcraft_world_spike": true,
+    "disable_steves_carts_chunk_loader": true
+  }
+}
+```
+
+### Опции
+
+| Секция / ключ | Default | Описание |
+|---|---|---|
+| `jdt_portals.enabled` | `false` | Чинить force-load порталов Just Dire Things (Portal Gun / V2) |
+| `jdt_portals.mode` | `"none"` | `none` — не грузить чанки; `owner_online` — только пока владелец онлайн |
+| `jdt_portals.clear_stale_tickets_on_start` | `true` | При старте снять старые tickets `justdirethings:chunk_loader` |
+| `enderio_item_conduits.enabled` | `false` | Soft-throttle item conduit сетей |
+| `enderio_item_conduits.tick_interval` | `10` | Мин. интервал между проходами при активном переносе |
+| `enderio_item_conduits.max_slots_per_pass` | `64` | Лимит слотов extract-инвентаря за проход |
+| `enderio_item_conduits.idle_backoff_ticks` | `40` | Пауза после прохода, который ничего не перенёс |
+| `enderio_item_conduits.skip_unchanged_inventories` | `true` | Пропускать повторный скан неизменённой сети после idle |
+| `relics_backpack_scan.enabled` | `false` | Не сканировать содержимое Sophisticated Backpacks каждым тиком |
+| `relics_backpack_scan.mode` | `"skip_nested"` | `skip_nested` или `throttle` |
+| `relics_backpack_scan.scan_interval_ticks` | `20` | Интервал для `throttle` |
+| `chunk_loaders.enabled` | `false` | Мастер-флаг ограничений chunk loader'ов |
+| `chunk_loaders.disable_ae2_spatial_anchor` | `false` | AE2 Spatial Anchor |
+| `chunk_loaders.disable_compact_machines_chunkloader` | `false` | Compact Machines chunkloader upgrade |
+| `chunk_loaders.disable_hnn_data_center` | `false` | Hostile Neural Networks Data Center shell load |
+| `chunk_loaders.disable_ie_chunk_loader` | `false` | Immersive Engineering Resonanz Observer |
+| `chunk_loaders.disable_railcraft_world_spike` | `false` | Railcraft World Spike (+ minecart) |
+| `chunk_loaders.disable_steves_carts_chunk_loader` | `false` | Steve's Carts chunk loader module |
+
+### Рекомендации без автоматики (KubeJS / конфиги модов)
+
+**Ars Additions** — в ATM10 8.2 `max_rituals` по умолчанию `Integer.MAX_VALUE`. Ограничьте вручную в конфиге Ars Additions:
+
+```toml
+# config/ars_additions-server.toml (имена секций могут отличаться)
+# chunkloading -> max_rituals
+max_rituals = 2
+require_online = true
+```
+
+Если потребуется **убрать** крафт chunk loader'ов через KubeJS (альтернатива mixin, когда mixin нежелателен):
+
+```js
+// kubejs/server_scripts/coint_chunkloaders.js
+ServerEvents.recipes(event => {
+  event.remove({ output: 'ae2:spatial_anchor' })
+  event.remove({ output: 'immersiveengineering:chunk_loader' })
+  event.remove({ output: 'railcraft:world_spike' })
+  event.remove({ output: 'railcraft:personal_world_spike' })
+  event.remove({ output: 'railcraft:world_spike_minecart' })
+  event.remove({ output: 'stevescarts:module_chunk_loader' })
+  // Compact Machines chunkloader upgrade — id зависит от datapack/item registry:
+  // event.remove({ mod: 'compactmachines', id: /chunk.?loader/ })
+})
+```
+
+### Что не трогали
+
+Секция `machine` в `tick-throttles.json` (MGU Saw / RFTools Builder budgets) **сохранена** — это отдельный generic machine throttle. AE2 AdvancedAE / ae2wtlib magnet throttle удалён как неэффективный по spark-профилям.
 
 ## Интеграции
 

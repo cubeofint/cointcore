@@ -47,6 +47,7 @@ public class CointCore {
         NeoForge.EVENT_BUS.addListener(CointCoreCommand::register);
         NeoForge.EVENT_BUS.addListener(PermissionRegistration::registerNodes);
         NeoForge.EVENT_BUS.addListener(CointCoreEvents::onServerStarting);
+        NeoForge.EVENT_BUS.addListener(CointCoreEvents::onServerStarted);
         NeoForge.EVENT_BUS.addListener(CointCoreEvents::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(CointCoreEvents::onPlayerRespawn);
         NeoForge.EVENT_BUS.addListener(CointCoreEvents::onPlayerLoggedOut);

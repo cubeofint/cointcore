@@ -195,6 +195,13 @@ dependencies {
     packMods(curseMod(curse_mystical_agriculture)) { transitive = false }
     packMods(curseMod(curse_discord_chat)) { transitive = false }
     packMods(curseMod(curse_tab)) { transitive = false }
+    packMods(curseMod(curse_enderio)) { transitive = false }
+    packMods(curseMod(curse_relics)) { transitive = false }
+    packMods(curseMod(curse_compact_machines)) { transitive = false }
+    packMods(curseMod(curse_hostile_neural_networks)) { transitive = false }
+    packMods(curseMod(curse_immersive_engineering)) { transitive = false }
+    packMods(curseMod(curse_railcraft_reborn)) { transitive = false }
+    packMods(curseMod(curse_steves_carts)) { transitive = false }
 
     testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
