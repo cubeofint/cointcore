@@ -7,11 +7,16 @@ import com.mawlee.cointcore.vote.VoteType;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.logging.LogUtils;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import org.slf4j.Logger;
 
 public final class VoteCommand {
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     private VoteCommand() {
     }
 
@@ -46,6 +51,13 @@ public final class VoteCommand {
 
     private static int vote(CommandContext<CommandSourceStack> context, VoteType type) throws CommandSyntaxException {
         ServerPlayer player = context.getSource().getPlayerOrException();
-        return VoteService.castVote(type, player);
+        try {
+            return VoteService.castVote(type, player);
+        } catch (Throwable throwable) {
+            LOGGER.error("Vote command failed for player {} type {}", player.getGameProfile().getName(), type, throwable);
+            context.getSource().sendFailure(Component.literal(
+                    "Vote failed due to an internal error. Staff have been notified via logs."));
+            return 0;
+        }
     }
 }

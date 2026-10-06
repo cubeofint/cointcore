@@ -35,6 +35,12 @@ public final class KeepInventoryService {
             return;
         }
 
+        // Twilight Forest Charm of Keeping already relocates inventory into TFCharmInventory.
+        // Capturing here would snapshot an empty inventory and wipe items on restore.
+        if (TwilightForestCharmGate.shouldDeferToCharm(player)) {
+            return;
+        }
+
         CompoundTag data = new CompoundTag();
         for (KeepInventoryCaptureProvider provider : KeepInventoryCaptures.providers()) {
             provider.capture(player, data);
@@ -46,6 +52,13 @@ public final class KeepInventoryService {
     }
 
     public static void restore(ServerPlayer player) {
+        // TF restores on PlayerRespawnEvent; if charm storage is still present, drop our pending
+        // snapshot instead of overwriting returned items with an empty/stale capture.
+        if (TwilightForestCharmGate.shouldDeferToCharm(player)) {
+            clear(player);
+            return;
+        }
+
         KeepInventorySnapshot snapshot = PENDING.remove(player.getUUID());
         BLOCKED_DROPS.remove(player.getUUID());
         if (snapshot == null) {

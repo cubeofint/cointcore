@@ -1,0 +1,50 @@
+{
+  "denyBlockIds": [
+    "justdirethings:clickert1",
+    "justdirethings:clickert2",
+    "justdirethings:blockplacert1",
+    "justdirethings:blockplacert2",
+    "justdirethings:fluidplacert1",
+    "justdirethings:fluidplacert2",
+    "justdirethings:blockbreakert1",
+    "justdirethings:blockbreakert2",
+    "justdirethings:fluidcollectort1",
+    "justdirethings:fluidcollectort2",
+    "justdirethings:blockswappert1",
+    "justdirethings:blockswappert2",
+    "justdirethings:sensort1",
+    "justdirethings:sensort2",
+    "justdirethings:energytransmitter",
+    "sfm:manager",
+    "sfm:tunnelled_manager",
+    "modularrouters:modular_router",
+    "industrialforegoing:simulated_hydroponic_bed",
+    "industrialforegoing:hydroponic_bed",
+    "industrialforegoing:plant_sower",
+    "industrialforegoing:plant_gatherer",
+    "industrialforegoing:animal_rancher",
+    "industrialforegoing:mob_slaughter_factory",
+    "industrialforegoing:block_breaker",
+    "industrialforegoing:block_placer",
+    "industrialforegoing:fluid_placer",
+    "industrialforegoing:laser_drill",
+    "industrialforegoing:sludge_refiner"
+  ],
+  "denyBlockNamespaces": [
+    "mekanism",
+    "mekanismgenerators",
+    "ae2",
+    "advanced_ae",
+    "appflux",
+    "create",
+    "modern_industrialization",
+    "oritech",
+    "pneumaticcraft",
+    "powah",
+    "refinedstorage",
+    "cabletiers"
+  ],
+  "denyBlockTags": [
+    "#cointcore:soul_surge_no_accelerate"
+  ]
+}

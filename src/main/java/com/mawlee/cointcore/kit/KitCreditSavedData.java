@@ -97,7 +97,10 @@ public final class KitCreditSavedData extends SavedData {
         for (Tag entryTag : players) {
             CompoundTag entry = (CompoundTag) entryTag;
             try {
-                UUID playerId = UUID.fromString(entry.getString("player_id"));
+                // save() writes IntArray via putUUID; getString() returns "" and skips the entry.
+                UUID playerId = entry.hasUUID("player_id")
+                        ? entry.getUUID("player_id")
+                        : UUID.fromString(entry.getString("player_id"));
                 CompoundTag kitsTag = entry.getCompound("kits");
                 Map<String, Integer> kits = new HashMap<>();
 

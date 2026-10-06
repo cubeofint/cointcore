@@ -16,7 +16,7 @@ public final class KeepInventoryEvents {
     private KeepInventoryEvents() {
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    @SubscribeEvent(priority = EventPriority.LOW)
     public static void onLivingDeath(LivingDeathEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             KeepInventoryService.capture(player);

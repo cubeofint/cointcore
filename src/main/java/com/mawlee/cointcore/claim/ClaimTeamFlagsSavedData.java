@@ -27,13 +27,9 @@ public final class ClaimTeamFlagsSavedData extends SavedData {
                 .computeIfAbsent(new Factory<>(ClaimTeamFlagsSavedData::new, ClaimTeamFlagsSavedData::load), DATA_ID);
     }
 
-    public ClaimTeamFlags getOrDefault(UUID teamId) {
+    public boolean hadNoPlayerDamage(UUID teamId) {
         LegacyFlags legacy = flagsByTeam.get(teamId);
-        if (legacy == null) {
-            return new ClaimTeamFlags(false, false, false);
-        }
-
-        return new ClaimTeamFlags(legacy.noPlayerDamage(), false, legacy.protectMobsFromOutsiders());
+        return legacy != null && legacy.noPlayerDamage();
     }
 
     public boolean isEmpty() {

@@ -1,31 +1,23 @@
 package com.mawlee.cointcore.config;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonSyntaxException;
 import com.google.gson.annotations.SerializedName;
-import com.mawlee.cointcore.CointCore;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
-import net.neoforged.fml.loading.FMLPaths;
 import org.slf4j.Logger;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * File: {@code config/cointcore/cleanup.json} section {@code mobs}.
+ */
 public final class MobCleanupConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private static Set<ResourceLocation> removeEntityTypes = Set.of();
     private static Set<ResourceLocation> excludeEntityTypes = Set.of();
@@ -47,53 +39,27 @@ public final class MobCleanupConfig {
     }
 
     public static Path getConfigPath() {
-        return configPath();
+        return CleanupConfigs.path();
     }
 
     public static void load() {
-        apply(loadFromDisk(false));
+        CleanupConfigs.load();
     }
 
     public static boolean reload() {
-        LoadedConfig loaded = loadFromDisk(true);
-        if (loaded == null) {
-            return false;
-        }
-        apply(loaded);
-        return true;
+        return CleanupConfigs.reload();
     }
 
-    private static LoadedConfig loadFromDisk(boolean reloading) {
-        try {
-            Path path = configPath();
-            Files.createDirectories(path.getParent());
-            if (!Files.exists(path)) {
-                FileData defaults = defaultFileData();
-                save(defaults, path);
-                LOGGER.info("Created default mob cleanup config at {}", path);
-                return parse(defaults);
-            }
+    static void applySection(FileData data) {
+        apply(parse(data != null ? data : defaultFileData()));
+    }
 
-            try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-                FileData data = GSON.fromJson(reader, FileData.class);
-                LoadedConfig loaded = parse(data != null ? data : defaultFileData());
-                LOGGER.info(
-                        "Loaded mob cleanup config ({} remove types, {} exclude types)",
-                        loaded.removeEntityTypes.size(),
-                        loaded.excludeEntityTypes.size()
-                );
-                if (reloading) {
-                    LOGGER.info("Reloaded mob cleanup config from {}", path);
-                }
-                return loaded;
-            }
-        } catch (IOException | JsonSyntaxException exception) {
-            LOGGER.error("Failed to load mob cleanup config from {}", configPath(), exception);
-            return reloading ? null : parse(defaultFileData());
-        } catch (RuntimeException exception) {
-            LOGGER.error("Unexpected error while loading mob cleanup config from {}", configPath(), exception);
-            return reloading ? null : parse(defaultFileData());
-        }
+    static void logReload() {
+        LOGGER.info(
+                "Reloaded mob cleanup config ({} remove types, {} exclude types)",
+                removeEntityTypes.size(),
+                excludeEntityTypes.size()
+        );
     }
 
     private static void apply(LoadedConfig loaded) {
@@ -165,19 +131,7 @@ public final class MobCleanupConfig {
         }
     }
 
-    private static Path configPath() {
-        return FMLPaths.CONFIGDIR.get()
-                .resolve(CointCore.MOD_ID)
-                .resolve("mob-cleanup.json");
-    }
-
-    private static void save(FileData data, Path path) throws IOException {
-        try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
-            GSON.toJson(data, writer);
-        }
-    }
-
-    private static FileData defaultFileData() {
+    static FileData defaultFileData() {
         FileData data = new FileData();
         data.removeEntityTypes = new ArrayList<>(List.of(
                 "minecraft:zombie",
@@ -212,7 +166,7 @@ public final class MobCleanupConfig {
     ) {
     }
 
-    private static final class FileData {
+    static final class FileData {
         @SerializedName("removeEntityTypes")
         private List<String> removeEntityTypes = new ArrayList<>();
 

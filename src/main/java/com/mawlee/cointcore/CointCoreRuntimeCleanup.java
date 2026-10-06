@@ -1,5 +1,6 @@
 package com.mawlee.cointcore;
 
+import com.mawlee.cointcore.afk.AfkService;
 import com.mawlee.cointcore.chatspy.ChatSpyManager;
 import com.mawlee.cointcore.chatspy.ChatSpyTracker;
 import com.mawlee.cointcore.ignore.IgnoreManager;
@@ -22,6 +23,8 @@ public final class CointCoreRuntimeCleanup {
             "com.mawlee.cointcore.chatspy.ChatSpyTracker",
             "com.mawlee.cointcore.ignore.IgnoreManager",
             "com.mawlee.cointcore.pvp.PvpModeManager",
+            "com.mawlee.cointcore.afk.AfkService",
+            "com.mawlee.cointcore.afk.AfkTracker",
             "com.mawlee.cointcore.server.ServerRestartService",
             "com.mawlee.cointcore.server.ScheduledRestartService",
             "com.mawlee.cointcore.server.PeriodicMessageService",
@@ -53,6 +56,7 @@ public final class CointCoreRuntimeCleanup {
         runQuietly(ChatSpyManager::clearRuntimeState);
         runQuietly(IgnoreManager::clearRuntimeState);
         runQuietly(PvpModeManager::clearRuntimeState);
+        runQuietly(AfkService::clearRuntimeState);
         runQuietly(ServerRestartService::cancelPendingRestart);
     }
 

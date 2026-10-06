@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.chatspy;
 
+import com.mawlee.cointcore.chat.ChatDiscordRelay;
 import com.mawlee.cointcore.chat.LocalChatService;
 import com.mawlee.cointcore.lang.CointCoreMessages;
 import com.mawlee.cointcore.permission.CointPermissionNodes;
@@ -99,6 +100,10 @@ public final class ChatSpyService {
         String text = message.decoratedContent().getString();
 
         ServerPlayer sender = server.getPlayerList().getPlayer(senderId);
+        if (sender != null) {
+            ChatDiscordRelay.relayLocalChat(sender, text);
+        }
+
         for (ServerPlayer spy : onlineSpies(server)) {
             if (shouldSkipLocalSpy(sender, spy, recipients)) {
                 continue;

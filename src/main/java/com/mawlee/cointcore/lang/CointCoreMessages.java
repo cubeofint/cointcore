@@ -16,7 +16,8 @@ import net.minecraft.server.level.ServerPlayer;
 
 public final class CointCoreMessages {
     private static final Gson GSON = new Gson();
-    private static final Type LANG_MAP_TYPE = new TypeToken<Map<String, String>>() {}.getType();
+    /** Avoid anonymous TypeToken subclass ($1) — breaks hot-swapped jars on live JVMs. */
+    private static final Type LANG_MAP_TYPE = TypeToken.getParameterized(Map.class, String.class, String.class).getType();
     private static final String DEFAULT_LANG = "en_us";
     private static final Map<String, Map<String, String>> TRANSLATIONS = loadTranslations();
 
@@ -64,11 +65,29 @@ public final class CointCoreMessages {
     public static final String CHUNK_LIMIT_ENTITY_REMOVED = "message.cointcore.chunklimit.entity_removed";
     public static final String CHUNK_LIMIT_ENTITY_LIST_EMPTY = "message.cointcore.chunklimit.entity_list_empty";
     public static final String CHUNK_LIMIT_ENTITY_LIST_ENTRY = "message.cointcore.chunklimit.entity_list_entry";
+    public static final String CHUNK_LIMIT_ENTITY_MOD_SET = "message.cointcore.chunklimit.entity_mod_set";
+    public static final String CHUNK_LIMIT_ENTITY_MOD_REMOVED = "message.cointcore.chunklimit.entity_mod_removed";
+    public static final String CHUNK_LIMIT_ENTITY_CAP_SET = "message.cointcore.chunklimit.entity_cap_set";
+    public static final String CHUNK_LIMIT_ENTITY_CAP_REMOVED = "message.cointcore.chunklimit.entity_cap_removed";
     public static final String CHUNK_LIMIT_NOT_FOUND = "message.cointcore.chunklimit.not_found";
     public static final String CHUNK_LIMIT_CHECK_HEADER = "message.cointcore.chunklimit.check_header";
     public static final String CHUNK_LIMIT_CHECK_BLOCK_ENTRY = "message.cointcore.chunklimit.check_block_entry";
     public static final String CHUNK_LIMIT_CHECK_ENTITY_ENTRY = "message.cointcore.chunklimit.check_entity_entry";
     public static final String CHUNK_LIMIT_DUMP_SUCCESS = "message.cointcore.chunklimit.dump_success";
+    public static final String CHUNK_LIMIT_TEAM_BLOCK_DENIED = "message.cointcore.chunklimit.team.block_denied";
+    public static final String CHUNK_LIMIT_MOD_SET = "message.cointcore.chunklimit.mod_set";
+    public static final String CHUNK_LIMIT_MOD_REMOVED = "message.cointcore.chunklimit.mod_removed";
+    public static final String CHUNK_LIMIT_TAG_SET = "message.cointcore.chunklimit.tag_set";
+    public static final String CHUNK_LIMIT_TAG_REMOVED = "message.cointcore.chunklimit.tag_removed";
+    public static final String CHUNK_LIMIT_GROUP_SET = "message.cointcore.chunklimit.group_set";
+    public static final String CHUNK_LIMIT_GROUP_DELETED = "message.cointcore.chunklimit.group_deleted";
+    public static final String CHUNK_LIMIT_GROUP_ADD = "message.cointcore.chunklimit.group_add";
+    public static final String CHUNK_LIMIT_GROUP_REMOVE_BLOCK = "message.cointcore.chunklimit.group_remove_block";
+    public static final String CHUNK_LIMIT_GROUP_LIST_EMPTY = "message.cointcore.chunklimit.group_list_empty";
+    public static final String CHUNK_LIMIT_GROUP_LIST_ENTRY = "message.cointcore.chunklimit.group_list_entry";
+    public static final String CHUNK_LIMIT_TEAM_CHECK_HEADER = "message.cointcore.chunklimit.team.check_header";
+    public static final String CHUNK_LIMIT_TEAM_CHECK_EMPTY = "message.cointcore.chunklimit.team.check_empty";
+    public static final String CHUNK_LIMIT_TEAM_LIST_EMPTY = "message.cointcore.chunklimit.team.list_empty";
     /** @deprecated Use {@link #WORLD_CLEANUP_CLEARED} */
     @Deprecated
     public static final String CRASH_UTILITIES_CLEAR_RESULT = WORLD_CLEANUP_CLEARED;
@@ -104,13 +123,16 @@ public final class CointCoreMessages {
     public static final String PVP_PEACE_REQUIRED = "message.cointcore.pvp.peace_required";
     public static final String KEEP_INVENTORY_RESTORED = "message.cointcore.keep_inventory.restored";
     public static final String CLAIM_FLAG_INFO = "message.cointcore.claim.flag.info";
-    public static final String CLAIM_FLAG_NO_PLAYER_DAMAGE_ENABLED = "message.cointcore.claim.flag.no_player_damage.enabled";
-    public static final String CLAIM_FLAG_NO_PLAYER_DAMAGE_DISABLED = "message.cointcore.claim.flag.no_player_damage.disabled";
-    public static final String CLAIM_FLAG_NO_HOSTILE_MOB_SPAWN_ENABLED = "message.cointcore.claim.flag.no_hostile_mob_spawn.enabled";
-    public static final String CLAIM_FLAG_NO_HOSTILE_MOB_SPAWN_DISABLED = "message.cointcore.claim.flag.no_hostile_mob_spawn.disabled";
-    public static final String CLAIM_FLAG_PROTECT_MOBS_ENABLED = "message.cointcore.claim.flag.protect_mobs.enabled";
-    public static final String CLAIM_FLAG_PROTECT_MOBS_DISABLED = "message.cointcore.claim.flag.protect_mobs.disabled";
+    public static final String CLAIM_FLAG_MOB_SPAWN = "message.cointcore.claim.flag.mob_spawn";
+    public static final String CLAIM_FLAG_MOB_SPAWN_MOB = "message.cointcore.claim.flag.mob_spawn.mob";
+    public static final String CLAIM_FLAG_MOB_SPAWN_CLEARED = "message.cointcore.claim.flag.mob_spawn.cleared";
+    public static final String CLAIM_FLAG_MOB_DAMAGE = "message.cointcore.claim.flag.mob_damage";
+    public static final String CLAIM_FLAG_FIRE_SPREAD = "message.cointcore.claim.flag.fire_spread";
+    public static final String CLAIM_FLAG_PVP = "message.cointcore.claim.flag.pvp";
+    public static final String CLAIM_FLAG_ENTRY = "message.cointcore.claim.flag.entry";
     public static final String CLAIM_MOB_DAMAGE_BLOCKED = "message.cointcore.claim.mob_damage.blocked";
+    public static final String CLAIM_FIRE_BLOCKED = "message.cointcore.claim.fire.blocked";
+    public static final String CLAIM_ENTRY_DENIED = "message.cointcore.claim.entry.denied";
     public static final String KIT_CREDIT_CLAIMED = "message.cointcore.kit.credit.claimed";
     public static final String KIT_CREDIT_ADDED = "message.cointcore.kit.credit.added";
     public static final String KIT_CREDIT_SET = "message.cointcore.kit.credit.set";
@@ -119,11 +141,14 @@ public final class CointCoreMessages {
     public static final String KIT_CREDIT_BALANCE_HEADER = "message.cointcore.kit.credit.balance.header";
     public static final String KIT_CREDIT_BALANCE_ENTRY = "message.cointcore.kit.credit.balance.entry";
     public static final String KIT_CREDIT_PLAYER_NOT_FOUND = "message.cointcore.kit.credit.player_not_found";
+    public static final String KIT_UPDATED = "message.cointcore.kit.updated";
     public static final String VOTE_STARTED = "message.cointcore.vote.started";
     public static final String VOTE_PROGRESS = "message.cointcore.vote.progress";
     public static final String VOTE_PASSED = "message.cointcore.vote.passed";
     public static final String VOTE_ALREADY_VOTED = "message.cointcore.vote.already_voted";
     public static final String VOTE_COOLDOWN = "message.cointcore.vote.cooldown";
+    public static final String ENVIRONMENT_COOLDOWN = "message.cointcore.environment.cooldown";
+    public static final String ENVIRONMENT_COOLDOWN_BLOCKED = "message.cointcore.environment.cooldown_blocked";
     public static final String VOTE_TYPE_DAY = "message.cointcore.vote.type.day";
     public static final String VOTE_TYPE_CLEAR_WEATHER = "message.cointcore.vote.type.clear_weather";
     public static final String SERVER_RESTART_WARNING = "message.cointcore.server.restart.warning";
@@ -135,6 +160,13 @@ public final class CointCoreMessages {
     public static final String SERVER_RESTART_NOW = "message.cointcore.server.restart.now";
     public static final String SERVER_RESTART_FAILED = "message.cointcore.server.restart.failed";
     public static final String SERVER_RESTART_KICK = "message.cointcore.server.restart.kick";
+    public static final String DIMWIPE_WARNING = "message.cointcore.dimwipe.warning";
+    public static final String DIMWIPE_STARTING = "message.cointcore.dimwipe.starting";
+    public static final String DIMWIPE_RESTART_SCHEDULED = "message.cointcore.dimwipe.restart_scheduled";
+    public static final String DIMWIPE_STATUS = "message.cointcore.dimwipe.status";
+    public static final String DIMWIPE_NOW_OK = "message.cointcore.dimwipe.now.ok";
+    public static final String DIMWIPE_NOW_FAILED = "message.cointcore.dimwipe.now.failed";
+    public static final String DIMWIPE_DISABLED = "message.cointcore.dimwipe.disabled";
     public static final String CHAT_SPY_ENABLED = "message.cointcore.spy.enabled";
     public static final String CHAT_SPY_DISABLED = "message.cointcore.spy.disabled";
     public static final String CHAT_SPY_PM = "message.cointcore.spy.pm";
@@ -143,6 +175,28 @@ public final class CointCoreMessages {
     public static final String CHAT_SPY_LOCAL_RAW = "message.cointcore.spy.local_raw";
     public static final String ADMIN_CHAT = "message.cointcore.adminchat.message";
     public static final String ADMIN_CHAT_DISABLED = "message.cointcore.adminchat.disabled";
+    public static final String AFK_WARN = "message.cointcore.afk.warn";
+    public static final String AFK_KICK = "message.cointcore.afk.kick";
+    public static final String AFK_SUSPECT = "message.cointcore.afk.suspect";
+    public static final String AFK_SUSPECT_TP = "message.cointcore.afk.suspect.tp";
+    public static final String AFK_SUSPECT_TP_HOVER = "message.cointcore.afk.suspect.tp.hover";
+    public static final String INVSEE_PLAYER_ONLY = "message.cointcore.invsee.player_only";
+    public static final String INVSEE_PLAYER_NOT_FOUND = "message.cointcore.invsee.player_not_found";
+    public static final String INVSEE_CANNOT_SELF = "message.cointcore.invsee.cannot_self";
+    public static final String INVSEE_OPENED_ONLINE = "message.cointcore.invsee.opened.online";
+    public static final String INVSEE_OPENED_OFFLINE = "message.cointcore.invsee.opened.offline";
+    public static final String INVSEE_FAILED = "message.cointcore.invsee.failed";
+    public static final String STARTER_KIT_FIRST_JOIN = "message.cointcore.starter.first_join";
+    public static final String STARTER_KIT_CLAIMED = "message.cointcore.starter.claimed";
+    public static final String STARTER_KIT_DISABLED = "message.cointcore.starter.disabled";
+    public static final String STARTER_KIT_MISSING = "message.cointcore.starter.missing";
+    public static final String STARTER_KIT_FTB_MISSING = "message.cointcore.starter.ftb_missing";
+    public static final String STARTER_KIT_EMPTY_INV = "message.cointcore.starter.empty_inv";
+    public static final String STARTER_KIT_SET_FROM_INV = "message.cointcore.starter.set_from_inv";
+    public static final String STARTER_KIT_STATUS = "message.cointcore.starter.status";
+    public static final String STARTER_KIT_COOLDOWN_SYNCED = "message.cointcore.starter.cooldown_synced";
+    public static final String STARTER_KIT_FIRSTJOIN_RESET = "message.cointcore.starter.firstjoin_reset";
+    public static final String ITEM_PILE_NAME = "entity.cointcore.item_pile.name";
 
     private CointCoreMessages() {
     }

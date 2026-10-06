@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.chatspy;
 
+import com.mawlee.cointcore.chat.ChatDiscordRelay;
 import com.mawlee.cointcore.chat.LocalChatService;
 import com.mawlee.cointcore.config.RelpChatPrefixConfig;
 import net.minecraft.server.level.ServerPlayer;
@@ -35,6 +36,7 @@ public final class RelayChatSpy {
 
         Set<UUID> recipients = resolveRecipients(sender);
         ChatSpyService.notifyRelayChat(sender, parsed.message(), recipients);
+        ChatDiscordRelay.relayLocalChat(sender, parsed.message());
     }
 
     private static ParsedRelayChat parse(String rawText) {
