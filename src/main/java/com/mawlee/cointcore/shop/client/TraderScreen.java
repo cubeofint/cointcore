@@ -10,7 +10,6 @@ import net.minecraft.world.entity.player.Inventory;
 public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
     private static final ResourceLocation BACKGROUND =
             ResourceLocation.withDefaultNamespace("textures/gui/container/generic_54.png");
-    private static final Component PLACEHOLDER = Component.translatable("container.cointcore.trader.soon");
 
     public TraderScreen(TraderMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -27,7 +26,8 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         super.renderLabels(graphics, mouseX, mouseY);
-        graphics.drawString(font, PLACEHOLDER, 8, 20, 0x404040, false);
+        Component balance = Component.translatable("container.cointcore.trader.balance", menu.gluonBalance());
+        graphics.drawString(font, balance, 8, 20, 0x404040, false);
     }
 
     @Override

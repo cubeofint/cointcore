@@ -73,14 +73,19 @@ public class TraderBlock extends HorizontalDirectionalBlock {
             BlockHitResult hitResult
     ) {
         if (player instanceof ServerPlayer serverPlayer) {
-            serverPlayer.openMenu(new SimpleMenuProvider(
-                    (containerId, inventory, opener) -> new TraderMenu(
-                            containerId,
-                            inventory,
-                            ContainerLevelAccess.create(level, pos)
+            long balance = GluonWallet.get(serverPlayer);
+            serverPlayer.openMenu(
+                    new SimpleMenuProvider(
+                            (containerId, inventory, opener) -> new TraderMenu(
+                                    containerId,
+                                    inventory,
+                                    ContainerLevelAccess.create(level, pos),
+                                    balance
+                            ),
+                            Component.translatable("container.cointcore.trader")
                     ),
-                    Component.translatable("container.cointcore.trader")
-            ));
+                    buffer -> buffer.writeLong(balance)
+            );
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
