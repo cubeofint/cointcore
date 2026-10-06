@@ -19,6 +19,7 @@ public final class SparkMetricsService {
     private static SparkBinding sparkBinding;
     private static MetricsSnapshot snapshot = MetricsSnapshot.unavailable();
     private static int sparkBindRetriesRemaining;
+    private static boolean sparkReadFailedPermanently;
 
     private SparkMetricsService() {
     }
@@ -27,10 +28,12 @@ public final class SparkMetricsService {
         if (!ModList.get().isLoaded(SPARK_MOD_ID)) {
             sparkBinding = null;
             sparkBindRetriesRemaining = 0;
+            sparkReadFailedPermanently = false;
             LOGGER.info("Spark is not loaded; cointcore placeholders will use vanilla tick timing");
             return;
         }
 
+        sparkReadFailedPermanently = false;
         sparkBindRetriesRemaining = 120;
         tryBindOnce(false);
     }
@@ -51,12 +54,16 @@ public final class SparkMetricsService {
         } catch (Exception exception) {
             sparkBinding = null;
             sparkBindRetriesRemaining = 0;
+            sparkReadFailedPermanently = true;
             LOGGER.warn("Failed to bind Spark metrics API; placeholders will use vanilla tick timing", exception);
         }
     }
 
     public static void tick(MinecraftServer server) {
-        if (sparkBinding == null && sparkBindRetriesRemaining > 0 && ModList.get().isLoaded(SPARK_MOD_ID)) {
+        if (sparkBinding == null
+                && !sparkReadFailedPermanently
+                && sparkBindRetriesRemaining > 0
+                && ModList.get().isLoaded(SPARK_MOD_ID)) {
             sparkBindRetriesRemaining--;
             tryBindOnce(true);
         }
@@ -65,8 +72,11 @@ public final class SparkMetricsService {
             try {
                 snapshot = sparkBinding.read();
                 return;
-            } catch (ReflectiveOperationException exception) {
-                LOGGER.debug("Spark metrics read failed, falling back to vanilla timing", exception);
+            } catch (ReflectiveOperationException | RuntimeException exception) {
+                sparkBinding = null;
+                sparkBindRetriesRemaining = 0;
+                sparkReadFailedPermanently = true;
+                LOGGER.warn("Spark metrics read failed permanently; falling back to vanilla timing", exception);
             }
         }
 
@@ -77,6 +87,7 @@ public final class SparkMetricsService {
         snapshot = MetricsSnapshot.unavailable();
         sparkBinding = null;
         sparkBindRetriesRemaining = 0;
+        sparkReadFailedPermanently = false;
     }
 
     public static MetricsSnapshot snapshot() {
@@ -216,6 +227,9 @@ public final class SparkMetricsService {
         private final Object msptStatistic;
         private final Method tpsPoll;
         private final Method msptPoll;
+        private final Method mean;
+        private final Method max;
+        private final Method percentile95th;
         private final Object tps5s;
         private final Object tps10s;
         private final Object tps1m;
@@ -230,6 +244,9 @@ public final class SparkMetricsService {
                 Object msptStatistic,
                 Method tpsPoll,
                 Method msptPoll,
+                Method mean,
+                Method max,
+                Method percentile95th,
                 Object tps5s,
                 Object tps10s,
                 Object tps1m,
@@ -243,6 +260,9 @@ public final class SparkMetricsService {
             this.msptStatistic = msptStatistic;
             this.tpsPoll = tpsPoll;
             this.msptPoll = msptPoll;
+            this.mean = mean;
+            this.max = max;
+            this.percentile95th = percentile95th;
             this.tps5s = tps5s;
             this.tps10s = tps10s;
             this.tps1m = tps1m;
@@ -257,23 +277,35 @@ public final class SparkMetricsService {
             Class<?> providerClass = Class.forName("me.lucko.spark.api.SparkProvider");
             Object spark = providerClass.getMethod("get").invoke(null);
 
-            Object tpsStatistic = spark.getClass().getMethod("tps").invoke(spark);
-            Object msptStatistic = spark.getClass().getMethod("mspt").invoke(spark);
+            // Resolve against public Spark API interfaces so Method.invoke works on Spark's
+            // package-private anonymous implementations (e.g. SparkApi$3).
+            Class<?> sparkApi = Class.forName("me.lucko.spark.api.Spark");
+            Object tpsStatistic = sparkApi.getMethod("tps").invoke(spark);
+            Object msptStatistic = sparkApi.getMethod("mspt").invoke(spark);
             if (tpsStatistic == null || msptStatistic == null) {
                 return null;
             }
 
             Class<?> tpsWindowClass = Class.forName("me.lucko.spark.api.statistic.StatisticWindow$TicksPerSecond");
             Class<?> msptWindowClass = Class.forName("me.lucko.spark.api.statistic.StatisticWindow$MillisPerTick");
+            Class<?> doubleStatisticClass = Class.forName("me.lucko.spark.api.statistic.types.DoubleStatistic");
+            Class<?> genericStatisticClass = Class.forName("me.lucko.spark.api.statistic.types.GenericStatistic");
+            Class<?> averageInfoClass = Class.forName("me.lucko.spark.api.statistic.misc.DoubleAverageInfo");
 
-            Method tpsPoll = tpsStatistic.getClass().getMethod("poll", tpsWindowClass);
-            Method msptPoll = msptStatistic.getClass().getMethod("poll", msptWindowClass);
+            Method tpsPoll = doubleStatisticClass.getMethod("poll", Enum.class);
+            Method msptPoll = genericStatisticClass.getMethod("poll", Enum.class);
+            Method mean = averageInfoClass.getMethod("mean");
+            Method max = averageInfoClass.getMethod("max");
+            Method percentile95th = averageInfoClass.getMethod("percentile95th");
 
             return new SparkBinding(
                     tpsStatistic,
                     msptStatistic,
                     tpsPoll,
                     msptPoll,
+                    mean,
+                    max,
+                    percentile95th,
                     enumConstant(tpsWindowClass, "SECONDS_5"),
                     enumConstant(tpsWindowClass, "SECONDS_10"),
                     enumConstant(tpsWindowClass, "MINUTES_1"),
@@ -310,20 +342,17 @@ public final class SparkMetricsService {
 
         private double pollMsptMean(Object window) throws ReflectiveOperationException {
             Object average = msptPoll.invoke(msptStatistic, window);
-            Object mean = average.getClass().getMethod("mean").invoke(average);
-            return ((Number) mean).doubleValue();
+            return ((Number) mean.invoke(average)).doubleValue();
         }
 
         private double pollMsptMax(Object window) throws ReflectiveOperationException {
             Object average = msptPoll.invoke(msptStatistic, window);
-            Object max = average.getClass().getMethod("max").invoke(average);
-            return ((Number) max).doubleValue();
+            return ((Number) max.invoke(average)).doubleValue();
         }
 
         private double pollMsptPercentile95(Object window) throws ReflectiveOperationException {
             Object average = msptPoll.invoke(msptStatistic, window);
-            Object percentile = average.getClass().getMethod("percentile95th").invoke(average);
-            return ((Number) percentile).doubleValue();
+            return ((Number) percentile95th.invoke(average)).doubleValue();
         }
 
         private static Object enumConstant(Class<?> enumClass, String name) {
