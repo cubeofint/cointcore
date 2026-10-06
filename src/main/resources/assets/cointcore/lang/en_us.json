@@ -328,6 +328,8 @@
   "message.cointcore.chunklimit.entity_cap_removed": "&aMob cap removed: &f%s",
   "entity.cointcore.item_pile.name": "&6Item pile: &f%s",
   "block.cointcore.trader": "Trade Terminal",
+  "container.cointcore.trader": "Trade Terminal",
+  "container.cointcore.trader.soon": "Trader — soon",
   "permission.name.cointcore.watchdog": "Tick Watchdog",
   "permission.desc.cointcore.watchdog": "Allows /cointcore watchdog and lag alerts",
   "message.cointcore.watchdog.disabled": "&cTick watchdog is disabled.",

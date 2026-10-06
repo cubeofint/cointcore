@@ -328,6 +328,8 @@
   "message.cointcore.chunklimit.entity_cap_removed": "&aОбщий кап мобов снят: &f%s",
   "entity.cointcore.item_pile.name": "&6Куча предметов: &f%s",
   "block.cointcore.trader": "Торговый терминал",
+  "container.cointcore.trader": "Торговый терминал",
+  "container.cointcore.trader.soon": "Торговец — скоро",
   "permission.name.cointcore.watchdog": "Tick Watchdog",
   "permission.desc.cointcore.watchdog": "Команда /cointcore watchdog и уведомления о лагах",
   "message.cointcore.watchdog.disabled": "&cTick watchdog выключен.",
