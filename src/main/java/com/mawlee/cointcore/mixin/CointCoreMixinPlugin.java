@@ -90,7 +90,8 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.justdirethings.MiscToolsTickAccelMixin",
             "com.mawlee.cointcore.mixin.justdirethings.TimeWandFakePlayerMixin",
             "com.mawlee.cointcore.mixin.justdirethings.PolymorphBossDenyMixin",
-            "com.mawlee.cointcore.mixin.justdirethings.PolymorphicWandV2BossDenyMixin"
+            "com.mawlee.cointcore.mixin.justdirethings.PolymorphicWandV2BossDenyMixin",
+            "com.mawlee.cointcore.mixin.justdirethings.PortalEntityChunkLoadMixin"
     );
 
     private static final Set<String> POWAH_MIXINS = Set.of(
@@ -108,6 +109,10 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     private static final Set<String> FTB_CHUNKS_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.ftbchunks.PermissionsHelperBonusMixin",
             "com.mawlee.cointcore.mixin.ftbchunks.ClaimedChunkManagerBypassMixin"
+    );
+
+    private static final Set<String> FTB_RANKS_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.ftbranks.RankManagerImplMixin"
     );
 
     private static final Set<String> FTB_TEAMS_MIXINS = Set.of(
@@ -158,18 +163,11 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.apothicspawners.SpawnerLogicExtMixin"
     );
 
-    private static final Set<String> AE2WTLIB_MIXINS = Set.of(
-            "com.mawlee.cointcore.mixin.ae2wtlib.MagnetHandlerThrottleMixin"
-    );
-
     private static final Set<String> AE2_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.ae2.TagSearchPredicateMixin",
             "com.mawlee.cointcore.mixin.ae2.SpatialStorageHelperMixin",
-            "com.mawlee.cointcore.mixin.ae2.AEItemKeyFuzzyMaxCacheMixin"
-    );
-
-    private static final Set<String> ADVANCED_AE_MIXINS = Set.of(
-            "com.mawlee.cointcore.mixin.advancedae.UpgradeCardsAutoStockMixin"
+            "com.mawlee.cointcore.mixin.ae2.AEItemKeyFuzzyMaxCacheMixin",
+            "com.mawlee.cointcore.mixin.ae2.ChunkLoadingServiceMixin"
     );
 
     private static final Set<String> REFINED_STORAGE_MIXINS = Set.of(
@@ -202,7 +200,8 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     );
 
     private static final Set<String> ENDERIO_MIXINS = Set.of(
-            "com.mawlee.cointcore.mixin.enderio.PoweredSpawnerLootMixin"
+            "com.mawlee.cointcore.mixin.enderio.PoweredSpawnerLootMixin",
+            "com.mawlee.cointcore.mixin.enderio.ItemConduitTickerMixin"
     );
 
     private static final Set<String> RFTOOLS_UTILITY_MIXINS = Set.of(
@@ -235,7 +234,29 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     );
 
     private static final Set<String> RELICS_MIXINS = Set.of(
-            "com.mawlee.cointcore.mixin.relics.RelicsVanishingRenderMixin"
+            "com.mawlee.cointcore.mixin.relics.RelicsVanishingRenderMixin",
+            "com.mawlee.cointcore.mixin.relics.RelicsBackpackScanMixin"
+    );
+
+    private static final Set<String> COMPACT_MACHINES_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.compactmachines.ChunkLoaderUpgradeAppliedMixin"
+    );
+
+    private static final Set<String> HOSTILE_NETWORKS_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.hostilenetworks.DataCenterTileEntityMixin"
+    );
+
+    private static final Set<String> IMMERSIVE_ENGINEERING_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.immersiveengineering.ChunkLoaderLogicMixin"
+    );
+
+    private static final Set<String> RAILCRAFT_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.railcraft.WorldSpikeBlockMixin",
+            "com.mawlee.cointcore.mixin.railcraft.WorldSpikeMinecartMixin"
+    );
+
+    private static final Set<String> STEVES_CARTS_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.stevescarts.ModuleChunkLoaderMixin"
     );
 
     private static final Set<String> ROOTS_CLASSIC_MIXINS = Set.of(
@@ -285,6 +306,10 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             return isModLoaded("ftbchunks");
         }
 
+        if (FTB_RANKS_MIXINS.contains(mixinClassName)) {
+            return isModLoaded("ftbranks");
+        }
+
         if (FTB_TEAMS_MIXINS.contains(mixinClassName)) {
             return isModLoaded("ftbteams");
         }
@@ -309,20 +334,32 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             return isModLoaded("apothic_spawners");
         }
 
-        if (AE2WTLIB_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("ae2wtlib");
-        }
-
         if (AE2_MIXINS.contains(mixinClassName)) {
             return isModLoaded("ae2");
         }
 
-        if (ADVANCED_AE_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("advanced_ae");
-        }
-
         if (REFINED_STORAGE_MIXINS.contains(mixinClassName)) {
             return isModLoaded("refinedstorage");
+        }
+
+        if (COMPACT_MACHINES_MIXINS.contains(mixinClassName)) {
+            return isModLoaded("compactmachines");
+        }
+
+        if (HOSTILE_NETWORKS_MIXINS.contains(mixinClassName)) {
+            return isModLoaded("hostilenetworks");
+        }
+
+        if (IMMERSIVE_ENGINEERING_MIXINS.contains(mixinClassName)) {
+            return isModLoaded("immersiveengineering");
+        }
+
+        if (RAILCRAFT_MIXINS.contains(mixinClassName)) {
+            return isModLoaded("railcraft");
+        }
+
+        if (STEVES_CARTS_MIXINS.contains(mixinClassName)) {
+            return isModLoaded("stevescarts");
         }
 
         if (DISCORD_CHAT_MOD_MIXINS.contains(mixinClassName)) {

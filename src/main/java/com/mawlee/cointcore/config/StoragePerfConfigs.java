@@ -8,8 +8,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 /**
- * Owns {@code config/cointcore/storage-perf.json} with sections {@code ae2},
- * {@code advanced_ae}, and {@code rs_importer}.
+ * Owns {@code config/cointcore/storage-perf.json} with sections {@code ae2} and {@code rs_importer}.
  */
 public final class StoragePerfConfigs {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -28,7 +27,6 @@ public final class StoragePerfConfigs {
         } catch (IOException | RuntimeException exception) {
             LOGGER.error("Failed to load {}; using defaults", FILE_NAME, exception);
             Ae2PerfConfig.applySection(Ae2PerfConfig.defaultFileData());
-            AdvancedAePerfConfig.applySection(AdvancedAePerfConfig.defaultFileData());
             RsImporterPerfConfig.applySection(RsImporterPerfConfig.defaultFileData());
         }
     }
@@ -48,7 +46,6 @@ public final class StoragePerfConfigs {
                 FILE_NAME,
                 ConfigMergeSupport.legacyMap(
                         "ae2", "ae2_perf.json",
-                        "advanced_ae", "advanced_ae_perf.json",
                         "rs_importer", "rs_importer_perf.json"
                 ),
                 StoragePerfConfigs::defaults,
@@ -60,7 +57,6 @@ public final class StoragePerfConfigs {
     private static JsonObject defaults() {
         JsonObject root = new JsonObject();
         root.add("ae2", ConfigMergeSupport.toJsonObject(Ae2PerfConfig.defaultFileData()));
-        root.add("advanced_ae", ConfigMergeSupport.toJsonObject(AdvancedAePerfConfig.defaultFileData()));
         root.add("rs_importer", ConfigMergeSupport.toJsonObject(RsImporterPerfConfig.defaultFileData()));
         return root;
     }
@@ -69,15 +65,11 @@ public final class StoragePerfConfigs {
         Ae2PerfConfig.applySection(ConfigMergeSupport.sectionOrDefault(
                 root, "ae2", Ae2PerfConfig.Data.class, Ae2PerfConfig::defaultFileData
         ));
-        AdvancedAePerfConfig.applySection(ConfigMergeSupport.sectionOrDefault(
-                root, "advanced_ae", AdvancedAePerfConfig.FileData.class, AdvancedAePerfConfig::defaultFileData
-        ));
         RsImporterPerfConfig.applySection(ConfigMergeSupport.sectionOrDefault(
                 root, "rs_importer", RsImporterPerfConfig.Data.class, RsImporterPerfConfig::defaultFileData
         ));
         if (logReload) {
             Ae2PerfConfig.logReload();
-            AdvancedAePerfConfig.logReload();
             RsImporterPerfConfig.logReload();
         }
     }

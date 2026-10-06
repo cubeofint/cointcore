@@ -4,6 +4,7 @@ import com.mawlee.cointcore.ae.MeUniqueFilterConfig;
 import com.mawlee.cointcore.ae.NonStackableItemTagPack;
 import com.mawlee.cointcore.afk.AfkService;
 import com.mawlee.cointcore.config.AfkConfig;
+import com.mawlee.cointcore.config.FtbRanksLuckPermsBridgeConfig;
 import com.mawlee.cointcore.config.ChatDiscordRelayConfig;
 import com.mawlee.cointcore.config.ArsPerfConfigs;
 import com.mawlee.cointcore.config.CataclysmRespawnConfigs;
@@ -24,6 +25,7 @@ import com.mawlee.cointcore.config.SoulSurgeDenyConfig;
 import com.mawlee.cointcore.config.TickAccelerationDenyConfig;
 import com.mawlee.cointcore.config.SpawnerPerfConfig;
 import com.mawlee.cointcore.config.ItemPerfConfig;
+import com.mawlee.cointcore.config.LagFixesConfigs;
 import com.mawlee.cointcore.config.StoragePerfConfigs;
 import com.mawlee.cointcore.config.TickThrottleConfigs;
 import com.mawlee.cointcore.ars.ArsGlyphThrottle;
@@ -142,6 +144,7 @@ public final class CointCoreCommand {
         RelpChatPrefixConfig.load();
         if (ChatConfigs.reload()
                 && AfkConfig.reload()
+                && FtbRanksLuckPermsBridgeConfig.reload()
                 && ChatDiscordRelayConfig.reload()
                 && NaturalSpawnConfig.reload()
                 && CleanupConfigs.reload()
@@ -159,6 +162,7 @@ public final class CointCoreCommand {
                 && ItemPerfConfig.reload()
                 && ArsPerfConfigs.reload()
                 && StoragePerfConfigs.reload()
+                && LagFixesConfigs.reload()
                 && ExplosionTerrainConfig.reload()
                 && SpawnerByproductConfig.reload()
                 && DimensionWipeConfig.reload()

@@ -206,26 +206,39 @@ public final class LuckPermsIntegration {
         return OptionalInt.empty();
     }
 
-    public static int getMetaInt(UUID playerId, String metaKey, int defaultValue) {
-        if (!isAvailable() || metaKey == null || metaKey.isBlank()) {
-            return defaultValue;
+    public static Optional<String> getMetaValue(UUID playerId, String metaKey) {
+        if (!isAvailable() || playerId == null || metaKey == null || metaKey.isBlank()) {
+            return Optional.empty();
         }
 
         try {
             Object user = getUser(playerId);
             if (user == null) {
-                return defaultValue;
+                return Optional.empty();
             }
 
             Object cachedData = invoke(user, "getCachedData");
             Object metaData = invoke(cachedData, "getMetaData");
             String value = (String) invoke(metaData, "getMetaValue", new Class<?>[]{String.class}, metaKey);
             if (value == null || value.isBlank()) {
-                return defaultValue;
+                return Optional.empty();
             }
 
-            return Integer.parseInt(value.trim());
-        } catch (ReflectiveOperationException | NumberFormatException ignored) {
+            return Optional.of(value.trim());
+        } catch (ReflectiveOperationException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    public static int getMetaInt(UUID playerId, String metaKey, int defaultValue) {
+        Optional<String> value = getMetaValue(playerId, metaKey);
+        if (value.isEmpty()) {
+            return defaultValue;
+        }
+
+        try {
+            return Integer.parseInt(value.get());
+        } catch (NumberFormatException ignored) {
             return defaultValue;
         }
     }

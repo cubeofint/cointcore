@@ -10,6 +10,7 @@ import com.mawlee.cointcore.command.ModCommands;
 import com.mawlee.cointcore.afk.AfkListMarker;
 import com.mawlee.cointcore.afk.AfkTracker;
 import com.mawlee.cointcore.config.AfkConfig;
+import com.mawlee.cointcore.config.FtbRanksLuckPermsBridgeConfig;
 import com.mawlee.cointcore.config.ChatDiscordRelayConfig;
 import com.mawlee.cointcore.config.ArsPerfConfigs;
 import com.mawlee.cointcore.config.CataclysmRespawnConfigs;
@@ -30,8 +31,10 @@ import com.mawlee.cointcore.config.SoulSurgeDenyConfig;
 import com.mawlee.cointcore.config.TickAccelerationDenyConfig;
 import com.mawlee.cointcore.config.SpawnerPerfConfig;
 import com.mawlee.cointcore.config.ItemPerfConfig;
+import com.mawlee.cointcore.config.LagFixesConfigs;
 import com.mawlee.cointcore.config.StoragePerfConfigs;
 import com.mawlee.cointcore.config.TickThrottleConfigs;
+import com.mawlee.cointcore.justdirethings.JdtPortalTicketCleanup;
 import com.mawlee.cointcore.config.ExplosionTerrainConfig;
 import com.mawlee.cointcore.config.SpawnerByproductConfig;
 import com.mawlee.cointcore.config.SparkProfilerConfig;
@@ -46,6 +49,7 @@ import com.mawlee.cointcore.join.JoinMessageService;
 import com.mawlee.cointcore.message.PrivateMessageService;
 import com.mawlee.cointcore.nightvision.NightVisionService;
 import com.mawlee.cointcore.ftb.ChunkBonusService;
+import com.mawlee.cointcore.ftbranks.FtbRanksLuckPermsBridge;
 import com.mawlee.cointcore.flux.FluxAdminAccess;
 import com.mawlee.cointcore.privilege.DonorPrivilegeService;
 import com.mawlee.cointcore.pvp.PvpModeManager;
@@ -57,6 +61,7 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import org.slf4j.Logger;
 
@@ -72,6 +77,7 @@ public final class CointCoreEvents {
             ChatConfigs.load();
             RelpChatPrefixConfig.load();
             AfkConfig.load();
+            FtbRanksLuckPermsBridgeConfig.load();
             ChatDiscordRelayConfig.load();
             NaturalSpawnConfig.load();
             CleanupConfigs.load();
@@ -90,6 +96,7 @@ public final class CointCoreEvents {
             ItemPerfConfig.load();
             ArsPerfConfigs.load();
             StoragePerfConfigs.load();
+            LagFixesConfigs.load();
             ExplosionTerrainConfig.load();
             SpawnerByproductConfig.load();
             DimensionWipeConfig.load();
@@ -112,8 +119,17 @@ public final class CointCoreEvents {
         SeeInvisibleService.init(event.getServer());
         ClaimFlagEditSync.init(event.getServer());
         ChunkBonusService.init(event.getServer());
+        FtbRanksLuckPermsBridge.init(event.getServer());
         ChatSpyManager.loadFromSavedData(event.getServer());
         com.mawlee.cointcore.watchdog.TickWatchdogService.instance().start(event.getServer());
+    }
+
+    public static void onServerStarted(ServerStartedEvent event) {
+        try {
+            JdtPortalTicketCleanup.onServerStarted(event);
+        } catch (RuntimeException exception) {
+            LOGGER.error("Failed to clear Just Dire Things portal force-load tickets", exception);
+        }
     }
 
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {

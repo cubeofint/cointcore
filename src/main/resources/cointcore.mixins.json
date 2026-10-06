@@ -7,7 +7,7 @@
   "mixins": [
     "ae2.AEItemKeyFuzzyMaxCacheMixin"
   ],
-    "client": [
+  "client": [
     "ae2.TagSearchPredicateMixin",
     "client.EntitySeeInvisibleMixin",
     "client.LivingEntitySeeInvisibleParticlesMixin",
@@ -62,7 +62,6 @@
     "evilcraft.EntityBroomMixin",
     "evilcraft.BroomMountedDigMixin",
     "evilcraft.EntangledChaliceAutofillMixin",
-    "ae2wtlib.MagnetHandlerThrottleMixin",
     "naturesaura.AuraChunkAccessor",
     "naturesaura.AuraChunkSpotMapMixin",
     "naturesaura.CommonEventsLevelTickMixin",
@@ -106,7 +105,7 @@
     "notenoughglyphs.TrailingProjectileMixin",
     "arsunification.DatapackSyncRecipeMixin",
     "ae2.SpatialStorageHelperMixin",
-    "advancedae.UpgradeCardsAutoStockMixin",
+    "ae2.ChunkLoadingServiceMixin",
     "refinedstorage.ImporterNetworkNodeIdleSkipMixin",
     "computercraft.TurtleToolMixin",
     "draconicevolution.ModularMiningToolMixin",
@@ -126,6 +125,7 @@
     "justdirethings.TimeWandFakePlayerMixin",
     "justdirethings.PolymorphBossDenyMixin",
     "justdirethings.PolymorphicWandV2BossDenyMixin",
+    "justdirethings.PortalEntityChunkLoadMixin",
     "actuallyadditions.VerticalDiggerMixin",
     "industrialforegoing.BlockUtilsClaimMixin",
     "industrialforegoing.MobDuplicatorLootMixin",
@@ -135,6 +135,7 @@
     "botanypots.BotanyPotBlockEntityMixin",
     "claim.FireBlockIgniteMixin",
     "ftbchunks.PermissionsHelperBonusMixin",
+    "ftbranks.RankManagerImplMixin",
     "ftbchunks.ClaimedChunkManagerBypassMixin",
     "ftbteams.UpdatePropertiesRequestMixin",
     "discord.MinecraftUtilsMixin",
@@ -148,6 +149,7 @@
     "oritech.NuclearExplosionEntityMixin",
     "oritech.SpawnerControllerLootMixin",
     "enderio.PoweredSpawnerLootMixin",
+    "enderio.ItemConduitTickerMixin",
     "rftoolsutility.SpawnerTileLootMixin",
     "pneumaticcraft.PressurizedSpawnerLootMixin",
     "mahoutsukai.KeyPressPacketMixin",
@@ -175,7 +177,14 @@
     "adastra.AdAstraEnvironmentTickMixin",
     "adastra.AdAstraDetectorMixin",
     "adastra.AdAstraAirVortexMixin",
-    "mysticalagriculture.SouliumSpawnerLootMixin"
+    "mysticalagriculture.SouliumSpawnerLootMixin",
+    "relics.RelicsBackpackScanMixin",
+    "compactmachines.ChunkLoaderUpgradeAppliedMixin",
+    "hostilenetworks.DataCenterTileEntityMixin",
+    "immersiveengineering.ChunkLoaderLogicMixin",
+    "railcraft.WorldSpikeBlockMixin",
+    "railcraft.WorldSpikeMinecartMixin",
+    "stevescarts.ModuleChunkLoaderMixin"
   ],
   "injectors": {
     "defaultRequire": 1
