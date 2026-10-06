@@ -61,13 +61,17 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
             return;
         }
         boolean can = menu.canToggleEdit();
-        editButton.visible = can;
+        boolean busy = menu.isEditBusy();
+        editButton.visible = can || busy;
         editButton.active = can;
         editButton.setMessage(editLabel());
         editButton.style(menu.isEditMode() ? InvSeeFlatButton.Style.EDIT : InvSeeFlatButton.Style.ACCENT);
     }
 
     private Component editLabel() {
+        if (menu.isEditBusy()) {
+            return Component.translatable("gui.cointcore.invsee.mode.busy");
+        }
         if (!menu.canToggleEdit()) {
             return Component.translatable("gui.cointcore.invsee.mode.read_only");
         }

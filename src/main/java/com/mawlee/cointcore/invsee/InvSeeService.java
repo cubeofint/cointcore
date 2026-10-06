@@ -22,7 +22,7 @@ public final class InvSeeService {
     }
 
     public static boolean openPlayer(ServerPlayer viewer, InvSeeTarget target) {
-        InvSeeSession session = InvSeeSessions.begin(viewer, target);
+        InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.INVENTORY);
         return open(viewer, title(target, "gui.cointcore.invsee.tab.player"),
                 (id, inv, player) -> new InvSeePlayerMenu(id, inv, session),
                 buf -> {
@@ -32,7 +32,7 @@ public final class InvSeeService {
     }
 
     public static boolean openEnder(ServerPlayer viewer, InvSeeTarget target) {
-        InvSeeSession session = InvSeeSessions.begin(viewer, target);
+        InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.ENDER);
         return open(viewer, title(target, "gui.cointcore.invsee.tab.ender"),
                 (id, inv, player) -> new InvSeeEnderMenu(id, inv, session),
                 buf -> buf.writeBoolean(true));
@@ -42,7 +42,7 @@ public final class InvSeeService {
         if (!ModList.get().isLoaded("curios")) {
             return false;
         }
-        InvSeeSession session = InvSeeSessions.begin(viewer, target);
+        InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.CURIOS);
         return open(viewer, title(target, "gui.cointcore.invsee.tab.curios_all"),
                 (id, inv, player) -> new InvSeeCuriosMenu(id, inv, session),
                 buf -> buf.writeBoolean(true));
@@ -52,7 +52,7 @@ public final class InvSeeService {
         if (!ModList.get().isLoaded("cosmeticarmorreworked")) {
             return false;
         }
-        InvSeeSession session = InvSeeSessions.begin(viewer, target);
+        InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.COSMETIC);
         return openReflective(
                 viewer,
                 Component.translatable("gui.cointcore.invsee.tab.cosmetic"),
@@ -70,7 +70,7 @@ public final class InvSeeService {
         if (!ModList.get().isLoaded("pocketstorage")) {
             return false;
         }
-        InvSeeSession session = InvSeeSessions.begin(viewer, target);
+        InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.POCKET);
         return openReflective(
                 viewer,
                 title(target, "gui.cointcore.invsee.tab.pocket_storage", shortId(storageId.toString())),
@@ -88,7 +88,7 @@ public final class InvSeeService {
         if (!ModList.get().isLoaded("sophisticatedbackpacks")) {
             return false;
         }
-        InvSeeSession session = InvSeeSessions.begin(viewer, target);
+        InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.BACKPACK);
         return openReflective(
                 viewer,
                 title(target, "gui.cointcore.invsee.tab.backpack", shortKey(locationKey)),
@@ -103,7 +103,7 @@ public final class InvSeeService {
     }
 
     public static boolean openAttachment(ServerPlayer viewer, InvSeeTarget target, String attachmentKey) {
-        InvSeeSession session = InvSeeSessions.begin(viewer, target);
+        InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.MODDATA);
         return open(viewer, title(target, "gui.cointcore.invsee.tab.attachment", shortAttachment(attachmentKey)),
                 (id, inv, player) -> new InvSeeAttachmentMenu(id, inv, session, attachmentKey),
                 buf -> {

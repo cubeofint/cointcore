@@ -1,36 +1,53 @@
 package com.mawlee.cointcore.invsee;
 
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.UUID;
 
 public final class InvSeeSession {
     private final UUID viewerId;
+    private final String viewerName;
     private final InvSeeTarget target;
-    private boolean editMode;
+    private final InvSeeSection section;
     private boolean closed;
 
-    InvSeeSession(ServerPlayer viewer, InvSeeTarget target) {
+    InvSeeSession(ServerPlayer viewer, InvSeeTarget target, InvSeeSection section) {
         this.viewerId = viewer.getUUID();
+        this.viewerName = viewer.getGameProfile().getName();
         this.target = target;
-        this.editMode = false;
+        this.section = section;
     }
 
     public UUID viewerId() {
         return viewerId;
     }
 
+    public String viewerName() {
+        return viewerName;
+    }
+
     public InvSeeTarget target() {
         return target;
     }
 
-    public boolean isEditMode() {
-        return editMode;
+    public InvSeeSection section() {
+        return section;
     }
 
-    public void setEditMode(boolean editMode) {
-        this.editMode = editMode;
+    public boolean isEditMode() {
+        return target.editLock().isHeldBy(viewerId);
+    }
+
+    public boolean tryEnterEdit(ServerPlayer viewer, long nowMs) {
+        return target.editLock().tryAcquire(viewer.getUUID(), viewer.getGameProfile().getName(), nowMs);
+    }
+
+    public void exitEdit() {
+        target.editLock().release(viewerId);
+    }
+
+    void abandonMenu() {
+        closed = true;
     }
 
     public void close() {
@@ -38,12 +55,9 @@ public final class InvSeeSession {
             return;
         }
         closed = true;
-        if (target.isOffline()) {
-            MinecraftServer server = target.getPlayer().getServer();
-            if (server != null) {
-                target.saveOffline(server);
-            }
-        }
+        target.editLock().release(viewerId);
+        InvSeeAuditLog.closed(viewerName, target.displayName(), section);
+        InvSeeTargets.release(target);
     }
 
     public boolean isClosed() {

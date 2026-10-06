@@ -1,9 +1,12 @@
 package com.mawlee.cointcore.invsee.menu;
 
+import com.mawlee.cointcore.invsee.InvSeeAuditLog;
+import com.mawlee.cointcore.invsee.InvSeeItemStacks;
+import com.mawlee.cointcore.invsee.InvSeePermissions;
+import com.mawlee.cointcore.invsee.InvSeeSection;
 import com.mawlee.cointcore.invsee.InvSeeSession;
 import com.mawlee.cointcore.invsee.InvSeeSessions;
-import com.mawlee.cointcore.permission.CointPermissionNodes;
-import com.mawlee.cointcore.permission.PermissionService;
+import com.mawlee.cointcore.lang.CointCoreMessages;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -22,18 +25,22 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
     public static final int BUTTON_TOGGLE_EDIT = 100;
     public static final int[] SLOT_X = {8, 26, 44, 62, 80, 98, 116, 134, 152};
 
+    public static final int LOCK_NONE = 0;
+    public static final int LOCK_CAN_EDIT = 1;
+    public static final int LOCK_BUSY = 2;
+
     protected final InvSeeSession session;
-    protected final Player target;
+    protected Player target;
     protected final ServerPlayer viewer;
     protected final boolean clientSide;
-    protected final boolean canEdit;
     protected final int contentSlotCount;
     protected final InvSeeBoundSlot[] contentSlots;
     protected final SimpleContainer placeholders;
 
     private boolean syncedEditMode;
-    private boolean syncedCanEdit;
+    private int syncedLockState;
     private final int viewerInvStart;
+    private long seenGeneration = Long.MIN_VALUE;
 
     protected InvSeeBaseMenu(
             MenuType<?> type,
@@ -48,13 +55,12 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
         this.session = session;
         this.target = session != null ? session.target().getPlayer() : null;
         this.viewer = !clientSide ? (ServerPlayer) viewerInventory.player : null;
-        this.canEdit = viewer != null && PermissionService.has(viewer, CointPermissionNodes.INVSEE_EDIT);
         this.contentSlotCount = contentSlotCount;
         this.placeholders = new SimpleContainer(Math.max(1, contentSlotCount));
         this.contentSlots = new InvSeeBoundSlot[contentSlotCount];
 
-        if (session != null && !canEdit) {
-            session.setEditMode(false);
+        if (session != null && viewer != null && !InvSeePermissions.canEdit(viewer, session.section())) {
+            session.exitEdit();
         }
 
         buildContentSlots();
@@ -75,31 +81,30 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
         addDataSlot(new DataSlot() {
             @Override
             public int get() {
-                return canEdit ? 1 : 0;
+                return lockState();
             }
 
             @Override
             public void set(int value) {
-                syncedCanEdit = value != 0;
+                syncedLockState = value;
             }
         });
 
         if (!clientSide) {
-            syncedCanEdit = canEdit;
+            syncedLockState = lockState();
         }
-        // refreshContent() runs from subclass finishServerInit() after its fields exist
     }
 
-    /**
-     * Call at the end of every subclass constructor (after field assignment / extra DataSlots).
-     * Base {@code super(...)} must not refresh — subclass fields are still uninitialized then.
-     */
     protected final void finishServerInit() {
         if (clientSide) {
             return;
         }
+        refreshLiveTarget();
         refreshContent();
         syncedEditMode = isEditModeRaw();
+        if (session != null) {
+            seenGeneration = session.target().generation();
+        }
     }
 
     protected abstract void buildContentSlots();
@@ -142,27 +147,73 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
     }
 
     public boolean canToggleEdit() {
-        return clientSide ? syncedCanEdit : canEdit;
+        return lockStateSynced() == LOCK_CAN_EDIT;
+    }
+
+    public boolean isEditBusy() {
+        return lockStateSynced() == LOCK_BUSY;
+    }
+
+    public boolean showEditToggle() {
+        return lockStateSynced() != LOCK_NONE;
+    }
+
+    private int lockStateSynced() {
+        return clientSide ? syncedLockState : lockState();
+    }
+
+    private int lockState() {
+        if (clientSide || viewer == null || session == null) {
+            return syncedLockState;
+        }
+        if (!InvSeePermissions.canEdit(viewer, session.section()) || session.target().isFrozen()) {
+            return LOCK_NONE;
+        }
+        if (session.target().editLock().isHeld() && !session.target().editLock().isHeldBy(viewer.getUUID())) {
+            return LOCK_BUSY;
+        }
+        return LOCK_CAN_EDIT;
     }
 
     private boolean isEditModeRaw() {
-        return canEdit && session != null && session.isEditMode();
+        return editable();
     }
 
     protected boolean editable() {
-        return isEditModeRaw();
+        return viewer != null
+                && session != null
+                && session.target().isUsable()
+                && !session.target().isFrozen()
+                && session.isEditMode()
+                && InvSeePermissions.canEdit(viewer, session.section());
     }
 
     @Override
     public boolean clickMenuButton(Player player, int id) {
-        if (clientSide || session == null) {
+        if (clientSide || session == null || viewer == null) {
             return false;
         }
         if (id == BUTTON_TOGGLE_EDIT) {
-            if (!canEdit) {
+            if (!InvSeePermissions.canEdit(viewer, session.section()) || session.target().isFrozen()) {
+                session.exitEdit();
+                refreshContent();
+                broadcastChanges();
                 return false;
             }
-            session.setEditMode(!session.isEditMode());
+            if (session.isEditMode()) {
+                session.exitEdit();
+                InvSeeAuditLog.editMode(viewer.getGameProfile().getName(), session.target().displayName(), false);
+            } else if (session.tryEnterEdit(viewer, System.currentTimeMillis())) {
+                InvSeeAuditLog.editMode(viewer.getGameProfile().getName(), session.target().displayName(), true);
+            } else {
+                String editor = session.target().editLock().editorName();
+                viewer.sendSystemMessage(CointCoreMessages.forPlayer(
+                        viewer,
+                        CointCoreMessages.INVSEE_BUSY,
+                        editor == null ? "?" : editor
+                ));
+                return false;
+            }
             refreshContent();
             broadcastChanges();
             return true;
@@ -180,15 +231,17 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
             super.clicked(slotId, dragType, clickType, player);
             return;
         }
-        if (!isEditModeRaw() && isContentSlot(slotId)) {
+        if (!mayMutateTarget() && isContentSlot(slotId)) {
             return;
         }
+        ItemStack[] before = snapshotContent();
         super.clicked(slotId, dragType, clickType, player);
+        logContentChanges(before);
     }
 
     @Override
     public boolean canDragTo(Slot slot) {
-        if (!clientSide && !isEditModeRaw() && isContentSlot(slot.index)) {
+        if (!clientSide && !mayMutateTarget() && isContentSlot(slot.index)) {
             return false;
         }
         return super.canDragTo(slot);
@@ -209,8 +262,9 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
         ItemStack copy = original.copy();
         int contentEnd = contentSlotCount;
         int total = slots.size();
+        ItemStack[] before = snapshotContent();
 
-        if (!isEditModeRaw()) {
+        if (!mayMutateTarget()) {
             if (index < contentEnd) {
                 return ItemStack.EMPTY;
             }
@@ -230,6 +284,7 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
         } else {
             slot.setChanged();
         }
+        logContentChanges(before);
         return copy;
     }
 
@@ -245,7 +300,28 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
         if (!(player instanceof ServerPlayer serverPlayer) || session == null) {
             return false;
         }
-        return !session.isClosed() && PermissionService.has(serverPlayer, CointPermissionNodes.INVSEE);
+        if (session.isClosed() || !session.target().isUsable()) {
+            return false;
+        }
+        if (!InvSeePermissions.canView(serverPlayer, session.section())) {
+            return false;
+        }
+        return InvSeePermissions.canInspect(serverPlayer, serverPlayer.server, session.target().playerId());
+    }
+
+    @Override
+    public void broadcastChanges() {
+        if (!clientSide && session != null) {
+            refreshLiveTarget();
+            long generation = session.target().generation();
+            if (generation != seenGeneration) {
+                seenGeneration = generation;
+                refreshContent();
+            } else if (session.isEditMode() && !editable()) {
+                refreshContent();
+            }
+        }
+        super.broadcastChanges();
     }
 
     @Override
@@ -256,6 +332,51 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
                 && player instanceof ServerPlayer serverPlayer
                 && serverPlayer.getUUID().equals(session.viewerId())) {
             InvSeeSessions.close(session);
+        }
+    }
+
+    private boolean mayMutateTarget() {
+        return editable();
+    }
+
+    private void refreshLiveTarget() {
+        if (session != null) {
+            target = session.target().getPlayer();
+        }
+    }
+
+    private ItemStack[] snapshotContent() {
+        ItemStack[] items = new ItemStack[contentSlotCount];
+        for (int i = 0; i < contentSlotCount; i++) {
+            items[i] = contentSlots[i].getItem().copy();
+        }
+        return items;
+    }
+
+    private void logContentChanges(ItemStack[] before) {
+        if (viewer == null || session == null || before == null) {
+            return;
+        }
+        boolean changed = false;
+        InvSeeSection section = session.section();
+        for (int i = 0; i < contentSlotCount; i++) {
+            ItemStack after = contentSlots[i].getItem();
+            if (InvSeeItemStacks.same(before[i], after)) {
+                continue;
+            }
+            changed = true;
+            InvSeeAuditLog.slotChange(
+                    viewer.getGameProfile().getName(),
+                    session.target().displayName(),
+                    section,
+                    i,
+                    InvSeeItemStacks.describe(before[i]),
+                    InvSeeItemStacks.describe(after)
+            );
+        }
+        if (changed) {
+            session.target().markDirty();
+            session.target().editLock().touch(viewer.getUUID(), System.currentTimeMillis());
         }
     }
 }
