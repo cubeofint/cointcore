@@ -322,6 +322,13 @@ public final class CointPermissionNodes {
             Component.translatable("permission.desc.cointcore.claim.buffer.bypass")
     );
 
+    public static final PermissionNode<Boolean> WATCHDOG = new PermissionNode<>(
+            CointCore.MOD_ID, "watchdog", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.watchdog"),
+            Component.translatable("permission.desc.cointcore.watchdog")
+    );
+
     public static PermissionNode<?>[] invSeeNodes() {
         return new PermissionNode<?>[] {
                 INVSEE,

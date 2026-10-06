@@ -20,6 +20,7 @@
 - [InvSee](#invsee)
 - [Права доступа](#права-доступа)
 - [Конфигурация](#конфигурация)
+- [Tick watchdog](#tick-watchdog)
 - [Лаг-фиксы ATM10 8.2](#лаг-фиксы-atm10-82)
 - [Интеграции](#интеграции)
   - [Мост FTB Ranks → LuckPerms](#мост-ftb-ranks--luckperms)
@@ -45,6 +46,7 @@
 - Очистка мобов по расписанию (`mob-cleanup`)
 - Голосования за день и ясную погоду (`/voteday`, `/votesun`)
 - Интеграция со Spark (TPS/MSPT, профилирование)
+- Tick watchdog: координаты дорогих block entity / entity и топ методов при лагах
 
 ### Защита территории (FTB Chunks)
 
@@ -175,6 +177,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/cointcore chunklimit ...` | Управление лимитами чанков |
 | `/cointcore claim flag ...` | Флаги чанков FTB (если FTB Chunks установлен) |
 | `/cointcore kit ...` | Управление кредитами на киты (если FTB Essentials установлен) |
+| `/cointcore watchdog ...` | Tick watchdog: отчёт, топ, телепорт к виновнику |
 
 #### Флаги чанков (`/cointcore claim flag`)
 
@@ -289,6 +292,68 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `cointcore.adminchat` | OP | Админ-чат |
 | `cointcore.invsee` | OP | InvSee: базовый просмотр (см. [InvSee](#invsee)) |
 | `cointcore.invsee.edit` | OP | InvSee: запасная правка всех разделов |
+| `cointcore.watchdog` | OP | Tick watchdog: команда и уведомления о лагах |
+
+## Tick watchdog
+
+Постоянный серверный монитор лагов. Когда тик тормозит, в отчёте видны **какие** block entity / entity виноваты, **где** они стоят и **какие методы каких модов** едят время. Spark для этого не нужен.
+
+### Что показывает
+
+- Топ ticking block entity и entity: id типа, мод, измерение, координаты, чанк, суммарное/среднее время.
+- Если установлен FTB Chunks: владелец/команда клейма и force-load (`ftbchunks`, `vanilla`, `ftbchunks+vanilla`, иначе `loaded` если чанк просто загружен).
+- Топ методы по self-time на медленных тиках: «метод X мода Y занял N% времени медленных тиков», с привязкой к block entity, который тикался в момент семпла.
+- Статистика окна: avg / p95 / max MSPT, оценка TPS, число медленных тиков.
+
+Детальный nanoTime вокруг каждого BE/entity включается **только после недавнего медленного тика** (режим `auto`). На спокойном сервере это два `nanoTime` на тик плюс счётчики.
+
+Оценка оверхеда: в простое **<0.01 ms/тик**; в детальном режиме обычно **0.05–0.3 ms/тик** (зависит от числа тикающихся BE/entity); семплирование стека идёт в отдельном daemon-потоке и не крутится, пока нет медленного тика.
+
+### Команды
+
+| Команда | Описание |
+|---------|----------|
+| `/cointcore watchdog top` | Текущий топ виновников в чат |
+| `/cointcore watchdog report` | Сразу записать и показать отчёт (полный файл — на диске) |
+| `/cointcore watchdog tp <n>` | Телепорт к записи №n из последнего топа |
+| `/cointcore watchdog start` | Включить в рантайме |
+| `/cointcore watchdog stop` | Выключить в рантайме |
+
+Право: `cointcore.watchdog` (OP 2 по умолчанию, узел через `PermissionGatherEvent`). Онлайн-админы с этим правом получают предупреждение в чат при серии медленных тиков.
+
+### Как читать отчёт
+
+Файлы: `logs/cointcore-watchdog/ГГГГ-ММ-ДД.log` (UTC, дописывается в течение дня).
+
+1. Блок статистики тиков — есть ли устойчивый лаг (p95/max vs порог).
+2. Топ block entity — обычно главный виновник (пример: `enderio:item_conduit` у склада Functional Storage). Берите `pos` и `chunk`, смотрите `claim` / `forceload`.
+3. Топ entity — мобы, contraption, item entities.
+4. Топ методы — если BE сам по себе «дешёвый», а внутри него тяжёлый чужой мод (Relics copy, Curios scan и т.п.).
+
+### Конфиг `config/cointcore/tick-watchdog.json`
+
+| Ключ | Дефолт | Смысл |
+|------|--------|--------|
+| `enabled` | `true` | Главный выключатель |
+| `slowTickThresholdMs` | `100` | Тик считается медленным |
+| `sustainedSlowTicks` | `3` | Подряд медленных тиков для варнинга |
+| `windowSeconds` | `60` | Окно агрегации / размер кольца тиков |
+| `detailedTimingMode` | `auto` | `auto` / `always` / `off` — nanoTime вокруг BE/entity |
+| `autoDetailedAfterSlowTicks` | `1` | В `auto` включать детализацию после N медленных |
+| `samplingIntervalMs` | `1` | Интервал семплов стека Server thread |
+| `samplingMaxDurationMs` | `80` | Сколько семплировать после обнаружения медленного тика |
+| `topEntries` | `15` | Сколько строк в отчёте |
+| `reportIntervalSeconds` | `300` | Как часто писать дневной файл |
+| `maxReportAgeDays` | `7` | Retention отчётов (0 = без лимита по возрасту) |
+| `maxReportTotalSizeMb` | `512` | Retention отчётов по суммарному размеру (0 = без лимита) |
+| `notifyAdmins` | `true` | Писать топ-3 в чат админам |
+| `notifyCooldownSeconds` | `60` | Антиспам варнингов |
+| `attributeBlockEntities` | `true` | Замерять block entity |
+| `attributeEntities` | `true` | Замерять entity |
+
+Retention старых отчётов: хранятся **7 дней или 512 MB**, что наступит раньше.
+
+Автопрофили Spark (`config/cointcore/spark-profiler.json`) тоже чистится: `maxProfileAgeDays` (7) и `maxProfileTotalSizeMb` (5120 ≈ 5 GB). Старые `.spark` в `spark/` удаляются, чтобы снова не набрать сотни гигабайт.
 
 ## Конфигурация
 
@@ -303,7 +368,8 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `config/cointcore/chunk-limits.json` | Лимиты блоков и сущностей на чанк |
 | `config/cointcore/join-messages.json` | Сообщения при входе/выходе |
 | `config/cointcore/admin-chat.json` | Формат админ-чата |
-| `config/cointcore/spark-profiler.json` | Автопрофилирование Spark |
+| `config/cointcore/spark-profiler.json` | Автопрофилирование Spark + retention профилей |
+| `config/cointcore/tick-watchdog.json` | Tick watchdog (координаты лагов, семплы методов) |
 | `config/cointcore/afk.json` | AFK: пометка и кик |
 | `config/cointcore/ftbranks-luckperms-bridge.json` | Мост FTB Ranks → LuckPerms (`ftbranksLuckPermsBridge`, по умолчанию `false`) |
 | `config/cointcore/me-unique-filter.json` | Уникальные фильтры ME (AE2) |
@@ -458,7 +524,8 @@ src/main/java/com/mawlee/cointcore/
 ├── mixin/            # Mixin + CointCoreMixinPlugin (условная загрузка)
 ├── vanish/           # Невидимость
 ├── mute/, ban/, punishment/  # Модерация
-├── server/           # Рестарты, очистка мира
+├── watchdog/         # Tick watchdog: атрибуция, семплер, retention
+├── server/           # Рестарты, очистка мира, авто-spark
 ├── chunklimit/       # Лимиты на чанк
 ├── spawner/          # Спавнеры
 ├── keepinventory/    # Keep Inventory

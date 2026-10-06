@@ -203,6 +203,15 @@ public final class CointCoreMessages {
     public static final String STARTER_KIT_COOLDOWN_SYNCED = "message.cointcore.starter.cooldown_synced";
     public static final String STARTER_KIT_FIRSTJOIN_RESET = "message.cointcore.starter.firstjoin_reset";
     public static final String ITEM_PILE_NAME = "entity.cointcore.item_pile.name";
+    public static final String WATCHDOG_DISABLED = "message.cointcore.watchdog.disabled";
+    public static final String WATCHDOG_NO_DATA = "message.cointcore.watchdog.no_data";
+    public static final String WATCHDOG_PLAYER_ONLY = "message.cointcore.watchdog.player_only";
+    public static final String WATCHDOG_NO_ENTRY = "message.cointcore.watchdog.no_entry";
+    public static final String WATCHDOG_DIM_MISSING = "message.cointcore.watchdog.dim_missing";
+    public static final String WATCHDOG_TP = "message.cointcore.watchdog.tp";
+    public static final String WATCHDOG_STARTED = "message.cointcore.watchdog.started";
+    public static final String WATCHDOG_STOPPED = "message.cointcore.watchdog.stopped";
+    public static final String WATCHDOG_REPORT_TRUNCATED = "message.cointcore.watchdog.report_truncated";
 
     private CointCoreMessages() {
     }

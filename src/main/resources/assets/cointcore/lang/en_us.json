@@ -327,5 +327,16 @@
   "message.cointcore.chunklimit.entity_cap_set": "&aMob cap set: &f%s &7= &f%d",
   "message.cointcore.chunklimit.entity_cap_removed": "&aMob cap removed: &f%s",
   "entity.cointcore.item_pile.name": "&6Item pile: &f%s",
-  "block.cointcore.trader": "Trade Terminal"
+  "block.cointcore.trader": "Trade Terminal",
+  "permission.name.cointcore.watchdog": "Tick Watchdog",
+  "permission.desc.cointcore.watchdog": "Allows /cointcore watchdog and lag alerts",
+  "message.cointcore.watchdog.disabled": "&cTick watchdog is disabled.",
+  "message.cointcore.watchdog.no_data": "&7No watchdog samples yet. Wait for a few ticks (or a slow tick in auto mode).",
+  "message.cointcore.watchdog.player_only": "&cPlayers only.",
+  "message.cointcore.watchdog.no_entry": "&cNo watchdog entry #%d. Use /cointcore watchdog top.",
+  "message.cointcore.watchdog.dim_missing": "&cDimension not loaded: %s",
+  "message.cointcore.watchdog.tp": "&aTeleported to #%d %s at %s %d %d %d",
+  "message.cointcore.watchdog.started": "&aTick watchdog started.",
+  "message.cointcore.watchdog.stopped": "&7Tick watchdog stopped.",
+  "message.cointcore.watchdog.report_truncated": "&7(report truncated; full file is in logs/cointcore-watchdog/)"
 }

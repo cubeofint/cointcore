@@ -80,6 +80,7 @@
     "create.ContraptionEntityChunkMixin",
     "create.CarriageContraptionEntityMixin",
     "entangled.EntangledBlockEntityMixin",
+    "minecraft.BoundTickingBlockEntityMixin",
     "minecraft.LevelBlockMutationGuardMixin",
     "minecraft.LevelSetBlockChunkLimitMixin",
     "minecraft.PrimaryLevelDataForcedWeatherMixin",

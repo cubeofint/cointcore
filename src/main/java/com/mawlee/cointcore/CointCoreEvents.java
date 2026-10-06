@@ -38,6 +38,7 @@ import com.mawlee.cointcore.justdirethings.JdtPortalTicketCleanup;
 import com.mawlee.cointcore.config.ExplosionTerrainConfig;
 import com.mawlee.cointcore.config.SpawnerByproductConfig;
 import com.mawlee.cointcore.config.SparkProfilerConfig;
+import com.mawlee.cointcore.config.TickWatchdogConfig;
 import com.mawlee.cointcore.config.DimensionWipeConfig;
 import com.mawlee.cointcore.config.StarterKitConfig;
 import com.mawlee.cointcore.kit.StarterKitService;
@@ -86,6 +87,7 @@ public final class CointCoreEvents {
             VoteConfig.load();
             ServerAutomationConfig.load();
             SparkProfilerConfig.load();
+            TickWatchdogConfig.load();
             TickThrottleConfigs.load();
             SoulSurgePerfConfig.load();
             SoulSurgeDenyConfig.load();
@@ -119,6 +121,7 @@ public final class CointCoreEvents {
         ChunkBonusService.init(event.getServer());
         FtbRanksLuckPermsBridge.init(event.getServer());
         ChatSpyManager.loadFromSavedData(event.getServer());
+        com.mawlee.cointcore.watchdog.TickWatchdogService.instance().start(event.getServer());
     }
 
     public static void onServerStarted(ServerStartedEvent event) {
