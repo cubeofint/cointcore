@@ -17,6 +17,7 @@ import com.mawlee.cointcore.permission.PermissionRegistration;
 import com.mawlee.cointcore.seeinvisible.SeeInvisibleNetwork;
 import com.mawlee.cointcore.invsee.InvSeeMenus;
 import com.mawlee.cointcore.shop.ShopBlocks;
+import com.mawlee.cointcore.shop.ShopMenus;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -34,6 +35,7 @@ public class CointCore {
         modEventBus.addListener(AfkNetwork::register);
         InvSeeMenus.REGISTER.register(modEventBus);
         ShopBlocks.register(modEventBus);
+        ShopMenus.register(modEventBus);
 
         FtbTeamPropertyRegistration.register();
         ClaimBufferService.register();
