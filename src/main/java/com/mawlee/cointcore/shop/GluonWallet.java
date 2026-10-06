@@ -28,4 +28,8 @@ public final class GluonWallet {
     public static boolean trySubtract(MinecraftServer server, UUID playerId, long amount) {
         return GluonWalletSavedData.get(server).trySubtract(playerId, amount);
     }
+
+    public static boolean tryTransfer(MinecraftServer server, UUID fromId, UUID toId, long amount) {
+        return GluonWalletSavedData.get(server).tryTransfer(fromId, toId, amount);
+    }
 }

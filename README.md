@@ -64,6 +64,7 @@
 - Лимиты блоков и сущностей на чанк (`/chunklimit`)
 - Лимиты и перехват лута спавнеров (Apothic Spawners)
 - Кредиты на киты FTB Essentials (`/kit balance`, `/cointcore kit ...`)
+- Кошелёк глюонов: `/balance`, `/pay`, админ `/cointcore gluons`, торговый терминал
 - Уникальные фильтры ME (AE2)
 - Донорские привилегии (полёт и др.)
 
@@ -165,6 +166,8 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/voteday` | Голосование за день |
 | `/votesun` / `/voteclearweather` | Голосование за ясную погоду |
 | `/kit balance` | Баланс кредитов на киты (FTB Essentials) |
+| `/balance` / `/money` | Баланс глюонов |
+| `/pay <игрок> <сумма>` / `/transfer` | Перевод глюонов (офлайн-цели через usercache, как mute) |
 
 ### Администрирование (`/cointcore`)
 
@@ -178,6 +181,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/cointcore claim flag ...` | Флаги чанков FTB (если FTB Chunks установлен) |
 | `/cointcore kit ...` | Управление кредитами на киты (если FTB Essentials установлен) |
 | `/cointcore watchdog ...` | Tick watchdog: отчёт, топ, телепорт к виновнику |
+| `/cointcore gluons get\|set\|add` | Админ-кошелёк глюонов (`cointcore.gluons.admin`) |
 
 #### Флаги чанков (`/cointcore claim flag`)
 
@@ -293,6 +297,9 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `cointcore.invsee` | OP | InvSee: базовый просмотр (см. [InvSee](#invsee)) |
 | `cointcore.invsee.edit` | OP | InvSee: запасная правка всех разделов |
 | `cointcore.watchdog` | OP | Tick watchdog: команда и уведомления о лагах |
+| `cointcore.gluons.admin` | OP | Админ-команды `/cointcore gluons` |
+| `cointcore.gluons.balance` | все | `/balance` и `/money` |
+| `cointcore.gluons.pay` | все | `/pay` и `/transfer` |
 
 ## Tick watchdog
 
@@ -370,6 +377,8 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/admin-chat.json` | Формат админ-чата |
 | `config/cointcore/spark-profiler.json` | Автопрофилирование Spark + retention профилей |
 | `config/cointcore/tick-watchdog.json` | Tick watchdog (координаты лагов, семплы методов) |
+| `config/cointcore/trader_offers.json` | Офферы торговца и `commission_percent` |
+| `config/cointcore/currency-movement.json` | HTTP-форвардер движений валюты (выключен по умолчанию) |
 | `config/cointcore/afk.json` | AFK: пометка и кик |
 | `config/cointcore/ftbranks-luckperms-bridge.json` | Мост FTB Ranks → LuckPerms (`ftbranksLuckPermsBridge`, по умолчанию `false`) |
 | `config/cointcore/me-unique-filter.json` | Уникальные фильтры ME (AE2) |
@@ -379,6 +388,16 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/relpchatprefix/config.json` | Префиксы relay-чата |
 
 Данные игроков (муты, киты, флаги чанков, история наказаний) хранятся в `world/data/` через Minecraft SavedData.
+
+## Глюоны и торговец
+
+Кошелёк: overworld SavedData `cointcore_gluon_wallets`. `/pay` и `/transfer` атомарны, цель может быть офлайн (тот же resolve, что у mute). `/cointcore gluons` только для админов.
+
+Торговец: блок терминала, офферы из `config/cointcore/trader_offers.json`. Комиссия `Commission.of` с округлением вверх. **Покупатель** платит `цена + комиссия`. **Продавец** получает `цена − комиссия`. ЛКМ по слоту оффера — купить, ПКМ — продать. Динамический рынок — следующая фаза.
+
+Движения валюты пишутся в overworld SavedData `cointcore_currency_movements` (`pay`, `trader_buy`, `trader_sell`, `admin_set`, `admin_add`). Это outbox для раздела сайта «движение валют».
+
+**AzLink / сайт (TODO):** у cointcore нет зависимости на AzLink. Старый AzLink умел затирать баланс сайта абсолютным значением с сервера — так делать нельзя. Сейчас: локальный outbox + `CurrencyMovementSink` (no-op) + опциональный HTTP POST, если в `currency-movement.json` включить `enabled` и задать `endpoint_url` (без выдуманных токенов). Когда в AzLink-mods появится очередь append-only, её можно подключить рефлексией в `AzLinkCurrencyMovementSink`.
 
 ## Лаг-фиксы ATM10 8.2
 

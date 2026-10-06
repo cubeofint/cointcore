@@ -46,7 +46,9 @@ public final class PermissionRegistration {
                 CointPermissionNodes.STARTER_KIT_ADMIN,
                 CointPermissionNodes.CLAIM_BUFFER_BYPASS,
                 CointPermissionNodes.WATCHDOG,
-                CointPermissionNodes.GLUONS_ADMIN
+                CointPermissionNodes.GLUONS_ADMIN,
+                CointPermissionNodes.GLUONS_BALANCE,
+                CointPermissionNodes.GLUONS_PAY
         );
         event.addNodes(CointPermissionNodes.invSeeNodes());
     }

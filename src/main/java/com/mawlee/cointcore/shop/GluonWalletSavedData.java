@@ -71,6 +71,22 @@ public final class GluonWalletSavedData extends SavedData {
         return true;
     }
 
+    /**
+     * Atomically moves {@code amount} gluons from {@code fromId} to {@code toId}.
+     * Fails without changing balances if funds are insufficient, amount is not positive,
+     * or the endpoints are the same player.
+     */
+    public synchronized boolean tryTransfer(UUID fromId, UUID toId, long amount) {
+        if (!GluonTransfer.canTransfer(fromId, toId, amount)) {
+            return false;
+        }
+        if (!trySubtract(fromId, amount)) {
+            return false;
+        }
+        add(toId, amount);
+        return true;
+    }
+
     private static GluonWalletSavedData load(CompoundTag tag, HolderLookup.Provider provider) {
         GluonWalletSavedData data = new GluonWalletSavedData();
         if (!tag.contains(PLAYERS_KEY, Tag.TAG_LIST)) {
