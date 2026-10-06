@@ -77,6 +77,8 @@
 - JDK 21
 - Git
 
+Локальная папка `server-mods` **не нужна** для компиляции. JAR сторонних модов под mixin подтягиваются из Maven (Curse Maven / официальные репозитории авторов).
+
 ### Шаги
 
 ```bash
@@ -87,27 +89,38 @@ cd cointcore
 
 Готовый JAR: `build/libs/cointcore-1.0.0.jar`.
 
-### Папка `modlist/`
+CI на GitHub Actions собирает тот же `./gradlew build` на push в `main` и на pull request.
 
-Для компиляции mixin-классов нужны JAR сторонних модов в локальной папке `modlist/` (она в `.gitignore` и не входит в репозиторий). Скопируйте из вашего модпака COINT следующие файлы:
+### Зависимости модпака (ATM10 8.2)
 
-| JAR | Назначение |
-|-----|------------|
-| `create-1.21.1-6.0.10.jar` | Create |
-| `appliedenergistics2-19.2.17.jar` | AE2 |
-| `AdditionalEnchantedMiner-1.21.1-neoforge-21.1.153.jar` | QuarryPlus |
-| `ars_nouveau-1.21.1-5.11.5.jar` | Ars Nouveau |
-| `cc-tweaked-1.21.1-forge-1.113.1.jar` | ComputerCraft |
-| `industrialforegoing-1.21-3.6.38.jar` | Industrial Foregoing |
-| `Draconic-Evolution-1.21.1-3.1.4.632.jar` | Draconic Evolution |
-| `BrandonsCore-1.21.1-3.2.1.309.jar` | Brandon's Core |
-| `actuallyadditions-1.3.25+mc1.21.1.jar` | Actually Additions |
-| `entangled-1.3.21-neoforge-mc1.21.jar` | Entangled |
-| `ApothicSpawners-1.21.1-1.3.4.jar` | Apothic Spawners |
-| `cyclopscore-1.21.1-neoforge-1.29.1.jar` | Cyclops Core |
-| `supermartijn642corelib-1.1.21-neoforge-mc1.21.jar` | CoreLib |
+Версии compile-only модов зафиксированы в `gradle.properties` как координаты Curse Maven:
 
-Версии должны совпадать с указанными в `build.gradle`. FTB-моды и LuckPerms подтягиваются из Maven автоматически.
+`curse.maven:<slug>-<projectId>:<fileId>`
+
+Они совпадают с манифестом клиентского пака **All the Mods 10 8.2** (CurseForge project `925200`, file `8945086`), кроме:
+
+| Источник | Моды |
+|----------|------|
+| Maven FTB (`maven.ftb.dev`) | FTB Essentials, Library, Teams, Chunks |
+| Maven Illusive Soulworks | Curios API |
+| Maven Wisp Forest | Accessories |
+| Maven Central | LuckPerms API |
+| Curse Maven, не из манифеста клиента 8.2 | TAB (`tab-1232967:7659430`, 1.21.1), Discord & Chat Images (`discord-chat-connect-1198238:8768897`) |
+
+Репозитории в `build.gradle` ограничены через `content { includeGroup ... }`.
+
+### Папка `server-mods`
+
+Папка в `.gitignore` и **не нужна для сборки**. Туда можно вручную положить JAR модпака, если нужно разбирать байткод (декомпиляция, проверка mixin). В репозиторий их коммитить нельзя (лицензии сторонних модов).
+
+### Как добавить зависимость под новый mixin
+
+1. Найдите мод в манифесте ATM10 8.2 (`projectID` / `fileID`) или на CurseForge/Modrinth.
+2. Добавьте координату в `gradle.properties` (`curse_<id>=<slug>-<projectId>:<fileId>`).
+3. Добавьте `packMods(curseMod(curse_<id>)) { transitive = false }` в `build.gradle`.
+4. Если мода нет на Curse Maven (автор запретил сторонние загрузки) — используйте `maven.modrinth:<slug>:<version>` или официальный Maven автора.
+5. Если нет ни одного Maven: цели mixin через `@Mixin(targets = "...")` и `@Pseudo`, без импорта классов мода; либо минимальные заглушки в отдельном source set только для компиляции (не попадают в итоговый JAR).
+6. Проверьте `./gradlew build` **без** папки `server-mods`.
 
 ### Запуск dev-сервера
 
