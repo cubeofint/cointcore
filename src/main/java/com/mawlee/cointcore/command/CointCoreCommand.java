@@ -4,6 +4,7 @@ import com.mawlee.cointcore.ae.MeUniqueFilterConfig;
 import com.mawlee.cointcore.ae.NonStackableItemTagPack;
 import com.mawlee.cointcore.afk.AfkService;
 import com.mawlee.cointcore.config.AfkConfig;
+import com.mawlee.cointcore.config.FtbRanksLuckPermsBridgeConfig;
 import com.mawlee.cointcore.config.ChatDiscordRelayConfig;
 import com.mawlee.cointcore.config.ArsPerfConfigs;
 import com.mawlee.cointcore.config.CataclysmRespawnConfigs;
@@ -140,6 +141,7 @@ public final class CointCoreCommand {
         RelpChatPrefixConfig.load();
         if (ChatConfigs.reload()
                 && AfkConfig.reload()
+                && FtbRanksLuckPermsBridgeConfig.reload()
                 && ChatDiscordRelayConfig.reload()
                 && NaturalSpawnConfig.reload()
                 && CleanupConfigs.reload()

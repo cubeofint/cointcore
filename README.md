@@ -21,6 +21,7 @@
 - [Права доступа](#права-доступа)
 - [Конфигурация](#конфигурация)
 - [Интеграции](#интеграции)
+  - [Мост FTB Ranks → LuckPerms](#мост-ftb-ranks--luckperms)
 - [Структура проекта](#структура-проекта)
 
 ## Возможности
@@ -302,6 +303,8 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `config/cointcore/join-messages.json` | Сообщения при входе/выходе |
 | `config/cointcore/admin-chat.json` | Формат админ-чата |
 | `config/cointcore/spark-profiler.json` | Автопрофилирование Spark |
+| `config/cointcore/afk.json` | AFK: пометка и кик |
+| `config/cointcore/ftbranks-luckperms-bridge.json` | Мост FTB Ranks → LuckPerms (`ftbranksLuckPermsBridge`, по умолчанию `false`) |
 | `config/cointcore/me-unique-filter.json` | Уникальные фильтры ME (AE2) |
 | `config/relpchatprefix/config.json` | Префиксы relay-чата |
 
@@ -314,6 +317,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | Мод | Что даёт |
 |-----|----------|
 | **LuckPerms** | Расширенное управление правами |
+| **FTB Ranks** | Опциональный мост к LuckPerms (см. ниже) |
 | **FTB Chunks / Teams** | Защита чанков, флаги команд |
 | **FTB Essentials** | Киты, офлайн-телепорт, фиксы NBT |
 | **Curios / Accessories** | Keep Inventory, донорский полёт |
@@ -323,6 +327,31 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | **TAB** | Плейсхолдеры `%cointcore_tps%`, `%cointcore_mspt%` и др. |
 | **Placeholder API** | Плейсхолдеры `%cointcore:tps%`, `%cointcore:mspt%` и др. |
 | **Create, Quarry+, Ars Nouveau, ...** | Защита чанков через mixin |
+
+### Мост FTB Ranks → LuckPerms
+
+Когда установлены и FTB Ranks, и LuckPerms, FTB Ranks перехватывает проверки команд (`command.*`) и отдаёт meta для FTB Essentials / Ultimine из своих рангов. Если в рангах узла нет, по умолчанию используется vanilla OP / дефолт конфига мода — **без запроса к LuckPerms**. Из‑за этого группы LuckPerms с `command.*` и meta вроде `ftbessentials.home.max` / `ftbultimine.max_blocks` не работают, пока FTB Ranks установлен.
+
+CointCore добавляет опциональный mixin-мост: если FTB Ranks не нашёл явное значение узла у игрока, запрос уходит в LuckPerms (permission node или meta). Явные значения в рангах FTB Ranks остаются приоритетнее. Если LuckPerms тоже молчит, сохраняется исходный fallback FTB Ranks.
+
+**Как включить**
+
+1. Откройте `config/cointcore/ftbranks-luckperms-bridge.json`.
+2. Установите `"ftbranksLuckPermsBridge": true`.
+3. По желанию включите `"ftbranksLuckPermsBridgeDebug": true` — в лог пишутся узел, игрок и источник (`FTB Ranks` / `LuckPerms` / `fallback`).
+4. Выполните `/cointcore reload` или перезапустите сервер.
+
+По умолчанию мост **выключен** (`false`): поведение байт-в-байт как без него.
+
+> **Предупреждение:** после включения начинают действовать **все** уже прописанные в группах LuckPerms узлы `command.*` и meta FTB. Сначала проверьте группы helper / moderator / donor: лишние права (kick, tp, fly, god, kits и т.д.) сразу станут доступны игрокам этих групп.
+
+**Чеклист ручной проверки на тестовом сервере (аккаунт без OP)**
+
+1. Игрок в donor-группе с `command.fly` — `/fly` должен работать после включения моста.
+2. Meta `ftbessentials.home.max` — `/sethome` учитывает лимит из LuckPerms (не только дефолт конфига).
+3. Meta `ftbultimine.max_blocks` — лимит Ultimine берётся из LuckPerms.
+4. Смена группы LuckPerms у онлайн-игрока — лимиты FTB Chunks (claim / force-load) обновляются без релога (мост дергает тот же refresh, что и chunk-bonus).
+5. Выключите `ftbranksLuckPermsBridge` и перезагрузите конфиг — поведение снова как до моста.
 
 ## Структура проекта
 

@@ -10,6 +10,7 @@ import com.mawlee.cointcore.command.ModCommands;
 import com.mawlee.cointcore.afk.AfkListMarker;
 import com.mawlee.cointcore.afk.AfkTracker;
 import com.mawlee.cointcore.config.AfkConfig;
+import com.mawlee.cointcore.config.FtbRanksLuckPermsBridgeConfig;
 import com.mawlee.cointcore.config.ChatDiscordRelayConfig;
 import com.mawlee.cointcore.config.ArsPerfConfigs;
 import com.mawlee.cointcore.config.CataclysmRespawnConfigs;
@@ -45,6 +46,7 @@ import com.mawlee.cointcore.join.JoinMessageService;
 import com.mawlee.cointcore.message.PrivateMessageService;
 import com.mawlee.cointcore.nightvision.NightVisionService;
 import com.mawlee.cointcore.ftb.ChunkBonusService;
+import com.mawlee.cointcore.ftbranks.FtbRanksLuckPermsBridge;
 import com.mawlee.cointcore.flux.FluxAdminAccess;
 import com.mawlee.cointcore.privilege.DonorPrivilegeService;
 import com.mawlee.cointcore.pvp.PvpModeManager;
@@ -71,6 +73,7 @@ public final class CointCoreEvents {
             ChatConfigs.load();
             RelpChatPrefixConfig.load();
             AfkConfig.load();
+            FtbRanksLuckPermsBridgeConfig.load();
             ChatDiscordRelayConfig.load();
             NaturalSpawnConfig.load();
             CleanupConfigs.load();
@@ -110,6 +113,7 @@ public final class CointCoreEvents {
         SeeInvisibleService.init(event.getServer());
         ClaimFlagEditSync.init(event.getServer());
         ChunkBonusService.init(event.getServer());
+        FtbRanksLuckPermsBridge.init(event.getServer());
         ChatSpyManager.loadFromSavedData(event.getServer());
     }
 

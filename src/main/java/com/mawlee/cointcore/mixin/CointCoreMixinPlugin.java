@@ -110,6 +110,10 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.ftbchunks.ClaimedChunkManagerBypassMixin"
     );
 
+    private static final Set<String> FTB_RANKS_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.ftbranks.RankManagerImplMixin"
+    );
+
     private static final Set<String> FTB_TEAMS_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.ftbteams.UpdatePropertiesRequestMixin",
             "com.mawlee.cointcore.mixin.ftbteams.TeamSettingsEditMixin"
@@ -283,6 +287,10 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         if (FTB_CHUNKS_MIXINS.contains(mixinClassName)) {
             return isModLoaded("ftbchunks");
+        }
+
+        if (FTB_RANKS_MIXINS.contains(mixinClassName)) {
+            return isModLoaded("ftbranks");
         }
 
         if (FTB_TEAMS_MIXINS.contains(mixinClassName)) {
