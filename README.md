@@ -109,15 +109,9 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 
 Репозитории в `build.gradle` ограничены через `content { includeGroup ... }`.
 
-### JAR для разбора байткода (`server-mods`)
+### Папка `server-mods`
 
-Папка в `.gitignore` и необязательна. Чтобы агент или IDE получили те же версии, что и компилятор:
-
-```bash
-./gradlew fetchServerMods
-```
-
-Файлы появятся в `server-mods/`. В репозиторий их коммитить нельзя (лицензии сторонних модов).
+Папка в `.gitignore` и **не нужна для сборки**. Туда можно вручную положить JAR модпака, если нужно разбирать байткод (декомпиляция, проверка mixin). В репозиторий их коммитить нельзя (лицензии сторонних модов).
 
 ### Как добавить зависимость под новый mixin
 
@@ -126,7 +120,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 3. Добавьте `packMods(curseMod(curse_<id>)) { transitive = false }` в `build.gradle`.
 4. Если мода нет на Curse Maven (автор запретил сторонние загрузки) — используйте `maven.modrinth:<slug>:<version>` или официальный Maven автора.
 5. Если нет ни одного Maven: цели mixin через `@Mixin(targets = "...")` и `@Pseudo`, без импорта классов мода; либо минимальные заглушки в отдельном source set только для компиляции (не попадают в итоговый JAR).
-6. Проверьте `./gradlew build` **без** папки `server-mods`. Для разбора байткода снова выполните `./gradlew fetchServerMods`.
+6. Проверьте `./gradlew build` **без** папки `server-mods`.
 
 ### Запуск dev-сервера
 

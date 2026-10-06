@@ -52,7 +52,7 @@ _modlist-analysis/
 ### Local server/client mod sets, profiles and logs ###
 client-mods/
 # Optional local copies of pack jars for decompilation / mixin analysis.
-# Not required for `./gradlew build` — use `./gradlew fetchServerMods`.
+# Not required for `./gradlew build`.
 server-mods/
 spark-profilers/
 *.log
