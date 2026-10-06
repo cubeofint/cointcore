@@ -29,19 +29,39 @@ sourceSets.main.resources {
 repositories {
     mavenCentral()
     maven {
+        name = 'FTB'
         url = 'https://maven.ftb.dev/releases'
+        content {
+            includeGroup 'dev.ftb.mods'
+        }
     }
     maven {
         name = 'Illusive Soulworks'
         url = 'https://maven.theillusivec4.top/'
+        content {
+            includeGroup 'top.theillusivec4.curios'
+        }
     }
     maven {
         name = 'Wisp Forest'
         url = 'https://maven.wispforest.io/releases'
+        content {
+            includeGroup 'io.wispforest'
+        }
     }
     maven {
-        name = 'CyclopsMC'
-        url = 'https://repo.cyclopsmc.net/releases/'
+        name = 'Curse Maven'
+        url = 'https://cursemaven.com'
+        content {
+            includeGroup 'curse.maven'
+        }
+    }
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content {
+            includeGroup 'maven.modrinth'
+        }
     }
 }
 
@@ -104,18 +124,12 @@ neoForge {
 // "optional", meaning it will not be pulled by dependents of this mod.
 configurations {
     runtimeClasspath.extendsFrom localRuntime
+    // ATM10 compile-only jars for mixins. Not packaged. Copied by fetchServerMods.
+    packMods
+    compileOnly.extendsFrom packMods
 }
 
-// Mixins and integrations import classes from the server pack. Those jars stay
-// compileOnly: javac needs them to resolve types, and they are not packaged into
-// this mod. Names change with pack updates, so matching is by pattern.
-ext.modlistJar = { String pattern ->
-    def matches = fileTree(dir: 'server-mods', include: pattern).files.toSorted { it.name }
-    if (matches.isEmpty()) {
-        throw new GradleException("No jar in ./server-mods matches '${pattern}'")
-    }
-    return files(matches.last())
-}
+def curseMod = { String coord -> "curse.maven:${coord}" }
 
 dependencies {
     compileOnly "net.luckperms:api:5.4"
@@ -138,50 +152,49 @@ dependencies {
         transitive = false
     }
 
-    compileOnly modlistJar("cyclopscore-*.jar")
-    compileOnly modlistJar("evilcraft-*.jar")
-    compileOnly modlistJar("RootsClassic-*.jar")
-    compileOnly modlistJar("regions_unexplored-neoforge-*.jar")
-    compileOnly modlistJar("NaturesAura-*.jar")
-    compileOnly modlistJar("ApothicSpawners-*.jar")
-    compileOnly modlistJar("appliedenergistics2-*.jar")
-    compileOnly modlistJar("refinedstorage-neoforge-*.jar")
-    compileOnly modlistJar("create-1.21.1-*.jar")
-    compileOnly modlistJar("entangled-*.jar")
-    compileOnly modlistJar("supermartijn642corelib-*.jar")
-    compileOnly modlistJar("AdditionalEnchantedMiner-*.jar")
-    compileOnly modlistJar("ars_nouveau-*.jar")
-    compileOnly modlistJar("not_enough_glyphs-*.jar")
-    compileOnly modlistJar("ars_unification-*.jar")
-    compileOnly modlistJar("cc-tweaked-*.jar")
-    compileOnly modlistJar("industrialforegoing-1.21-*.jar")
-    compileOnly modlistJar("BrandonsCore-*.jar")
-    compileOnly modlistJar("Draconic-Evolution-*.jar")
-    compileOnly modlistJar("actuallyadditions-*.jar")
-    compileOnly modlistJar("discord_chat_mod-*.jar")
-    compileOnly modlistJar("mob_grinding_utils-*.jar")
-    compileOnly modlistJar("rftoolsbuilder-*.jar")
-    compileOnly modlistJar("rftoolsbase-*.jar")
-    compileOnly modlistJar("mcjtylib-*.jar")
-    compileOnly modlistJar("Super Factory Manager (SFM)-*.jar")
-    compileOnly modlistJar("bookshelf-neoforge-*.jar")
-    compileOnly modlistJar("botanypots-neoforge-*.jar")
-    compileOnly modlistJar("justdirethings-*.jar")
-    compileOnly modlistJar("Powah-*.jar")
-    compileOnly modlistJar("FluxNetworks-*.jar")
-    compileOnly modlistJar("oritech-neoforge-*.jar")
-    compileOnly modlistJar("mahoutsukai-*.jar")
-    compileOnly modlistJar("iceandfire-*.jar")
-    compileOnly modlistJar("allthemodium-*.jar")
-    compileOnly modlistJar("TAB*.jar")
-    compileOnly modlistJar("modular-routers-*.jar")
-    compileOnly modlistJar("curios-neoforge-*.jar")
-    compileOnly modlistJar("cosmeticarmorreworked-*.jar")
-    compileOnly modlistJar("pocketstorage-*.jar")
-    compileOnly modlistJar("sophisticatedbackpacks-*.jar")
-    compileOnly modlistJar("sophisticatedcore-*.jar")
-    compileOnly modlistJar("adastra-1.21.1-*.jar")
-    compileOnly modlistJar("MysticalAgriculture-*.jar")
+    packMods(curseMod(curse_cyclops_core)) { transitive = false }
+    packMods(curseMod(curse_evilcraft)) { transitive = false }
+    packMods(curseMod(curse_roots_classic)) { transitive = false }
+    packMods(curseMod(curse_regions_unexplored)) { transitive = false }
+    packMods(curseMod(curse_natures_aura)) { transitive = false }
+    packMods(curseMod(curse_apothic_spawners)) { transitive = false }
+    packMods(curseMod(curse_ae2)) { transitive = false }
+    packMods(curseMod(curse_refined_storage)) { transitive = false }
+    packMods(curseMod(curse_create)) { transitive = false }
+    packMods(curseMod(curse_entangled)) { transitive = false }
+    packMods(curseMod(curse_supermartijn_core)) { transitive = false }
+    packMods(curseMod(curse_quarryplus)) { transitive = false }
+    packMods(curseMod(curse_ars_nouveau)) { transitive = false }
+    packMods(curseMod(curse_not_enough_glyphs)) { transitive = false }
+    packMods(curseMod(curse_ars_unification)) { transitive = false }
+    packMods(curseMod(curse_cc_tweaked)) { transitive = false }
+    packMods(curseMod(curse_industrial_foregoing)) { transitive = false }
+    packMods(curseMod(curse_brandons_core)) { transitive = false }
+    packMods(curseMod(curse_draconic_evolution)) { transitive = false }
+    packMods(curseMod(curse_actually_additions)) { transitive = false }
+    packMods(curseMod(curse_mob_grinding_utils)) { transitive = false }
+    packMods(curseMod(curse_rftools_builder)) { transitive = false }
+    packMods(curseMod(curse_rftools_base)) { transitive = false }
+    packMods(curseMod(curse_mcjtylib)) { transitive = false }
+    packMods(curseMod(curse_sfm)) { transitive = false }
+    packMods(curseMod(curse_bookshelf)) { transitive = false }
+    packMods(curseMod(curse_botany_pots)) { transitive = false }
+    packMods(curseMod(curse_just_dire_things)) { transitive = false }
+    packMods(curseMod(curse_powah)) { transitive = false }
+    packMods(curseMod(curse_flux_networks)) { transitive = false }
+    packMods(curseMod(curse_oritech)) { transitive = false }
+    packMods(curseMod(curse_mahou_tsukai)) { transitive = false }
+    packMods(curseMod(curse_ice_and_fire)) { transitive = false }
+    packMods(curseMod(curse_allthemodium)) { transitive = false }
+    packMods(curseMod(curse_modular_routers)) { transitive = false }
+    packMods(curseMod(curse_cosmetic_armor)) { transitive = false }
+    packMods(curseMod(curse_pocket_storage)) { transitive = false }
+    packMods(curseMod(curse_sophisticated_backpacks)) { transitive = false }
+    packMods(curseMod(curse_sophisticated_core)) { transitive = false }
+    packMods(curseMod(curse_ad_astra)) { transitive = false }
+    packMods(curseMod(curse_mystical_agriculture)) { transitive = false }
+    packMods(curseMod(curse_discord_chat)) { transitive = false }
+    packMods(curseMod(curse_tab)) { transitive = false }
 
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
@@ -204,6 +217,14 @@ dependencies {
     // For more info:
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
+}
+
+tasks.register('fetchServerMods', Copy) {
+    group = 'cointcore'
+    description = 'Download ATM10 8.2 compile-only mod jars into ./server-mods for bytecode analysis. Not required to build.'
+    from configurations.named('packMods')
+    into layout.projectDirectory.dir('server-mods')
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
