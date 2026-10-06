@@ -65,7 +65,11 @@ class CommissionTest {
     @Test
     void saturatesOnOverflow() {
         Commission.Result result = Commission.of(Long.MAX_VALUE, 1.0d);
-        assertEquals(Long.MAX_VALUE, result.fee());
+        assertEquals(92_233_720_368_547_759L, result.fee());
         assertEquals(Long.MAX_VALUE, result.total());
+
+        Commission.Result hugePercent = Commission.of(Long.MAX_VALUE, 200.0d);
+        assertEquals(Long.MAX_VALUE, hugePercent.fee());
+        assertEquals(Long.MAX_VALUE, hugePercent.total());
     }
 }
