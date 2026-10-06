@@ -35,6 +35,7 @@ import com.mawlee.cointcore.config.TickThrottleConfigs;
 import com.mawlee.cointcore.config.ExplosionTerrainConfig;
 import com.mawlee.cointcore.config.SpawnerByproductConfig;
 import com.mawlee.cointcore.config.SparkProfilerConfig;
+import com.mawlee.cointcore.config.TickWatchdogConfig;
 import com.mawlee.cointcore.config.DimensionWipeConfig;
 import com.mawlee.cointcore.config.StarterKitConfig;
 import com.mawlee.cointcore.kit.StarterKitService;
@@ -80,6 +81,7 @@ public final class CointCoreEvents {
             VoteConfig.load();
             ServerAutomationConfig.load();
             SparkProfilerConfig.load();
+            TickWatchdogConfig.load();
             TickThrottleConfigs.load();
             SoulSurgePerfConfig.load();
             SoulSurgeDenyConfig.load();
@@ -111,6 +113,7 @@ public final class CointCoreEvents {
         ClaimFlagEditSync.init(event.getServer());
         ChunkBonusService.init(event.getServer());
         ChatSpyManager.loadFromSavedData(event.getServer());
+        com.mawlee.cointcore.watchdog.TickWatchdogService.instance().start(event.getServer());
     }
 
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {

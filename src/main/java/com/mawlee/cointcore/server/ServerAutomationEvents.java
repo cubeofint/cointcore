@@ -48,6 +48,8 @@ public final class ServerAutomationEvents {
         PeriodicMessageService.tick(server);
         SparkProfilerService.tick(server);
         SparkMetricsService.tick(server);
+        com.mawlee.cointcore.watchdog.WatchdogRetention.applySparkProfiles(server);
+        com.mawlee.cointcore.watchdog.WatchdogRetention.applyWatchdogReports(server);
     }
 
     @SubscribeEvent
@@ -62,6 +64,7 @@ public final class ServerAutomationEvents {
         PeriodicMessageService.resetRuntimeState();
         SparkProfilerService.resetRuntimeState();
         SparkMetricsService.resetRuntimeState();
+        com.mawlee.cointcore.watchdog.TickWatchdogService.instance().stop();
         SunkenCityRespawnService.resetRuntimeState();
         CataclysmStructureRespawnService.resetRuntimeState();
         ServerRestartService.cancelPendingRestart();

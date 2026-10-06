@@ -327,5 +327,16 @@
   "message.cointcore.chunklimit.entity_cap_set": "&aОбщий кап мобов: &f%s &7= &f%d",
   "message.cointcore.chunklimit.entity_cap_removed": "&aОбщий кап мобов снят: &f%s",
   "entity.cointcore.item_pile.name": "&6Куча предметов: &f%s",
-  "block.cointcore.trader": "Торговый терминал"
+  "block.cointcore.trader": "Торговый терминал",
+  "permission.name.cointcore.watchdog": "Tick Watchdog",
+  "permission.desc.cointcore.watchdog": "Команда /cointcore watchdog и уведомления о лагах",
+  "message.cointcore.watchdog.disabled": "&cTick watchdog выключен.",
+  "message.cointcore.watchdog.no_data": "&7Пока нет данных. Подождите несколько тиков (в режиме auto — медленный тик).",
+  "message.cointcore.watchdog.player_only": "&cТолько для игроков.",
+  "message.cointcore.watchdog.no_entry": "&cНет записи watchdog #%d. Сначала /cointcore watchdog top.",
+  "message.cointcore.watchdog.dim_missing": "&cИзмерение не загружено: %s",
+  "message.cointcore.watchdog.tp": "&aТелепорт к #%d %s в %s %d %d %d",
+  "message.cointcore.watchdog.started": "&aTick watchdog запущен.",
+  "message.cointcore.watchdog.stopped": "&7Tick watchdog остановлен.",
+  "message.cointcore.watchdog.report_truncated": "&7(отчёт обрезан; полный файл в logs/cointcore-watchdog/)"
 }

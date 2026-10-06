@@ -31,6 +31,7 @@ import com.mawlee.cointcore.ars.CrushRecipeCache;
 import com.mawlee.cointcore.config.ExplosionTerrainConfig;
 import com.mawlee.cointcore.config.SpawnerByproductConfig;
 import com.mawlee.cointcore.config.SparkProfilerConfig;
+import com.mawlee.cointcore.config.TickWatchdogConfig;
 import com.mawlee.cointcore.config.DimensionWipeConfig;
 import com.mawlee.cointcore.config.StarterKitConfig;
 import com.mawlee.cointcore.server.PeriodicMessageService;
@@ -106,7 +107,8 @@ public final class CointCoreCommand {
                                 .executes(CointCoreCommand::cataclysmSpotsStatus))
                         .then(Commands.literal("force")
                                 .executes(CointCoreCommand::cataclysmSpotsForce)))
-                .then(ChunkLimitCommand.chunkLimitCommand());
+                .then(ChunkLimitCommand.chunkLimitCommand())
+                .then(WatchdogCommand.branch());
 
         var claimFlags = ClaimFlagCommand.claimFlagCommand();
         if (claimFlags != null) {
@@ -161,7 +163,8 @@ public final class CointCoreCommand {
                 && SpawnerByproductConfig.reload()
                 && DimensionWipeConfig.reload()
                 && StarterKitConfig.reload()
-                && MeUniqueFilterConfig.reload()) {
+                && MeUniqueFilterConfig.reload()
+                && TickWatchdogConfig.reload()) {
             CrushRecipeCache.invalidate();
             ArsGlyphThrottle.clear();
             NonStackableItemTagPack.ensureGenerated();

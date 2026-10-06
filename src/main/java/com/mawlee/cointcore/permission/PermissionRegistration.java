@@ -44,7 +44,8 @@ public final class PermissionRegistration {
                 CointPermissionNodes.AFK_ALERTS,
                 CointPermissionNodes.STARTER_KIT,
                 CointPermissionNodes.STARTER_KIT_ADMIN,
-                CointPermissionNodes.CLAIM_BUFFER_BYPASS
+                CointPermissionNodes.CLAIM_BUFFER_BYPASS,
+                CointPermissionNodes.WATCHDOG
         );
         event.addNodes(CointPermissionNodes.invSeeNodes());
     }
