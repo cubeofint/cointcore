@@ -110,7 +110,8 @@ public final class CointCoreCommand {
                         .then(Commands.literal("force")
                                 .executes(CointCoreCommand::cataclysmSpotsForce)))
                 .then(ChunkLimitCommand.chunkLimitCommand())
-                .then(WatchdogCommand.branch());
+                .then(WatchdogCommand.branch())
+                .then(GluonWalletCommand.branch());
 
         var claimFlags = ClaimFlagCommand.claimFlagCommand();
         if (claimFlags != null) {

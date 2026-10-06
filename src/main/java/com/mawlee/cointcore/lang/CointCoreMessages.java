@@ -212,6 +212,10 @@ public final class CointCoreMessages {
     public static final String WATCHDOG_STARTED = "message.cointcore.watchdog.started";
     public static final String WATCHDOG_STOPPED = "message.cointcore.watchdog.stopped";
     public static final String WATCHDOG_REPORT_TRUNCATED = "message.cointcore.watchdog.report_truncated";
+    public static final String GLUONS_GET = "message.cointcore.gluons.get";
+    public static final String GLUONS_SET = "message.cointcore.gluons.set";
+    public static final String GLUONS_ADD = "message.cointcore.gluons.add";
+    public static final String GLUONS_PLAYER_NOT_FOUND = "message.cointcore.gluons.player_not_found";
 
     private CointCoreMessages() {
     }

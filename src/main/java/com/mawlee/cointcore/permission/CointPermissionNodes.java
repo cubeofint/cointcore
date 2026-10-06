@@ -329,6 +329,13 @@ public final class CointPermissionNodes {
             Component.translatable("permission.desc.cointcore.watchdog")
     );
 
+    public static final PermissionNode<Boolean> GLUONS_ADMIN = new PermissionNode<>(
+            CointCore.MOD_ID, "gluons.admin", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.gluons.admin"),
+            Component.translatable("permission.desc.cointcore.gluons.admin")
+    );
+
     public static PermissionNode<?>[] invSeeNodes() {
         return new PermissionNode<?>[] {
                 INVSEE,
