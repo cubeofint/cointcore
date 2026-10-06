@@ -49,6 +49,10 @@ modlist/
 .tmp/
 _modlist-analysis/
 
+# Root-level extracted mod stubs (valid sources live under src/)
+/com/
+/META-INF/
+
 ### Local server/client mod sets, profiles and logs ###
 client-mods/
 # Optional local copies of pack jars for decompilation / mixin analysis.
