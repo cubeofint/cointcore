@@ -134,6 +134,7 @@
     "botanypots.BotanyPotBlockEntityMixin",
     "claim.FireBlockIgniteMixin",
     "ftbchunks.PermissionsHelperBonusMixin",
+    "ftbranks.RankManagerImplMixin",
     "ftbchunks.ClaimedChunkManagerBypassMixin",
     "ftbteams.UpdatePropertiesRequestMixin",
     "discord.MinecraftUtilsMixin",
