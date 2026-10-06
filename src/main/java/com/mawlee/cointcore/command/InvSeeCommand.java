@@ -1,12 +1,15 @@
 package com.mawlee.cointcore.command;
 
+import com.mawlee.cointcore.invsee.InvSeeAuditLog;
 import com.mawlee.cointcore.invsee.InvSeeDiscover;
+import com.mawlee.cointcore.invsee.InvSeeNameSuggestions;
+import com.mawlee.cointcore.invsee.InvSeePermissions;
+import com.mawlee.cointcore.invsee.InvSeeSection;
 import com.mawlee.cointcore.invsee.InvSeeService;
 import com.mawlee.cointcore.invsee.InvSeeTarget;
 import com.mawlee.cointcore.invsee.InvSeeTargetResolver;
+import com.mawlee.cointcore.invsee.InvSeeTargets;
 import com.mawlee.cointcore.lang.CointCoreMessages;
-import com.mawlee.cointcore.permission.CointPermissionNodes;
-import com.mawlee.cointcore.permission.PermissionService;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -16,6 +19,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.neoforged.fml.ModList;
 
 import java.util.ArrayList;
@@ -36,41 +40,41 @@ public final class InvSeeCommand {
                 .requires(InvSeeCommand::canInvSee)
                 .then(Commands.argument("target", StringArgumentType.word())
                         .suggests(playerSuggestions())
-                        .executes(ctx -> open(ctx, Section.PLAYER, null))
+                        .executes(ctx -> open(ctx, InvSeeSection.INVENTORY, null))
                         .then(Commands.literal("ender")
-                                .executes(ctx -> open(ctx, Section.ENDER, null)))
+                                .executes(ctx -> open(ctx, InvSeeSection.ENDER, null)))
                         .then(Commands.literal("curios")
-                                .executes(ctx -> open(ctx, Section.CURIOS, null)))
+                                .executes(ctx -> open(ctx, InvSeeSection.CURIOS, null)))
                         .then(Commands.literal("cosmetic")
-                                .executes(ctx -> open(ctx, Section.COSMETIC, null)))
+                                .executes(ctx -> open(ctx, InvSeeSection.COSMETIC, null)))
                         .then(Commands.literal("pocket")
-                                .executes(ctx -> open(ctx, Section.POCKET, null))
+                                .executes(ctx -> open(ctx, InvSeeSection.POCKET, null))
                                 .then(Commands.argument("storage", StringArgumentType.word())
                                         .suggests(pocketSuggestions())
-                                        .executes(ctx -> open(ctx, Section.POCKET,
+                                        .executes(ctx -> open(ctx, InvSeeSection.POCKET,
                                                 StringArgumentType.getString(ctx, "storage")))))
                         .then(Commands.literal("backpack")
-                                .executes(ctx -> open(ctx, Section.BACKPACK, null))
+                                .executes(ctx -> open(ctx, InvSeeSection.BACKPACK, null))
                                 .then(Commands.argument("backpack", StringArgumentType.greedyString())
                                         .suggests(backpackSuggestions())
-                                        .executes(ctx -> open(ctx, Section.BACKPACK,
+                                        .executes(ctx -> open(ctx, InvSeeSection.BACKPACK,
                                                 StringArgumentType.getString(ctx, "backpack")))))
                         .then(Commands.literal("attachment")
-                                .executes(ctx -> open(ctx, Section.ATTACHMENT, null))
+                                .executes(ctx -> open(ctx, InvSeeSection.MODDATA, null))
                                 .then(Commands.argument("key", StringArgumentType.greedyString())
                                         .suggests(attachmentSuggestions())
-                                        .executes(ctx -> open(ctx, Section.ATTACHMENT,
+                                        .executes(ctx -> open(ctx, InvSeeSection.MODDATA,
                                                 StringArgumentType.getString(ctx, "key"))))));
     }
 
     private static boolean canInvSee(CommandSourceStack source) {
         if (source.getEntity() instanceof ServerPlayer player) {
-            return PermissionService.has(player, CointPermissionNodes.INVSEE);
+            return InvSeePermissions.canUseCommand(player);
         }
         return source.hasPermission(2);
     }
 
-    private static int open(CommandContext<CommandSourceStack> context, Section section, String arg) {
+    private static int open(CommandContext<CommandSourceStack> context, InvSeeSection section, String arg) {
         CommandSourceStack source = context.getSource();
         if (!(source.getEntity() instanceof ServerPlayer viewer)) {
             source.sendFailure(CointCoreMessages.forSource(source, CointCoreMessages.INVSEE_PLAYER_ONLY));
@@ -78,7 +82,7 @@ public final class InvSeeCommand {
         }
 
         String targetName = StringArgumentType.getString(context, "target");
-        Optional<InvSeeTarget> target = InvSeeTargetResolver.resolve(source.getServer(), targetName);
+        Optional<InvSeeTarget> target = InvSeeTargetResolver.acquire(source.getServer(), targetName);
         if (target.isEmpty()) {
             source.sendFailure(CointCoreMessages.forSource(source, CointCoreMessages.INVSEE_PLAYER_NOT_FOUND, targetName));
             return 0;
@@ -86,21 +90,57 @@ public final class InvSeeCommand {
 
         InvSeeTarget resolved = target.get();
         if (resolved.playerId().equals(viewer.getUUID())) {
+            InvSeeTargets.release(resolved);
             source.sendFailure(CointCoreMessages.forSource(source, CointCoreMessages.INVSEE_CANNOT_SELF));
             return 0;
         }
 
+        if (resolved.isOffline() && !InvSeePermissions.canOpenOffline(viewer)) {
+            InvSeeTargets.release(resolved);
+            source.sendFailure(CointCoreMessages.forSource(source, CointCoreMessages.INVSEE_NO_OFFLINE));
+            return 0;
+        }
+
+        if (!InvSeePermissions.canInspect(viewer, source.getServer(), resolved.playerId())) {
+            InvSeeTargets.release(resolved);
+            source.sendFailure(CointCoreMessages.forSource(source, CointCoreMessages.INVSEE_EXEMPT, resolved.displayName()));
+            return 0;
+        }
+
+        if (!InvSeePermissions.canView(viewer, section)) {
+            InvSeeTargets.release(resolved);
+            source.sendFailure(CointCoreMessages.forSource(source, CointCoreMessages.INVSEE_NO_SECTION, section.id()));
+            return 0;
+        }
+
         boolean opened = switch (section) {
-            case PLAYER -> InvSeeService.openPlayer(viewer, resolved);
+            case INVENTORY -> InvSeeService.openPlayer(viewer, resolved);
             case ENDER -> InvSeeService.openEnder(viewer, resolved);
             case CURIOS -> InvSeeService.openCurios(viewer, resolved);
             case COSMETIC -> InvSeeService.openCosmetic(viewer, resolved);
             case POCKET -> openPocket(viewer, resolved, arg);
             case BACKPACK -> openBackpack(viewer, resolved, arg);
-            case ATTACHMENT -> openAttachment(viewer, resolved, arg);
+            case MODDATA -> openAttachment(viewer, resolved, arg);
         };
 
         if (opened) {
+            InvSeeAuditLog.opened(
+                    viewer.getGameProfile().getName(),
+                    resolved.displayName(),
+                    section,
+                    !resolved.isOffline(),
+                    InvSeePermissions.canEdit(viewer, section)
+            );
+            if (resolved.editLock().isHeld() && !resolved.editLock().isHeldBy(viewer.getUUID())) {
+                source.sendSuccess(
+                        () -> CointCoreMessages.forSource(
+                                source,
+                                CointCoreMessages.INVSEE_BUSY,
+                                resolved.editLock().editorName()
+                        ),
+                        false
+                );
+            }
             source.sendSuccess(
                     () -> resolved.isOffline()
                             ? CointCoreMessages.forSource(source, CointCoreMessages.INVSEE_OPENED_OFFLINE, resolved.displayName())
@@ -110,6 +150,7 @@ public final class InvSeeCommand {
             return 1;
         }
 
+        InvSeeTargets.release(resolved);
         source.sendFailure(CointCoreMessages.forSource(source, CointCoreMessages.INVSEE_FAILED, resolved.displayName()));
         return 0;
     }
@@ -152,26 +193,29 @@ public final class InvSeeCommand {
     }
 
     private static SuggestionProvider<CommandSourceStack> playerSuggestions() {
-        return (context, builder) -> SharedSuggestionProvider.suggest(suggestPlayerNames(context.getSource()), builder);
+        return (context, builder) -> SharedSuggestionProvider.suggest(
+                InvSeeNameSuggestions.suggest(context.getSource().getServer()),
+                builder
+        );
     }
 
     private static SuggestionProvider<CommandSourceStack> pocketSuggestions() {
         return (context, builder) -> {
-            Optional<InvSeeTarget> target = resolveTarget(context);
+            Optional<Player> target = suggestionPlayer(context);
             if (target.isEmpty() || !ModList.get().isLoaded("pocketstorage")) {
                 return builder.buildFuture();
             }
-            return SharedSuggestionProvider.suggest(InvSeeDiscover.pocketIds(target.get().getPlayer()), builder);
+            return SharedSuggestionProvider.suggest(InvSeeDiscover.pocketIds(target.get()), builder);
         };
     }
 
     private static SuggestionProvider<CommandSourceStack> backpackSuggestions() {
         return (context, builder) -> {
-            Optional<InvSeeTarget> target = resolveTarget(context);
+            Optional<Player> target = suggestionPlayer(context);
             if (target.isEmpty() || !ModList.get().isLoaded("sophisticatedbackpacks")) {
                 return builder.buildFuture();
             }
-            List<String> keys = InvSeeDiscover.backpackKeys(target.get().getPlayer());
+            List<String> keys = InvSeeDiscover.backpackKeys(target.get());
             List<String> suggestions = new ArrayList<>(keys);
             for (int i = 0; i < keys.size(); i++) {
                 suggestions.add(Integer.toString(i));
@@ -182,41 +226,23 @@ public final class InvSeeCommand {
 
     private static SuggestionProvider<CommandSourceStack> attachmentSuggestions() {
         return (context, builder) -> {
-            Optional<InvSeeTarget> target = resolveTarget(context);
+            Optional<Player> target = suggestionPlayer(context);
             if (target.isEmpty() || !(context.getSource().getEntity() instanceof ServerPlayer viewer)) {
                 return builder.buildFuture();
             }
             return SharedSuggestionProvider.suggest(
-                    InvSeeDiscover.attachmentKeys(target.get().getPlayer(), viewer.registryAccess()),
+                    InvSeeDiscover.attachmentKeys(target.get(), viewer.registryAccess()),
                     builder
             );
         };
     }
 
-    private static Optional<InvSeeTarget> resolveTarget(CommandContext<CommandSourceStack> context) {
+    private static Optional<Player> suggestionPlayer(CommandContext<CommandSourceStack> context) {
         try {
             String name = StringArgumentType.getString(context, "target");
-            return InvSeeTargetResolver.resolve(context.getSource().getServer(), name);
+            return InvSeeTargetResolver.suggestionPlayer(context.getSource().getServer(), name);
         } catch (IllegalArgumentException exception) {
             return Optional.empty();
         }
-    }
-
-    private static List<String> suggestPlayerNames(CommandSourceStack source) {
-        List<String> names = new ArrayList<>();
-        for (ServerPlayer online : source.getServer().getPlayerList().getPlayers()) {
-            names.add(online.getGameProfile().getName());
-        }
-        return names;
-    }
-
-    private enum Section {
-        PLAYER,
-        ENDER,
-        CURIOS,
-        COSMETIC,
-        POCKET,
-        BACKPACK,
-        ATTACHMENT
     }
 }

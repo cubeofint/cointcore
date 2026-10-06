@@ -42,11 +42,10 @@ public final class PermissionRegistration {
                 CointPermissionNodes.FLUX_ADMIN,
                 CointPermissionNodes.AFK_BYPASS,
                 CointPermissionNodes.AFK_ALERTS,
-                CointPermissionNodes.INVSEE,
-                CointPermissionNodes.INVSEE_EDIT,
                 CointPermissionNodes.STARTER_KIT,
                 CointPermissionNodes.STARTER_KIT_ADMIN,
                 CointPermissionNodes.CLAIM_BUFFER_BYPASS
         );
+        event.addNodes(CointPermissionNodes.invSeeNodes());
     }
 }

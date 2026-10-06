@@ -17,6 +17,7 @@
 - [Установка](#установка)
 - [Сборка из исходников](#сборка-из-исходников)
 - [Команды](#команды)
+- [InvSee](#invsee)
 - [Права доступа](#права-доступа)
 - [Конфигурация](#конфигурация)
 - [Интеграции](#интеграции)
@@ -32,6 +33,7 @@
 - Слежка за чатом (`/spy`)
 - Админ-чат (`/a`, `/ac`, `/adminchat`)
 - Телепорт к офлайн-игроку (`/tpl`)
+- Просмотр и правка инвентарей (`/invsee`) — онлайн и офлайн, с журналом действий
 
 ### Серверная автоматизация
 
@@ -144,6 +146,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/warn <игрок> <причина>` | Выдать предупреждение |
 | `/punishments <игрок>` | История наказаний |
 | `/tpl <игрок>` | Телепорт к офлайн-игроку |
+| `/invsee <игрок> [раздел]` | Просмотр/правка инвентаря (см. [InvSee](#invsee)) |
 | `/spy` | Вкл/выкл слежку за чатом |
 | `/a <текст>` | Админ-чат (алиасы: `ac`, `adminchat`) |
 
@@ -180,6 +183,76 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `no_hostile_mob_spawn <true\|false>` | Запрет спавна враждебных мобов |
 | `protect_mobs <true\|false>` | Защита мобов от игроков |
 
+## InvSee
+
+Просмотр и правка чужих инвентарей. Интерфейс пока прежний (отдельное окно на каждый раздел); вкладки в ванильном стиле будут отдельным обновлением.
+
+### Команды
+
+| Команда | Раздел |
+|---------|--------|
+| `/invsee <ник\|uuid>` | Инвентарь, броня, вторая рука |
+| `/invsee <ник> ender` | Эндер-сундук |
+| `/invsee <ник> curios` | Curios |
+| `/invsee <ник> cosmetic` | Косметическая броня |
+| `/invsee <ник> backpack [ключ\|номер]` | Sophisticated Backpacks |
+| `/invsee <ник> pocket [uuid]` | Pocket Storage |
+| `/invsee <ник> attachment [ключ]` | Данные модов (только чтение) |
+
+Себя открыть нельзя. Подсказки ников берут онлайн-игроков и usercache, **без** чтения `playerdata/*.dat`.
+
+В окне кнопка Read/Edit. Редактировать может только один модератор на цель; остальные видят «Занято» и имя в чате. Замок сам сбрасывается через 5 минут бездействия. Право на правку проверяется на сервере при каждом действии.
+
+### Права
+
+Регистрируются через NeoForge `PermissionGatherEvent.Nodes` (LuckPerms их видит и автодополняет). Дефолт — OP 2.
+
+Старые узлы сохранены как запасные:
+
+- `cointcore.invsee` — команда и запасной просмотр всех разделов, включая офлайн
+- `cointcore.invsee.edit` — запасное редактирование всех разделов
+
+Явный `false` на гранулярном узле в LuckPerms перекрывает запасной узел.
+
+| Узел | Описание |
+|------|----------|
+| `cointcore.invsee.view.<inventory\|ender\|curios\|cosmetic\|backpack\|pocket\|moddata>` | Просмотр раздела |
+| `cointcore.invsee.edit.<inventory\|ender\|curios\|cosmetic\|backpack\|pocket\|moddata>` | Правка раздела |
+| `cointcore.invsee.offline` | Офлайн-игроки |
+| `cointcore.invsee.exempt` | Защитить свой инвентарь от младших ролей |
+| `cointcore.invsee.exempt.bypass` | Открывать защищённых игроков |
+| `cointcore.invsee.weight` | Целый ранг (дефолт: уровень OP × 10) |
+
+Иерархия защиты: при `exempt` у цели зритель проходит только если у него `exempt.bypass` **или** его вес **строго больше** веса цели. Вес берётся в таком порядке: LuckPerms meta `invsee-weight` → вес основной группы LuckPerms → узел `cointcore.invsee.weight` → уровень OP.
+
+### Примеры LuckPerms
+
+```
+# Хелпер: смотреть онлайн-инвентарь, без правки и без офлайна
+/lp group helper permission set cointcore.invsee true
+/lp group helper permission set cointcore.invsee.offline false
+/lp group helper permission set cointcore.invsee.view.backpack false
+
+# Модератор: офлайн и правка инвентаря/эндера
+/lp group moder permission set cointcore.invsee true
+/lp group moder permission set cointcore.invsee.edit.inventory true
+/lp group moder permission set cointcore.invsee.edit.ender true
+/lp group moder meta set invsee-weight 20
+
+# Админ: всё, защита своего инвентаря, обход чужой защиты
+/lp group admin permission set cointcore.invsee true
+/lp group admin permission set cointcore.invsee.edit true
+/lp group admin permission set cointcore.invsee.exempt true
+/lp group admin permission set cointcore.invsee.exempt.bypass true
+/lp group admin meta set invsee-weight 50
+```
+
+### Журнал
+
+Действия пишутся в `logs/cointcore-invsee/ГГГГ-ММ-ДД.log` (UTC): кто открыл чей инвентарь, режим, какие предметы сдвинуты (id, количество, слот). Без лишнего шума.
+
+Офлайн-данные пишутся атомарно (temp + `.dat_old`) и **только если были правки**. В файл игрока попадают лишь инвентарные ключи: измерение и координаты не меняются.
+
 ## Права доступа
 
 Права регистрируются через NeoForge Permission API. С LuckPerms используйте узлы вида `cointcore.<имя>`.
@@ -212,6 +285,8 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `cointcore.chunklimit` | OP | Управление лимитами чанков |
 | `cointcore.chunklimit.bypass` | OP | Обход лимитов чанков |
 | `cointcore.adminchat` | OP | Админ-чат |
+| `cointcore.invsee` | OP | InvSee: базовый просмотр (см. [InvSee](#invsee)) |
+| `cointcore.invsee.edit` | OP | InvSee: запасная правка всех разделов |
 
 ## Конфигурация
 

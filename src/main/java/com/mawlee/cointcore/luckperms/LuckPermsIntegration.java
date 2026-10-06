@@ -4,6 +4,7 @@ import net.neoforged.fml.ModList;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -141,6 +142,68 @@ public final class LuckPermsIntegration {
         } catch (ReflectiveOperationException ignored) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * LuckPerms tristate for a node. Empty means unset, player not loaded, or LP missing.
+     */
+    public static Optional<Boolean> permissionTristate(UUID playerId, String permission) {
+        if (!isAvailable() || playerId == null || permission == null || permission.isBlank()) {
+            return Optional.empty();
+        }
+
+        try {
+            Object user = getUser(playerId);
+            if (user == null) {
+                return Optional.empty();
+            }
+
+            Object cachedData = invoke(user, "getCachedData");
+            Object permissionData = invoke(cachedData, "getPermissionData");
+            Object result = invoke(permissionData, "checkPermission", new Class<?>[]{String.class}, permission);
+            String name = result instanceof Enum<?> value ? value.name() : String.valueOf(result);
+            if ("TRUE".equals(name)) {
+                return Optional.of(true);
+            }
+            if ("FALSE".equals(name)) {
+                return Optional.of(false);
+            }
+            return Optional.empty();
+        } catch (ReflectiveOperationException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    public static OptionalInt primaryGroupWeight(UUID playerId) {
+        if (!isAvailable() || playerId == null) {
+            return OptionalInt.empty();
+        }
+
+        try {
+            Object user = getUser(playerId);
+            if (user == null) {
+                return OptionalInt.empty();
+            }
+
+            String primaryGroup = (String) invoke(user, "getPrimaryGroup");
+            if (primaryGroup == null || primaryGroup.isBlank()) {
+                return OptionalInt.empty();
+            }
+
+            Object provider = invokeStatic(PROVIDER_CLASS, "get");
+            Object groupManager = invoke(provider, "getGroupManager");
+            Object group = invoke(groupManager, "getGroup", new Class<?>[]{String.class}, primaryGroup);
+            if (group == null) {
+                return OptionalInt.empty();
+            }
+
+            Object weight = invoke(group, "getWeight");
+            if (weight instanceof OptionalInt optionalInt) {
+                return optionalInt;
+            }
+        } catch (ReflectiveOperationException ignored) {
+        }
+        return OptionalInt.empty();
     }
 
     public static int getMetaInt(UUID playerId, String metaKey, int defaultValue) {

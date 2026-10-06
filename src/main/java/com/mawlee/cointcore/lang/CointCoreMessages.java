@@ -186,6 +186,12 @@ public final class CointCoreMessages {
     public static final String INVSEE_OPENED_ONLINE = "message.cointcore.invsee.opened.online";
     public static final String INVSEE_OPENED_OFFLINE = "message.cointcore.invsee.opened.offline";
     public static final String INVSEE_FAILED = "message.cointcore.invsee.failed";
+    public static final String INVSEE_NO_OFFLINE = "message.cointcore.invsee.no_offline";
+    public static final String INVSEE_NO_SECTION = "message.cointcore.invsee.no_section";
+    public static final String INVSEE_EXEMPT = "message.cointcore.invsee.exempt";
+    public static final String INVSEE_BUSY = "message.cointcore.invsee.busy";
+    public static final String INVSEE_TARGET_ONLINE = "message.cointcore.invsee.target.online";
+    public static final String INVSEE_TARGET_OFFLINE = "message.cointcore.invsee.target.offline";
     public static final String STARTER_KIT_FIRST_JOIN = "message.cointcore.starter.first_join";
     public static final String STARTER_KIT_CLAIMED = "message.cointcore.starter.claimed";
     public static final String STARTER_KIT_DISABLED = "message.cointcore.starter.disabled";
