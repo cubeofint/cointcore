@@ -1,16 +1,22 @@
 package com.mawlee.cointcore.mixin;
 
 import com.mawlee.cointcore.adastra.AdAstraGravityHandlerPatch;
+import com.mojang.logging.LogUtils;
 import net.neoforged.fml.loading.LoadingModList;
 import net.neoforged.fml.loading.moddiscovery.ModInfo;
 import org.objectweb.asm.tree.ClassNode;
+import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final Set<String> CREATE_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.create.CreateClaimBootstrapMixin",
             "com.mawlee.cointcore.mixin.create.SuperGlueSelectionPacketMixin",
@@ -234,7 +240,11 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     );
 
     private static final Set<String> RELICS_MIXINS = Set.of(
-            "com.mawlee.cointcore.mixin.relics.RelicsVanishingRenderMixin",
+            "com.mawlee.cointcore.mixin.relics.RelicsVanishingRenderMixin"
+    );
+
+    /** Relics backpack scan needs both Relics and Sophisticated Backpacks. */
+    private static final Set<String> RELICS_BACKPACK_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.relics.RelicsBackpackScanMixin"
     );
 
@@ -291,6 +301,72 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.adastra.AdAstraAirVortexMixin"
     );
 
+    /**
+     * Compat mixin FQCNs → mod ids that must all be present. Core/vanilla mixins are absent and always apply.
+     */
+    private static final Map<String, List<String>> COMPAT_MIXIN_MODS = buildCompatMixinMods();
+
+    private static Map<String, List<String>> buildCompatMixinMods() {
+        Map<String, List<String>> map = new LinkedHashMap<>();
+        putAll(map, CREATE_MIXINS, "create");
+        putAll(map, QUARRY_MIXINS, "quarryplus");
+        putAll(map, ARS_MIXINS, "ars_nouveau");
+        putAll(map, NOT_ENOUGH_GLYPHS_MIXINS, "not_enough_glyphs");
+        putAll(map, ARS_UNIFICATION_MIXINS, "ars_unification");
+        putAll(map, COMPUTERCRAFT_MIXINS, "computercraft");
+        putAll(map, INDUSTRIAL_FOREGOING_MIXINS, "industrialforegoing");
+        putAll(map, INDUSTRIAL_FOREGOING_SOULS_MIXINS, "industrialforegoingsouls");
+        putAll(map, SFM_MIXINS, "sfm");
+        putAll(map, BOTANY_POTS_MIXINS, "botanypots");
+        putAll(map, DRACONIC_EVOLUTION_MIXINS, "draconicevolution");
+        putAll(map, JUST_DIRE_THINGS_MIXINS, "justdirethings");
+        putAll(map, POWAH_MIXINS, "powah");
+        putAll(map, ACTUALLY_ADDITIONS_MIXINS, "actuallyadditions");
+        putAll(map, ENTANGLED_MIXINS, "entangled");
+        putAll(map, FTB_CHUNKS_MIXINS, "ftbchunks");
+        putAll(map, FTB_RANKS_MIXINS, "ftbranks");
+        putAll(map, FTB_TEAMS_MIXINS, "ftbteams");
+        putAll(map, FTB_ESSENTIALS_MIXINS, "ftbessentials");
+        putAll(map, EVILCRAFT_MIXINS, "evilcraft");
+        putAll(map, NATURESAURA_MIXINS, "naturesaura");
+        putAll(map, FORBIDDEN_ARCANUS_MIXINS, "forbidden_arcanus");
+        putAll(map, APOTHIC_SPAWNERS_MIXINS, "apothic_spawners");
+        putAll(map, AE2_MIXINS, "ae2");
+        putAll(map, REFINED_STORAGE_MIXINS, "refinedstorage");
+        putAll(map, DISCORD_CHAT_MOD_MIXINS, "discord_chat_mod");
+        putAll(map, MOB_GRINDING_UTILS_MIXINS, "mob_grinding_utils");
+        putAll(map, RFTOOLS_BUILDER_MIXINS, "rftoolsbuilder");
+        putAll(map, FLUX_NETWORKS_MIXINS, "fluxnetworks");
+        putAll(map, ORITECH_MIXINS, "oritech");
+        putAll(map, ENDERIO_MIXINS, "enderio");
+        putAll(map, RFTOOLS_UTILITY_MIXINS, "rftoolsutility");
+        putAll(map, PNEUMATICCRAFT_MIXINS, "pneumaticcraft");
+        putAll(map, MAHOU_TSUKAI_MIXINS, "mahoutsukai");
+        putAll(map, ICE_AND_FIRE_MIXINS, "iceandfire");
+        putAll(map, TAB_MIXINS, "tab");
+        putAll(map, MODULAR_ROUTERS_MIXINS, "modularrouters");
+        putAll(map, RELICS_MIXINS, "relics");
+        putAll(map, RELICS_BACKPACK_MIXINS, "relics", "sophisticatedbackpacks");
+        putAll(map, COMPACT_MACHINES_MIXINS, "compactmachines");
+        putAll(map, HOSTILE_NETWORKS_MIXINS, "hostilenetworks");
+        putAll(map, IMMERSIVE_ENGINEERING_MIXINS, "immersiveengineering");
+        putAll(map, RAILCRAFT_MIXINS, "railcraft");
+        putAll(map, STEVES_CARTS_MIXINS, "stevescarts");
+        putAll(map, ROOTS_CLASSIC_MIXINS, "rootsclassic");
+        putAll(map, ALLTHEMODIUM_MIXINS, "allthemodium");
+        putAll(map, REGIONS_UNEXPLORED_MIXINS, "regions_unexplored");
+        putAll(map, MYSTICAL_AGRICULTURE_MIXINS, "mysticalagriculture");
+        putAll(map, AD_ASTRA_MIXINS, "ad_astra");
+        return Map.copyOf(map);
+    }
+
+    private static void putAll(Map<String, List<String>> map, Set<String> mixins, String... modIds) {
+        List<String> required = List.of(modIds);
+        for (String mixin : mixins) {
+            map.put(mixin, required);
+        }
+    }
+
     @Override
     public void onLoad(String mixinPackage) {
     }
@@ -302,199 +378,32 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        if (FTB_CHUNKS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("ftbchunks");
+        List<String> requiredMods = COMPAT_MIXIN_MODS.get(mixinClassName);
+        if (requiredMods == null) {
+            return true;
         }
 
-        if (FTB_RANKS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("ftbranks");
+        List<String> missing = requiredMods.stream()
+                .filter(modId -> !isModLoaded(modId))
+                .toList();
+        if (missing.isEmpty()) {
+            return true;
         }
 
-        if (FTB_TEAMS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("ftbteams");
-        }
+        LOGGER.warn(
+                "Skipping compat mixin {} (target {}): missing mod(s) [{}]",
+                shortMixinName(mixinClassName),
+                targetClassName,
+                missing.stream().collect(Collectors.joining(", "))
+        );
+        return false;
+    }
 
-        if (FTB_ESSENTIALS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("ftbessentials");
-        }
-
-        if (EVILCRAFT_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("evilcraft");
-        }
-
-        if (NATURESAURA_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("naturesaura");
-        }
-
-        if (FORBIDDEN_ARCANUS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("forbidden_arcanus");
-        }
-
-        if (APOTHIC_SPAWNERS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("apothic_spawners");
-        }
-
-        if (AE2_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("ae2");
-        }
-
-        if (REFINED_STORAGE_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("refinedstorage");
-        }
-
-        if (COMPACT_MACHINES_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("compactmachines");
-        }
-
-        if (HOSTILE_NETWORKS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("hostilenetworks");
-        }
-
-        if (IMMERSIVE_ENGINEERING_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("immersiveengineering");
-        }
-
-        if (RAILCRAFT_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("railcraft");
-        }
-
-        if (STEVES_CARTS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("stevescarts");
-        }
-
-        if (DISCORD_CHAT_MOD_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("discord_chat_mod");
-        }
-
-        if (MOB_GRINDING_UTILS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("mob_grinding_utils");
-        }
-
-        if (RFTOOLS_BUILDER_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("rftoolsbuilder");
-        }
-
-        if (FLUX_NETWORKS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("fluxnetworks");
-        }
-
-        if (ORITECH_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("oritech");
-        }
-
-        if (ENDERIO_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("enderio");
-        }
-
-        if (RFTOOLS_UTILITY_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("rftoolsutility");
-        }
-
-        if (PNEUMATICCRAFT_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("pneumaticcraft");
-        }
-
-        if (MAHOU_TSUKAI_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("mahoutsukai");
-        }
-
-        if (ICE_AND_FIRE_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("iceandfire");
-        }
-
-        if (TAB_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("tab");
-        }
-
-        if (MODULAR_ROUTERS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("modularrouters");
-        }
-
-        if (RELICS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("relics");
-        }
-
-        if (ROOTS_CLASSIC_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("rootsclassic");
-        }
-
-        if (ALLTHEMODIUM_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("allthemodium");
-        }
-
-        if (REGIONS_UNEXPLORED_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("regions_unexplored");
-        }
-
-        if (MYSTICAL_AGRICULTURE_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("mysticalagriculture");
-        }
-
-        if (AD_ASTRA_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("ad_astra");
-        }
-
-        if (CREATE_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("create");
-        }
-
-        if (ENTANGLED_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("entangled");
-        }
-
-        if (QUARRY_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("quarryplus");
-        }
-
-        if (ARS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("ars_nouveau");
-        }
-
-        if (NOT_ENOUGH_GLYPHS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("not_enough_glyphs");
-        }
-
-        if (ARS_UNIFICATION_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("ars_unification");
-        }
-
-        if (COMPUTERCRAFT_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("computercraft");
-        }
-
-        if (INDUSTRIAL_FOREGOING_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("industrialforegoing");
-        }
-
-        if (INDUSTRIAL_FOREGOING_SOULS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("industrialforegoingsouls");
-        }
-
-        if (SFM_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("sfm");
-        }
-
-        if (BOTANY_POTS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("botanypots");
-        }
-
-        if (DRACONIC_EVOLUTION_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("draconicevolution");
-        }
-
-        if (JUST_DIRE_THINGS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("justdirethings");
-        }
-
-        if (POWAH_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("powah");
-        }
-
-        if (ACTUALLY_ADDITIONS_MIXINS.contains(mixinClassName)) {
-            return isModLoaded("actuallyadditions");
-        }
-
-        return true;
+    private static String shortMixinName(String mixinClassName) {
+        String prefix = "com.mawlee.cointcore.mixin.";
+        return mixinClassName.startsWith(prefix)
+                ? mixinClassName.substring(prefix.length())
+                : mixinClassName;
     }
 
     @Override
