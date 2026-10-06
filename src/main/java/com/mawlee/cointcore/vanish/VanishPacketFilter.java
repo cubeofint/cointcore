@@ -178,19 +178,61 @@ public final class VanishPacketFilter {
     }
 
     private static boolean filterPlayerInfo(ClientboundPlayerInfoUpdatePacket infoPacket, ServerPlayer receiver) {
-        List<ClientboundPlayerInfoUpdatePacket.Entry> filtered = infoPacket.entries().stream()
-                .filter(entry -> !shouldHidePlayer(entry.profileId(), receiver))
-                .toList();
+        List<ClientboundPlayerInfoUpdatePacket.Entry> filtered = new ArrayList<>();
+        boolean changed = false;
+
+        for (ClientboundPlayerInfoUpdatePacket.Entry entry : infoPacket.entries()) {
+            if (shouldHidePlayer(entry.profileId(), receiver)) {
+                changed = true;
+                continue;
+            }
+
+            ClientboundPlayerInfoUpdatePacket.Entry decorated = decorateVanishedEntry(entry, receiver);
+            changed |= decorated != entry;
+            filtered.add(decorated);
+        }
 
         if (filtered.isEmpty()) {
             return true;
         }
 
-        if (filtered.size() != infoPacket.entries().size()) {
+        if (changed) {
             ((ClientboundPlayerInfoUpdatePacketAccess) infoPacket).cointcore$setEntries(filtered);
         }
 
         return false;
+    }
+
+    private static ClientboundPlayerInfoUpdatePacket.Entry decorateVanishedEntry(
+            ClientboundPlayerInfoUpdatePacket.Entry entry,
+            ServerPlayer receiver
+    ) {
+        ServerPlayer subject = receiver.server.getPlayerList().getPlayer(entry.profileId());
+        if (subject == null || !VanishManager.isVanished(subject)) {
+            return entry;
+        }
+
+        Component displayName = entry.displayName();
+        if (displayName == null) {
+            displayName = subject.getTabListDisplayName();
+        }
+        if (displayName == null) {
+            displayName = subject.getDisplayName();
+        }
+        Component decorated = VanishListMarker.append(displayName);
+        if (decorated.equals(entry.displayName())) {
+            return entry;
+        }
+
+        return new ClientboundPlayerInfoUpdatePacket.Entry(
+                entry.profileId(),
+                entry.profile(),
+                entry.listed(),
+                entry.latency(),
+                entry.gameMode(),
+                decorated,
+                entry.chatSession()
+        );
     }
 
     private static boolean shouldHidePlayer(UUID profileId, ServerPlayer receiver) {

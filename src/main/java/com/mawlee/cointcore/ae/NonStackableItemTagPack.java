@@ -84,11 +84,15 @@ public final class NonStackableItemTagPack {
         try {
             writeDatapack(datapackRoot, itemIds);
             LOGGER.info(
-                    "CointCore ME filter tag #{} contains {} candidate item types. "
-                            + "Terminal search #{} shows only x1 entries when CointCore is installed on the client.",
+                    "CointCore ME filter tags #{} and #{} contain {} candidate item types. "
+                            + "With CointCore on the client, #{} shows only x1 entries, while #{} shows "
+                            + "merged entries with amount >= {} (used to spot heavy bases).",
                     MeFilterTags.TAG_LOCATION,
+                    MeFilterTags.MERGED_TAG_LOCATION,
                     generatedItemCount,
-                    MeFilterTags.TAG_LOCATION
+                    MeFilterTags.TAG_LOCATION,
+                    MeFilterTags.MERGED_TAG_LOCATION,
+                    MeUniqueFilterConfig.getMergedMinAmount()
             );
         } catch (IOException exception) {
             throw new IllegalStateException("Failed to generate CointCore ME tag datapack", exception);
@@ -122,6 +126,9 @@ public final class NonStackableItemTagPack {
 
         writePackMeta(datapackRoot);
         writeTagFile(dataDir.resolve(MeFilterTags.TAG_ID + ".json"), itemIds);
+        writeTagFile(dataDir.resolve(MeFilterTags.MERGED_TAG_ID + ".json"), itemIds);
+        // Drop the old long tag path so AE2 search no longer offers an untypable name.
+        Files.deleteIfExists(dataDir.resolve(MeFilterTags.MERGED_TAG_ID_LEGACY + ".json"));
     }
 
     private static void writePackMeta(Path datapackRoot) throws IOException {

@@ -25,9 +25,13 @@ public final class FtbTeamPropertyRegistration {
     }
 
     private static void collectProperties(TeamCollectPropertiesEvent event) {
-        event.add(CointCoreFtbProperties.DISABLE_HOSTILE_MOB_SPAWN);
-        event.add(CointCoreFtbProperties.DISABLE_PLAYER_DAMAGE);
-        event.add(CointCoreFtbProperties.PROTECT_MOBS_FROM_OUTSIDERS);
+        event.add(CointCoreFtbProperties.MOB_SPAWN_DENY_ALL);
+        event.add(CointCoreFtbProperties.MOB_SPAWN_DENY);
+        event.add(CointCoreFtbProperties.MOB_SPAWN_ALLOW);
+        event.add(CointCoreFtbProperties.MOB_DAMAGE);
+        event.add(CointCoreFtbProperties.FIRE_SPREAD);
+        event.add(CointCoreFtbProperties.ENTRY_MEMBERS_ONLY);
+        event.add(CointCoreFtbProperties.LEGACY_DISABLE_PLAYER_DAMAGE);
     }
 
     @SuppressWarnings("unchecked")

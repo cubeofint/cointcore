@@ -12,9 +12,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * DE 3.1.4.x AOE mining still goes through {@code breakAOEBlock} (signature unchanged).
+ */
 @Mixin(value = IModularMiningTool.class, remap = false)
 public interface ModularMiningToolMixin {
-    @Inject(method = "breakAOEBlock", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "breakAOEBlock", at = @At("HEAD"), cancellable = true, remap = false)
     private void cointcore$guardBreakAoeBlock(
             ItemStack stack,
             Level level,

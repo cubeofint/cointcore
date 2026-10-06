@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -25,40 +26,52 @@ public final class ScheduledRestartService {
         }
 
         ZonedDateTime now = ZonedDateTime.now(settings.zoneId());
-        if (now.getSecond() > 1) {
-            return;
-        }
-
         LocalDate today = now.toLocalDate();
-        LocalTime current = now.toLocalTime().withSecond(0).withNano(0);
+        LocalTime currentMinute = now.toLocalTime().withSecond(0).withNano(0);
+
+        // Minute-scoped warnings only need the first seconds of each minute.
+        boolean warningWindow = now.getSecond() <= 1;
 
         for (LocalTime restartTime : settings.times()) {
-            LocalTime normalizedRestartTime = restartTime.withSecond(0).withNano(0);
-            String restartTimeLabel = normalizedRestartTime.format(TIME_FORMAT);
+            LocalTime normalizedHaltTime = restartTime.withSecond(0).withNano(0);
+            String restartTimeLabel = normalizedHaltTime.format(TIME_FORMAT);
+            ZonedDateTime haltAt = ZonedDateTime.of(today, normalizedHaltTime, settings.zoneId());
 
-            for (int minutesBefore : settings.warningsMinutesBefore()) {
-                LocalTime warningTime = normalizedRestartTime.minusMinutes(minutesBefore);
-                if (!current.equals(warningTime)) {
-                    continue;
-                }
+            if (warningWindow) {
+                for (int minutesBefore : settings.warningsMinutesBefore()) {
+                    LocalTime warningTime = normalizedHaltTime.minusMinutes(minutesBefore);
+                    if (!currentMinute.equals(warningTime)) {
+                        continue;
+                    }
 
-                String marker = today + ":warn:" + restartTimeLabel + ":" + minutesBefore;
-                if (SENT_MARKERS.add(marker)) {
-                    broadcastWarning(server, minutesBefore, restartTimeLabel);
+                    String marker = today + ":warn:" + restartTimeLabel + ":" + minutesBefore;
+                    if (SENT_MARKERS.add(marker)) {
+                        broadcastWarning(server, minutesBefore, restartTimeLabel);
+                    }
                 }
             }
 
-            if (current.equals(normalizedRestartTime)) {
-                String marker = today + ":restart:" + restartTimeLabel;
-                if (SENT_MARKERS.add(marker)) {
-                    ServerRestartService.scheduleRestart(
-                            server,
-                            settings.restartDelaySeconds(),
-                            CointCoreMessages.SERVER_RESTART_SCHEDULED,
-                            restartTimeLabel,
-                            settings.restartDelaySeconds()
-                    );
-                }
+            long secondsUntilHalt = ChronoUnit.SECONDS.between(now, haltAt);
+            if (secondsUntilHalt < 0 || secondsUntilHalt > settings.restartDelaySeconds()) {
+                continue;
+            }
+
+            String marker = today + ":restart:" + restartTimeLabel;
+            if (!SENT_MARKERS.add(marker)) {
+                continue;
+            }
+
+            // Configured time is the halt moment; countdown fills the preceding delay window.
+            if (secondsUntilHalt <= 1) {
+                ServerRestartService.executeImmediateRestart(server);
+            } else {
+                ServerRestartService.scheduleRestart(
+                        server,
+                        (int) secondsUntilHalt,
+                        CointCoreMessages.SERVER_RESTART_SCHEDULED,
+                        restartTimeLabel,
+                        (int) secondsUntilHalt
+                );
             }
         }
     }

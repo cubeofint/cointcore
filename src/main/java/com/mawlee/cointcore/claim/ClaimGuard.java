@@ -5,6 +5,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -32,6 +33,18 @@ public final class ClaimGuard {
 
     public static boolean canEditBox(Entity actor, Level level, AABB box) {
         return FtbIntegration.canEditBox(actor, level, box);
+    }
+
+    public static boolean canMobGriefAt(Entity mob, Level level, BlockPos pos) {
+        if (!isAvailable() || mob == null || !(level instanceof ServerLevel serverLevel)) {
+            return true;
+        }
+        if (FtbIntegration.getClaimTeamData(serverLevel, pos).isEmpty()) {
+            return true;
+        }
+
+        ServerPlayer authorized = resolveGriefingPlayer(mob, serverLevel);
+        return authorized != null && canEdit(authorized, level, pos);
     }
 
     public static void denyUnlessCanEdit(Entity actor, Level level, BlockPos pos) {
@@ -145,5 +158,23 @@ public final class ClaimGuard {
         }
 
         return nearest == null ? Optional.empty() : Optional.of(nearest.getUUID());
+    }
+
+    private static ServerPlayer resolveGriefingPlayer(Entity mob, ServerLevel level) {
+        if (mob instanceof TamableAnimal tamable) {
+            UUID ownerId = tamable.getOwnerUUID();
+            if (ownerId != null) {
+                ServerPlayer owner = level.getServer().getPlayerList().getPlayer(ownerId);
+                if (owner != null) {
+                    return owner;
+                }
+            }
+        }
+
+        Entity controller = mob.getControllingPassenger();
+        if (controller instanceof ServerPlayer rider) {
+            return rider;
+        }
+        return null;
     }
 }

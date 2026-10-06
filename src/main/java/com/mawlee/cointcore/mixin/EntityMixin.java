@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.mixin;
 
+import com.mawlee.cointcore.cataclysm.CataclysmCaptureAltar;
 import com.mawlee.cointcore.spawner.SpawnerLootCapture;
 import com.mawlee.cointcore.vanish.VanishInteractionTracker;
 import com.mawlee.cointcore.vanish.VanishManager;
@@ -54,5 +55,10 @@ public abstract class EntityMixin {
             SpawnerLootCapture.capture(stack);
             cir.setReturnValue(null);
         }
+    }
+
+    @Inject(method = "remove", at = @At("HEAD"))
+    private void cointcore$restoreCataclysmAltar(Entity.RemovalReason reason, CallbackInfo ci) {
+        CataclysmCaptureAltar.onRemove((Entity) (Object) this, reason);
     }
 }

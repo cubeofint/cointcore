@@ -70,14 +70,23 @@ public final class LegacyTextParser {
             return color != null ? style.withColor(color) : style;
         }
 
-        return switch (format) {
-            case OBFUSCATED -> style.withObfuscated(true);
-            case BOLD -> style.withBold(true);
-            case STRIKETHROUGH -> style.withStrikethrough(true);
-            case UNDERLINE -> style.withUnderlined(true);
-            case ITALIC -> style.withItalic(true);
-            default -> style;
-        };
+        // if/else — avoid ChatFormatting switch-map synthetic ($1) for hot-swap safety
+        if (format == ChatFormatting.OBFUSCATED) {
+            return style.withObfuscated(true);
+        }
+        if (format == ChatFormatting.BOLD) {
+            return style.withBold(true);
+        }
+        if (format == ChatFormatting.STRIKETHROUGH) {
+            return style.withStrikethrough(true);
+        }
+        if (format == ChatFormatting.UNDERLINE) {
+            return style.withUnderlined(true);
+        }
+        if (format == ChatFormatting.ITALIC) {
+            return style.withItalic(true);
+        }
+        return style;
     }
 
     private static TextColor parseLegacyHexColor(String text, int sectionIndex) {

@@ -63,6 +63,15 @@ public final class VanishService {
                 hideFrom(joining, online);
             }
         }
+
+        joining.server.execute(() -> {
+            TabVanishBridge.notifyVanishChanged(joining);
+            for (ServerPlayer online : joining.server.getPlayerList().getPlayers()) {
+                if (online != joining && VanishManager.isVanished(online)) {
+                    TabVanishBridge.notifyVanishChanged(online);
+                }
+            }
+        });
     }
 
     public static void applyMobTargetState(ServerPlayer player) {
@@ -92,8 +101,6 @@ public final class VanishService {
             player.removeEffect(MobEffects.GLOWING);
             player.setGlowingTag(false);
         }
-        player.refreshTabListName();
-
         ServerLevel level = player.serverLevel();
         PlayerList playerList = player.server.getPlayerList();
 
@@ -111,6 +118,8 @@ public final class VanishService {
             }
         }
 
+        player.refreshTabListName();
+        TabVanishBridge.notifyVanishChanged(player);
         refreshEntityTracking(player, level);
     }
 
@@ -121,6 +130,7 @@ public final class VanishService {
 
         viewer.connection.send(new ClientboundPlayerInfoRemovePacket(List.of(vanished.getUUID())));
         viewer.connection.send(new ClientboundRemoveEntitiesPacket(vanished.getId()));
+        TabVanishBridge.hideFromViewer(vanished, viewer);
     }
 
     public static void showTo(ServerPlayer player, ServerPlayer viewer) {

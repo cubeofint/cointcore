@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.message;
 
+import com.mawlee.cointcore.chat.ChatDiscordRelay;
 import com.mawlee.cointcore.chatspy.ChatSpyService;
 import com.mawlee.cointcore.lang.CointCoreMessages;
 import com.mawlee.cointcore.ignore.IgnoreService;
@@ -98,6 +99,7 @@ public final class PrivateMessageService {
         }
 
         ChatSpyService.notifyPrivateMessage(sender, target, message);
+        ChatDiscordRelay.relayPrivateMessage(sender, target, message);
     }
 
     private static String resolveName(MinecraftServer server, UUID playerId) {

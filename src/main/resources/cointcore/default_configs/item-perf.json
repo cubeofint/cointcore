@@ -1,0 +1,15 @@
+{
+  "enabled": true,
+  "minAgeBeforeSleep": 60,
+  "minWaterStillTicksBeforeSleep": 10,
+  "playerWakeRadius": 32.0,
+  "sleepTickInterval": 20,
+  "requireOnGround": true,
+  "skipIfInFluid": false,
+  "stillMotionThreshold": 0.01,
+  "massDropGuard": true,
+  "massDropSoftEntitiesPerPos": 64,
+  "massDropMaxEntitiesPerPos": 256,
+  "massDropMaxEntitiesPerLevelTick": 1024,
+  "massDropPileMaxEntries": 256
+}

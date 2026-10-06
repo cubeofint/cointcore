@@ -49,6 +49,22 @@ public final class FtbIntegration {
         return Optional.of(chunk.getTeamData());
     }
 
+    public static Optional<ChunkTeamData> getClaimTeamData(ServerLevel level, ChunkPos chunkPos) {
+        if (!isAvailable()) {
+            return Optional.empty();
+        }
+        ClaimedChunkManager manager = FTBChunksAPI.api().getManager();
+        ClaimedChunk chunk = manager.getChunk(new ChunkDimPos(level.dimension(), chunkPos));
+        if (chunk == null) {
+            return Optional.empty();
+        }
+        return Optional.of(chunk.getTeamData());
+    }
+
+    public static Optional<UUID> getTeamIdAt(ServerLevel level, ChunkPos chunkPos) {
+        return getClaimTeamData(level, chunkPos).map(data -> data.getTeam().getTeamId());
+    }
+
     public static Optional<Team> resolveTeam(MinecraftServer server, String target) {
         if (!isAvailable()) {
             return Optional.empty();
@@ -77,7 +93,7 @@ public final class FtbIntegration {
     }
 
     public static boolean hasBypassProtection(ServerPlayer player) {
-        if (!isAvailable()) {
+        if (!isAvailable() || player == null) {
             return false;
         }
 

@@ -106,6 +106,17 @@ configurations {
     runtimeClasspath.extendsFrom localRuntime
 }
 
+// Mixins and integrations import classes from the server pack. Those jars stay
+// compileOnly: javac needs them to resolve types, and they are not packaged into
+// this mod. Names change with pack updates, so matching is by pattern.
+ext.modlistJar = { String pattern ->
+    def matches = fileTree(dir: 'server-mods', include: pattern).files.toSorted { it.name }
+    if (matches.isEmpty()) {
+        throw new GradleException("No jar in ./server-mods matches '${pattern}'")
+    }
+    return files(matches.last())
+}
+
 dependencies {
     compileOnly "net.luckperms:api:5.4"
     compileOnly("dev.ftb.mods:ftb-essentials-neoforge:${ftb_essentials_version}") {
@@ -127,19 +138,50 @@ dependencies {
         transitive = false
     }
 
-    compileOnly files("modlist/cyclopscore-1.21.1-neoforge-1.29.1.jar")
-    compileOnly files("modlist/ApothicSpawners-1.21.1-1.3.4.jar")
-    compileOnly files("modlist/appliedenergistics2-19.2.17.jar")
-    compileOnly files("modlist/create-1.21.1-6.0.10.jar")
-    compileOnly files("modlist/entangled-1.3.21-neoforge-mc1.21.jar")
-    compileOnly files("modlist/supermartijn642corelib-1.1.21-neoforge-mc1.21.jar")
-    compileOnly files("modlist/AdditionalEnchantedMiner-1.21.1-neoforge-21.1.153.jar")
-    compileOnly files("modlist/ars_nouveau-1.21.1-5.11.5.jar")
-    compileOnly files("modlist/cc-tweaked-1.21.1-forge-1.113.1.jar")
-    compileOnly files("modlist/industrialforegoing-1.21-3.6.38.jar")
-    compileOnly files("modlist/BrandonsCore-1.21.1-3.2.1.309.jar")
-    compileOnly files("modlist/Draconic-Evolution-1.21.1-3.1.4.632.jar")
-    compileOnly files("modlist/actuallyadditions-1.3.25+mc1.21.1.jar")
+    compileOnly modlistJar("cyclopscore-*.jar")
+    compileOnly modlistJar("evilcraft-*.jar")
+    compileOnly modlistJar("RootsClassic-*.jar")
+    compileOnly modlistJar("regions_unexplored-neoforge-*.jar")
+    compileOnly modlistJar("NaturesAura-*.jar")
+    compileOnly modlistJar("ApothicSpawners-*.jar")
+    compileOnly modlistJar("appliedenergistics2-*.jar")
+    compileOnly modlistJar("refinedstorage-neoforge-*.jar")
+    compileOnly modlistJar("create-1.21.1-*.jar")
+    compileOnly modlistJar("entangled-*.jar")
+    compileOnly modlistJar("supermartijn642corelib-*.jar")
+    compileOnly modlistJar("AdditionalEnchantedMiner-*.jar")
+    compileOnly modlistJar("ars_nouveau-*.jar")
+    compileOnly modlistJar("not_enough_glyphs-*.jar")
+    compileOnly modlistJar("ars_unification-*.jar")
+    compileOnly modlistJar("cc-tweaked-*.jar")
+    compileOnly modlistJar("industrialforegoing-1.21-*.jar")
+    compileOnly modlistJar("BrandonsCore-*.jar")
+    compileOnly modlistJar("Draconic-Evolution-*.jar")
+    compileOnly modlistJar("actuallyadditions-*.jar")
+    compileOnly modlistJar("discord_chat_mod-*.jar")
+    compileOnly modlistJar("mob_grinding_utils-*.jar")
+    compileOnly modlistJar("rftoolsbuilder-*.jar")
+    compileOnly modlistJar("rftoolsbase-*.jar")
+    compileOnly modlistJar("mcjtylib-*.jar")
+    compileOnly modlistJar("Super Factory Manager (SFM)-*.jar")
+    compileOnly modlistJar("bookshelf-neoforge-*.jar")
+    compileOnly modlistJar("botanypots-neoforge-*.jar")
+    compileOnly modlistJar("justdirethings-*.jar")
+    compileOnly modlistJar("Powah-*.jar")
+    compileOnly modlistJar("FluxNetworks-*.jar")
+    compileOnly modlistJar("oritech-neoforge-*.jar")
+    compileOnly modlistJar("mahoutsukai-*.jar")
+    compileOnly modlistJar("iceandfire-*.jar")
+    compileOnly modlistJar("allthemodium-*.jar")
+    compileOnly modlistJar("TAB*.jar")
+    compileOnly modlistJar("modular-routers-*.jar")
+    compileOnly modlistJar("curios-neoforge-*.jar")
+    compileOnly modlistJar("cosmeticarmorreworked-*.jar")
+    compileOnly modlistJar("pocketstorage-*.jar")
+    compileOnly modlistJar("sophisticatedbackpacks-*.jar")
+    compileOnly modlistJar("sophisticatedcore-*.jar")
+    compileOnly modlistJar("adastra-1.21.1-*.jar")
+    compileOnly modlistJar("MysticalAgriculture-*.jar")
 
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
@@ -200,7 +242,7 @@ publishing {
     }
     repositories {
         maven {
-            url "file://${project.projectDir}/repo"
+            url = "file://${project.projectDir}/repo"
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.vote;
 
 import com.mawlee.cointcore.config.VoteConfig;
+import com.mawlee.cointcore.environment.TimeWeatherCooldown;
 import com.mawlee.cointcore.lang.CointCoreMessages;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -16,7 +17,6 @@ import java.util.UUID;
 
 public final class VoteService {
     private static final Map<VoteType, ActiveVote> ACTIVE = new EnumMap<>(VoteType.class);
-    private static final Map<VoteType, Long> COOLDOWN_UNTIL_MS = new EnumMap<>(VoteType.class);
 
     private VoteService() {
     }
@@ -24,10 +24,13 @@ public final class VoteService {
     public static int castVote(VoteType type, ServerPlayer player) {
         MinecraftServer server = player.server;
         long now = System.currentTimeMillis();
-        Long cooldownUntil = COOLDOWN_UNTIL_MS.get(type);
-        if (cooldownUntil != null && now < cooldownUntil) {
-            int secondsLeft = (int) Math.ceil((cooldownUntil - now) / 1000.0D);
-            player.sendSystemMessage(CointCoreMessages.forPlayer(player, CointCoreMessages.VOTE_COOLDOWN, secondsLeft));
+        int environmentCooldownLeft = TimeWeatherCooldown.remainingSeconds();
+        if (environmentCooldownLeft > 0) {
+            player.sendSystemMessage(CointCoreMessages.forPlayer(
+                    player,
+                    CointCoreMessages.ENVIRONMENT_COOLDOWN,
+                    environmentCooldownLeft
+            ));
             return 0;
         }
 
@@ -78,17 +81,23 @@ public final class VoteService {
 
     public static void clearRuntimeState() {
         ACTIVE.clear();
-        COOLDOWN_UNTIL_MS.clear();
+        TimeWeatherCooldown.clearRuntimeState();
     }
 
     private static void completeVote(MinecraftServer server, ActiveVote active) {
         ACTIVE.remove(active.type);
-        COOLDOWN_UNTIL_MS.put(active.type, System.currentTimeMillis() + active.settings.cooldownSeconds() * 1000L);
         broadcast(server, CointCoreMessages.VOTE_PASSED, active.type);
 
-        switch (active.type) {
-            case DAY -> applyDayVote(server);
-            case CLEAR_WEATHER -> applyClearWeatherVote(server);
+        boolean applied = TimeWeatherCooldown.runForced(() -> {
+            if (active.type == VoteType.DAY) {
+                applyDayVote(server);
+            } else if (active.type == VoteType.CLEAR_WEATHER) {
+                applyClearWeatherVote(server);
+            }
+        });
+        if (!applied) {
+            // Race: another forced change started between the vote check and apply.
+            broadcast(server, CointCoreMessages.ENVIRONMENT_COOLDOWN_BLOCKED, active.type);
         }
     }
 
@@ -128,10 +137,13 @@ public final class VoteService {
     }
 
     private static String typeLabelKey(VoteType type) {
-        return switch (type) {
-            case DAY -> CointCoreMessages.VOTE_TYPE_DAY;
-            case CLEAR_WEATHER -> CointCoreMessages.VOTE_TYPE_CLEAR_WEATHER;
-        };
+        if (type == VoteType.DAY) {
+            return CointCoreMessages.VOTE_TYPE_DAY;
+        }
+        if (type == VoteType.CLEAR_WEATHER) {
+            return CointCoreMessages.VOTE_TYPE_CLEAR_WEATHER;
+        }
+        return CointCoreMessages.VOTE_TYPE_DAY;
     }
 
     private static final class ActiveVote {

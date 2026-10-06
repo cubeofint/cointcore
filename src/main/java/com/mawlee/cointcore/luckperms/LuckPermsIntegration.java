@@ -50,7 +50,7 @@ public final class LuckPermsIntegration {
             Iterable<?> nodes = (Iterable<?>) invoke(
                     user,
                     "resolveDistinctInheritedNodes",
-                    new Class<?>[]{queryOptions.getClass()},
+                    new Class<?>[]{queryOptionsClass()},
                     queryOptions
             );
 
@@ -103,7 +103,7 @@ public final class LuckPermsIntegration {
             Iterable<?> nodes = (Iterable<?>) invoke(
                     user,
                     "resolveDistinctInheritedNodes",
-                    new Class<?>[]{queryOptions.getClass()},
+                    new Class<?>[]{queryOptionsClass()},
                     queryOptions
             );
 
@@ -143,6 +143,30 @@ public final class LuckPermsIntegration {
         }
     }
 
+    public static int getMetaInt(UUID playerId, String metaKey, int defaultValue) {
+        if (!isAvailable() || metaKey == null || metaKey.isBlank()) {
+            return defaultValue;
+        }
+
+        try {
+            Object user = getUser(playerId);
+            if (user == null) {
+                return defaultValue;
+            }
+
+            Object cachedData = invoke(user, "getCachedData");
+            Object metaData = invoke(cachedData, "getMetaData");
+            String value = (String) invoke(metaData, "getMetaValue", new Class<?>[]{String.class}, metaKey);
+            if (value == null || value.isBlank()) {
+                return defaultValue;
+            }
+
+            return Integer.parseInt(value.trim());
+        } catch (ReflectiveOperationException | NumberFormatException ignored) {
+            return defaultValue;
+        }
+    }
+
     public static void registerUserDataRecalculateListener(Consumer<UUID> listener) {
         if (!isAvailable()) {
             return;
@@ -178,13 +202,8 @@ public final class LuckPermsIntegration {
     }
 
     private static boolean hasPermission(Object user, String permission) throws ReflectiveOperationException {
-        Object queryOptions = invoke(user, "getQueryOptions");
-        if (queryOptions == null) {
-            return false;
-        }
-
         Object cachedData = invoke(user, "getCachedData");
-        Object permissionData = invoke(cachedData, "getPermissionData", new Class<?>[]{queryOptions.getClass()}, queryOptions);
+        Object permissionData = invoke(cachedData, "getPermissionData");
         Object result = invoke(permissionData, "checkPermission", new Class<?>[]{String.class}, permission);
         return Boolean.TRUE.equals(invoke(result, "asBoolean"));
     }
@@ -192,6 +211,10 @@ public final class LuckPermsIntegration {
     private static Object getNodeType(String name) throws ReflectiveOperationException {
         Class<?> nodeTypeClass = Class.forName("net.luckperms.api.node.NodeType");
         return nodeTypeClass.getField(name).get(null);
+    }
+
+    private static Class<?> queryOptionsClass() throws ClassNotFoundException {
+        return Class.forName("net.luckperms.api.query.QueryOptions");
     }
 
     private static Object invokeStatic(String className, String methodName, Object... args)

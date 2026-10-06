@@ -42,5 +42,6 @@ public final class VanishServerStatus {
         if (server != null) {
             server.invalidateStatus();
         }
+        DiscordVanishBridge.refreshStatus();
     }
 }

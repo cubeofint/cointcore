@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.mute;
 
 import com.mawlee.cointcore.lang.CointCoreMessages;
+import com.mawlee.cointcore.player.PlayerIdentityResolve;
 import com.mawlee.cointcore.punishment.PunishmentHistory;
 import com.mawlee.cointcore.punishment.PunishmentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -23,38 +24,11 @@ public final class MuteService {
     }
 
     public static Optional<UUID> resolvePlayerId(MinecraftServer server, String name) {
-        ServerPlayer onlineMatch = null;
-
-        for (ServerPlayer online : server.getPlayerList().getPlayers()) {
-            if (!online.getGameProfile().getName().equalsIgnoreCase(name)) {
-                continue;
-            }
-
-            if (onlineMatch != null) {
-                return Optional.empty();
-            }
-
-            onlineMatch = online;
-        }
-
-        if (onlineMatch != null) {
-            return Optional.of(onlineMatch.getUUID());
-        }
-
-        return server.getProfileCache()
-                .get(name)
-                .map(profile -> profile.getId());
+        return PlayerIdentityResolve.resolvePlayerId(server, name);
     }
 
     public static Optional<String> resolveName(MinecraftServer server, UUID playerId) {
-        ServerPlayer online = server.getPlayerList().getPlayer(playerId);
-        if (online != null) {
-            return Optional.of(online.getGameProfile().getName());
-        }
-
-        return server.getProfileCache()
-                .get(playerId)
-                .map(profile -> profile.getName());
+        return PlayerIdentityResolve.resolveName(server, playerId);
     }
 
     public static boolean mute(CommandSourceStack source, UUID targetId, String targetName, String durationToken, String reason) throws CommandSyntaxException {

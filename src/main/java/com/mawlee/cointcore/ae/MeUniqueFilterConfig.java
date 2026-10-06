@@ -29,8 +29,13 @@ public final class MeUniqueFilterConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
+    private static final int DEFAULT_MERGED_MIN_AMOUNT = 2;
+    private static final int MIN_MERGED_MIN_AMOUNT = 2;
+    private static final int MAX_MERGED_MIN_AMOUNT = 1_000_000;
+
     private static Set<ResourceLocation> excludedItemIds = Set.of();
     private static Set<TagKey<Item>> excludedTags = Set.of();
+    private static int mergedMinAmount = DEFAULT_MERGED_MIN_AMOUNT;
 
     static {
         apply(parse(defaultFileData()));
@@ -50,6 +55,14 @@ public final class MeUniqueFilterConfig {
         }
         apply(loaded);
         return true;
+    }
+
+    /**
+     * Minimum stored amount for an entry to be reported by the
+     * {@code #cointcore:ns_heavy} / {@code #ns_heavy} terminal search.
+     */
+    public static int getMergedMinAmount() {
+        return mergedMinAmount;
     }
 
     public static boolean isExcludedItem(Item item) {
@@ -96,6 +109,7 @@ public final class MeUniqueFilterConfig {
     private static void apply(LoadedConfig loaded) {
         excludedItemIds = loaded.excludedItemIds;
         excludedTags = loaded.excludedTags;
+        mergedMinAmount = loaded.mergedMinAmount;
     }
 
     private static LoadedConfig parse(FileData data) {
@@ -129,7 +143,18 @@ public final class MeUniqueFilterConfig {
             }
         }
 
-        return new LoadedConfig(Set.copyOf(itemIds), Set.copyOf(tags));
+        int minAmount = data.mergedMinAmount != null ? data.mergedMinAmount : DEFAULT_MERGED_MIN_AMOUNT;
+        if (minAmount < MIN_MERGED_MIN_AMOUNT || minAmount > MAX_MERGED_MIN_AMOUNT) {
+            LOGGER.warn(
+                    "mergedMinAmount {} is out of range [{}, {}], clamping",
+                    minAmount,
+                    MIN_MERGED_MIN_AMOUNT,
+                    MAX_MERGED_MIN_AMOUNT
+            );
+            minAmount = Math.clamp(minAmount, MIN_MERGED_MIN_AMOUNT, MAX_MERGED_MIN_AMOUNT);
+        }
+
+        return new LoadedConfig(Set.copyOf(itemIds), Set.copyOf(tags), minAmount);
     }
 
     private static Path configPath() {
@@ -167,12 +192,14 @@ public final class MeUniqueFilterConfig {
         data.excludeTags = new ArrayList<>(List.of(
                 "minecraft:potions"
         ));
+        data.mergedMinAmount = DEFAULT_MERGED_MIN_AMOUNT;
         return data;
     }
 
     private record LoadedConfig(
             Set<ResourceLocation> excludedItemIds,
-            Set<TagKey<Item>> excludedTags
+            Set<TagKey<Item>> excludedTags,
+            int mergedMinAmount
     ) {
     }
 
@@ -182,5 +209,8 @@ public final class MeUniqueFilterConfig {
 
         @SerializedName("excludeTags")
         private List<String> excludeTags = new ArrayList<>();
+
+        @SerializedName("mergedMinAmount")
+        private Integer mergedMinAmount = DEFAULT_MERGED_MIN_AMOUNT;
     }
 }
