@@ -28,4 +28,15 @@ public final class MeUniqueEntryRules {
         }
         return isCandidateItemType(stack.getItem());
     }
+
+    /**
+     * Inverse of {@link #isUniqueTerminalEntry}: entries where many non-stackable items collapsed
+     * into a single {@code AEItemKey}, which is what makes a base "heavy" to store and sync.
+     */
+    public static boolean isMergedTerminalEntry(long storedAmount, ItemStack stack) {
+        if (stack.isEmpty() || storedAmount < MeUniqueFilterConfig.getMergedMinAmount()) {
+            return false;
+        }
+        return isCandidateItemType(stack.getItem());
+    }
 }

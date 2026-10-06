@@ -35,6 +35,8 @@ public final class SparkProfilerConfig {
     private static int clearDelaySeconds = 60;
     private static int onlyTicksOverMs = 60;
     private static String commentPrefix = "cointcore-auto";
+    private static int maxProfileAgeDays = 7;
+    private static int maxProfileTotalSizeMb = 5120;
 
     private SparkProfilerConfig() {
     }
@@ -65,6 +67,18 @@ public final class SparkProfilerConfig {
 
     public static int getOnlyTicksOverMs() {
         return onlyTicksOverMs;
+    }
+
+    public static int getMaxProfileAgeDays() {
+        return maxProfileAgeDays;
+    }
+
+    public static int getMaxProfileTotalSizeMb() {
+        return maxProfileTotalSizeMb;
+    }
+
+    public static long getMaxProfileTotalSizeBytes() {
+        return maxProfileTotalSizeMb * 1024L * 1024L;
     }
 
     public static Path getConfigPath() {
@@ -100,6 +114,8 @@ public final class SparkProfilerConfig {
         clearDelaySeconds = loaded.clearDelaySeconds();
         onlyTicksOverMs = loaded.onlyTicksOverMs();
         commentPrefix = loaded.commentPrefix();
+        maxProfileAgeDays = loaded.maxProfileAgeDays();
+        maxProfileTotalSizeMb = loaded.maxProfileTotalSizeMb();
     }
 
     private static LoadedConfig loadFromDisk(boolean reloading) {
@@ -144,7 +160,9 @@ public final class SparkProfilerConfig {
                 clampSaveIntervalMinutes(data.saveIntervalMinutes),
                 clampClearDelaySeconds(data.clearDelaySeconds),
                 clampOnlyTicksOverMs(data.onlyTicksOverMs),
-                prefix
+                prefix,
+                clampRetention(data.maxProfileAgeDays, 7),
+                clampRetention(data.maxProfileTotalSizeMb, 5120)
         );
     }
 
@@ -165,6 +183,13 @@ public final class SparkProfilerConfig {
 
     private static int clampOnlyTicksOverMs(int value) {
         return Math.max(MIN_ONLY_TICKS_OVER_MS, Math.min(MAX_ONLY_TICKS_OVER_MS, value));
+    }
+
+    private static int clampRetention(int value, int fallback) {
+        if (value < 0) {
+            return fallback;
+        }
+        return Math.min(value, 365_000);
     }
 
     private static Path configPath() {
@@ -188,6 +213,8 @@ public final class SparkProfilerConfig {
         data.clearDelaySeconds = 60;
         data.onlyTicksOverMs = 60;
         data.commentPrefix = "cointcore-auto";
+        data.maxProfileAgeDays = 7;
+        data.maxProfileTotalSizeMb = 5120;
         return data;
     }
 
@@ -198,7 +225,9 @@ public final class SparkProfilerConfig {
             int saveIntervalMinutes,
             int clearDelaySeconds,
             int onlyTicksOverMs,
-            String commentPrefix
+            String commentPrefix,
+            int maxProfileAgeDays,
+            int maxProfileTotalSizeMb
     ) {
     }
 
@@ -223,5 +252,11 @@ public final class SparkProfilerConfig {
 
         @SerializedName("commentPrefix")
         private String commentPrefix = "cointcore-auto";
+
+        @SerializedName("maxProfileAgeDays")
+        private int maxProfileAgeDays = 7;
+
+        @SerializedName("maxProfileTotalSizeMb")
+        private int maxProfileTotalSizeMb = 5120;
     }
 }

@@ -22,6 +22,7 @@ public final class ModCommands {
         PunishmentsCommand.apply(dispatcher);
         TurnPvpCommand.apply(dispatcher);
         UnbanCommand.apply(dispatcher);
+        InvSeeCommand.apply(dispatcher);
         VoteCommand.apply(dispatcher);
         AdminChatCommand.apply(dispatcher);
     }

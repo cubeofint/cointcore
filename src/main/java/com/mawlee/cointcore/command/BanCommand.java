@@ -15,10 +15,12 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.common.UsernameCache;
 
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public final class BanCommand {
@@ -77,11 +79,16 @@ public final class BanCommand {
     }
 
     private static List<String> suggestPlayerNames(CommandSourceStack source) {
-        List<String> names = new ArrayList<>();
+        Set<String> names = new LinkedHashSet<>();
         for (ServerPlayer online : source.getServer().getPlayerList().getPlayers()) {
             names.add(online.getGameProfile().getName());
         }
-        return names;
+        for (String cached : UsernameCache.getMap().values()) {
+            if (cached != null && !cached.isBlank()) {
+                names.add(cached);
+            }
+        }
+        return List.copyOf(names);
     }
 
     private static String stripQuotes(String value) {

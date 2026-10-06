@@ -4,6 +4,7 @@ import net.neoforged.fml.ModList;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -50,7 +51,7 @@ public final class LuckPermsIntegration {
             Iterable<?> nodes = (Iterable<?>) invoke(
                     user,
                     "resolveDistinctInheritedNodes",
-                    new Class<?>[]{queryOptions.getClass()},
+                    new Class<?>[]{queryOptionsClass()},
                     queryOptions
             );
 
@@ -103,7 +104,7 @@ public final class LuckPermsIntegration {
             Iterable<?> nodes = (Iterable<?>) invoke(
                     user,
                     "resolveDistinctInheritedNodes",
-                    new Class<?>[]{queryOptions.getClass()},
+                    new Class<?>[]{queryOptionsClass()},
                     queryOptions
             );
 
@@ -143,6 +144,105 @@ public final class LuckPermsIntegration {
         }
     }
 
+    /**
+     * LuckPerms tristate for a node. Empty means unset, player not loaded, or LP missing.
+     */
+    public static Optional<Boolean> permissionTristate(UUID playerId, String permission) {
+        if (!isAvailable() || playerId == null || permission == null || permission.isBlank()) {
+            return Optional.empty();
+        }
+
+        try {
+            Object user = getUser(playerId);
+            if (user == null) {
+                return Optional.empty();
+            }
+
+            Object cachedData = invoke(user, "getCachedData");
+            Object permissionData = invoke(cachedData, "getPermissionData");
+            Object result = invoke(permissionData, "checkPermission", new Class<?>[]{String.class}, permission);
+            String name = result instanceof Enum<?> value ? value.name() : String.valueOf(result);
+            if ("TRUE".equals(name)) {
+                return Optional.of(true);
+            }
+            if ("FALSE".equals(name)) {
+                return Optional.of(false);
+            }
+            return Optional.empty();
+        } catch (ReflectiveOperationException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    public static OptionalInt primaryGroupWeight(UUID playerId) {
+        if (!isAvailable() || playerId == null) {
+            return OptionalInt.empty();
+        }
+
+        try {
+            Object user = getUser(playerId);
+            if (user == null) {
+                return OptionalInt.empty();
+            }
+
+            String primaryGroup = (String) invoke(user, "getPrimaryGroup");
+            if (primaryGroup == null || primaryGroup.isBlank()) {
+                return OptionalInt.empty();
+            }
+
+            Object provider = invokeStatic(PROVIDER_CLASS, "get");
+            Object groupManager = invoke(provider, "getGroupManager");
+            Object group = invoke(groupManager, "getGroup", new Class<?>[]{String.class}, primaryGroup);
+            if (group == null) {
+                return OptionalInt.empty();
+            }
+
+            Object weight = invoke(group, "getWeight");
+            if (weight instanceof OptionalInt optionalInt) {
+                return optionalInt;
+            }
+        } catch (ReflectiveOperationException ignored) {
+        }
+        return OptionalInt.empty();
+    }
+
+    public static Optional<String> getMetaValue(UUID playerId, String metaKey) {
+        if (!isAvailable() || playerId == null || metaKey == null || metaKey.isBlank()) {
+            return Optional.empty();
+        }
+
+        try {
+            Object user = getUser(playerId);
+            if (user == null) {
+                return Optional.empty();
+            }
+
+            Object cachedData = invoke(user, "getCachedData");
+            Object metaData = invoke(cachedData, "getMetaData");
+            String value = (String) invoke(metaData, "getMetaValue", new Class<?>[]{String.class}, metaKey);
+            if (value == null || value.isBlank()) {
+                return Optional.empty();
+            }
+
+            return Optional.of(value.trim());
+        } catch (ReflectiveOperationException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    public static int getMetaInt(UUID playerId, String metaKey, int defaultValue) {
+        Optional<String> value = getMetaValue(playerId, metaKey);
+        if (value.isEmpty()) {
+            return defaultValue;
+        }
+
+        try {
+            return Integer.parseInt(value.get());
+        } catch (NumberFormatException ignored) {
+            return defaultValue;
+        }
+    }
+
     public static void registerUserDataRecalculateListener(Consumer<UUID> listener) {
         if (!isAvailable()) {
             return;
@@ -178,13 +278,8 @@ public final class LuckPermsIntegration {
     }
 
     private static boolean hasPermission(Object user, String permission) throws ReflectiveOperationException {
-        Object queryOptions = invoke(user, "getQueryOptions");
-        if (queryOptions == null) {
-            return false;
-        }
-
         Object cachedData = invoke(user, "getCachedData");
-        Object permissionData = invoke(cachedData, "getPermissionData", new Class<?>[]{queryOptions.getClass()}, queryOptions);
+        Object permissionData = invoke(cachedData, "getPermissionData");
         Object result = invoke(permissionData, "checkPermission", new Class<?>[]{String.class}, permission);
         return Boolean.TRUE.equals(invoke(result, "asBoolean"));
     }
@@ -192,6 +287,10 @@ public final class LuckPermsIntegration {
     private static Object getNodeType(String name) throws ReflectiveOperationException {
         Class<?> nodeTypeClass = Class.forName("net.luckperms.api.node.NodeType");
         return nodeTypeClass.getField(name).get(null);
+    }
+
+    private static Class<?> queryOptionsClass() throws ClassNotFoundException {
+        return Class.forName("net.luckperms.api.query.QueryOptions");
     }
 
     private static Object invokeStatic(String className, String methodName, Object... args)

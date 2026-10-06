@@ -1,23 +1,13 @@
 package com.mawlee.cointcore.config;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonSyntaxException;
 import com.google.gson.annotations.SerializedName;
-import com.mawlee.cointcore.CointCore;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
-import net.neoforged.fml.loading.FMLPaths;
 import org.slf4j.Logger;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -25,9 +15,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * File: {@code config/cointcore/cleanup.json} section {@code items}.
+ */
 public final class WorldCleanupConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private static ItemClearSettings itemClear = ItemClearSettings.defaults();
 
@@ -39,55 +31,29 @@ public final class WorldCleanupConfig {
     }
 
     public static Path getConfigPath() {
-        return configPath();
+        return CleanupConfigs.path();
     }
 
     public static void load() {
-        apply(loadFromDisk(false));
+        CleanupConfigs.load();
     }
 
     public static boolean reload() {
-        LoadedConfig loaded = loadFromDisk(true);
-        if (loaded == null) {
-            return false;
-        }
-        apply(loaded);
-        return true;
+        return CleanupConfigs.reload();
     }
 
-    private static LoadedConfig loadFromDisk(boolean reloading) {
-        try {
-            Path path = configPath();
-            Files.createDirectories(path.getParent());
-            if (!Files.exists(path)) {
-                FileData defaults = defaultFileData();
-                save(defaults, path);
-                LOGGER.info("Created default world cleanup config at {}", path);
-                return parse(defaults);
-            }
+    static void applySection(FileData data) {
+        apply(parse(data != null ? data : defaultFileData()));
+    }
 
-            try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-                FileData data = GSON.fromJson(reader, FileData.class);
-                LoadedConfig loaded = parse(data != null ? data : defaultFileData());
-                LOGGER.info(
-                        "Loaded world cleanup config (enabled: {}, interval: {} min, threshold: {} items, dimensions: {})",
-                        loaded.itemClear.enabled(),
-                        loaded.itemClear.checkIntervalMinutes(),
-                        loaded.itemClear.itemThreshold(),
-                        loaded.itemClear.checkDimensions().stream().map(key -> key.location().toString()).toList()
-                );
-                if (reloading) {
-                    LOGGER.info("Reloaded world cleanup config from {}", path);
-                }
-                return loaded;
-            }
-        } catch (IOException | JsonSyntaxException exception) {
-            LOGGER.error("Failed to load world cleanup config from {}", configPath(), exception);
-            return reloading ? null : parse(defaultFileData());
-        } catch (RuntimeException exception) {
-            LOGGER.error("Unexpected error while loading world cleanup config from {}", configPath(), exception);
-            return reloading ? null : parse(defaultFileData());
-        }
+    static void logReload() {
+        LOGGER.info(
+                "Reloaded world cleanup config (enabled: {}, interval: {} min, threshold: {} items, dimensions: {})",
+                itemClear.enabled(),
+                itemClear.checkIntervalMinutes(),
+                itemClear.itemThreshold(),
+                itemClear.checkDimensions().stream().map(key -> key.location().toString()).toList()
+        );
     }
 
     private static void apply(LoadedConfig loaded) {
@@ -198,19 +164,7 @@ public final class WorldCleanupConfig {
         }
     }
 
-    private static Path configPath() {
-        return FMLPaths.CONFIGDIR.get()
-                .resolve(CointCore.MOD_ID)
-                .resolve("world-cleanup.json");
-    }
-
-    private static void save(FileData data, Path path) throws IOException {
-        try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
-            GSON.toJson(data, writer);
-        }
-    }
-
-    private static FileData defaultFileData() {
+    static FileData defaultFileData() {
         FileData data = new FileData();
         ItemClearFile itemClearFile = new ItemClearFile();
         itemClearFile.enabled = true;
@@ -255,7 +209,7 @@ public final class WorldCleanupConfig {
     private record LoadedConfig(ItemClearSettings itemClear) {
     }
 
-    private static final class FileData {
+    static final class FileData {
         @SerializedName("itemClear")
         private ItemClearFile itemClear;
     }

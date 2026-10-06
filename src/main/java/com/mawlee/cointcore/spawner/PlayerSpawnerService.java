@@ -1,210 +1,139 @@
 package com.mawlee.cointcore.spawner;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
-import net.minecraft.world.level.chunk.LevelChunk;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Farm spawner = player-placed, Apothic-modified, or Apothic with any custom stats.
+ * Untouched dungeon spawners are not farms and must spawn mobs normally.
+ */
 public final class PlayerSpawnerService {
-    private static final double MAX_SPAWN_DISTANCE = VanillaSpawnerLimits.SPAWN_RANGE + 1.5D;
-    private static final double MAX_SPAWN_DISTANCE_SQ = MAX_SPAWN_DISTANCE * MAX_SPAWN_DISTANCE;
+    private static final Map<Class<?>, MethodHandle> APOTHIC_MODIFIED_GETTERS = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, MethodHandle> APOTHIC_STATS_GETTERS = new ConcurrentHashMap<>();
+    private static final MethodHandle NO_HANDLE = MethodHandles.constant(boolean.class, false);
 
     private PlayerSpawnerService() {
     }
 
-    public static SpawnerResolution resolve(ServerLevel level, Mob mob) {
-        List<SpawnerCandidate> candidates = collectCandidates(level, mob);
-        if (candidates.isEmpty()) {
-            return null;
+    public static boolean isFarmSpawner(ServerLevel level, BlockPos pos) {
+        if (!level.getBlockState(pos).is(Blocks.SPAWNER)) {
+            return false;
         }
 
-        candidates.sort(Comparator.comparingDouble(candidate -> candidate.distanceSq));
-        BlockPos interceptSpawner = candidates.getFirst().pos;
-        BlockPos lootSpawner = selectLootSpawner(BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType()), candidates);
-        return new SpawnerResolution(interceptSpawner, lootSpawner);
-    }
-
-    public static boolean isPlayerPlaced(ServerLevel level, BlockPos pos) {
         if (PlayerSpawnerSavedData.get(level.getServer()).isMarked(level.dimension(), pos)) {
             return true;
         }
 
         BlockEntity blockEntity = level.getBlockEntity(pos);
-        if (blockEntity == null) {
+        return blockEntity != null && isApothicFarm(blockEntity, level);
+    }
+
+    public static boolean isFarmSpawner(ServerLevel level, BlockEntity blockEntity) {
+        if (!(blockEntity instanceof SpawnerBlockEntity)) {
             return false;
         }
 
-        return isModifiedSpawner(blockEntity, blockEntity.saveWithoutMetadata(level.registryAccess()));
-    }
-
-    private static List<SpawnerCandidate> collectCandidates(ServerLevel level, Mob mob) {
-        List<SpawnerCandidate> candidates = new ArrayList<>();
-        Set<BlockPos> seen = new HashSet<>();
-        HolderLookup.Provider registryAccess = level.registryAccess();
-        PlayerSpawnerSavedData savedData = PlayerSpawnerSavedData.get(level.getServer());
-
-        savedData.forEachNear(level, mob.blockPosition(), MAX_SPAWN_DISTANCE, pos -> {
-            if (!seen.add(pos)) {
-                return;
-            }
-
-            addCandidate(level, mob, pos, true, registryAccess, candidates);
-        });
-
-        collectModifiedSpawnerCandidates(level, mob, seen, registryAccess, savedData, candidates);
-        return candidates;
-    }
-
-    private static void collectModifiedSpawnerCandidates(
-            ServerLevel level,
-            Mob mob,
-            Set<BlockPos> seen,
-            HolderLookup.Provider registryAccess,
-            PlayerSpawnerSavedData savedData,
-            List<SpawnerCandidate> candidates
-    ) {
-        int chunkRadius = (int) Math.ceil(MAX_SPAWN_DISTANCE / 16.0D);
-        BlockPos mobPos = mob.blockPosition();
-        int centerChunkX = mobPos.getX() >> 4;
-        int centerChunkZ = mobPos.getZ() >> 4;
-
-        for (int chunkX = centerChunkX - chunkRadius; chunkX <= centerChunkX + chunkRadius; chunkX++) {
-            for (int chunkZ = centerChunkZ - chunkRadius; chunkZ <= centerChunkZ + chunkRadius; chunkZ++) {
-                if (!level.hasChunk(chunkX, chunkZ)) {
-                    continue;
-                }
-
-                LevelChunk chunk = level.getChunk(chunkX, chunkZ);
-                for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
-                    if (!(blockEntity instanceof SpawnerBlockEntity)) {
-                        continue;
-                    }
-
-                    BlockPos pos = blockEntity.getBlockPos();
-                    if (!seen.add(pos) || savedData.isMarked(level.dimension(), pos)) {
-                        continue;
-                    }
-
-                    addCandidate(level, mob, pos, false, registryAccess, candidates, blockEntity);
-                }
-            }
-        }
-    }
-
-    private static void addCandidate(
-            ServerLevel level,
-            Mob mob,
-            BlockPos pos,
-            boolean marked,
-            HolderLookup.Provider registryAccess,
-            List<SpawnerCandidate> candidates
-    ) {
-        addCandidate(level, mob, pos, marked, registryAccess, candidates, level.getBlockEntity(pos));
-    }
-
-    private static void addCandidate(
-            ServerLevel level,
-            Mob mob,
-            BlockPos pos,
-            boolean marked,
-            HolderLookup.Provider registryAccess,
-            List<SpawnerCandidate> candidates,
-            BlockEntity blockEntity
-    ) {
-        if (!level.getBlockState(pos).is(Blocks.SPAWNER)) {
-            if (marked) {
-                PlayerSpawnerSavedData.get(level.getServer()).unmark(level, pos);
-            }
-            return;
-        }
-
-        double dx = mob.getX() - (pos.getX() + 0.5D);
-        double dy = mob.getY() - (pos.getY() + 0.5D);
-        double dz = mob.getZ() - (pos.getZ() + 0.5D);
-        double distanceSq = dx * dx + dy * dy + dz * dz;
-        if (distanceSq > MAX_SPAWN_DISTANCE_SQ) {
-            return;
-        }
-
-        if (blockEntity == null) {
-            return;
-        }
-
-        CompoundTag tag = blockEntity.saveWithoutMetadata(registryAccess);
-        if (!marked && !isModifiedSpawner(blockEntity, tag)) {
-            return;
-        }
-
-        candidates.add(new SpawnerCandidate(pos, distanceSq, readConfiguredEntityId(tag)));
-    }
-
-    private static BlockPos selectLootSpawner(ResourceLocation mobId, List<SpawnerCandidate> sortedCandidates) {
-        List<SpawnerCandidate> matching = new ArrayList<>();
-        for (SpawnerCandidate candidate : sortedCandidates) {
-            if (candidate.entityId == null || candidate.entityId.equals(mobId)) {
-                matching.add(candidate);
-            }
-        }
-
-        if (matching.isEmpty()) {
-            return null;
-        }
-
-        if (matching.size() > 1 && matching.get(1).distanceSq <= matching.getFirst().distanceSq + 0.25D) {
-            return null;
-        }
-
-        return matching.getFirst().pos;
-    }
-
-    private static boolean isModifiedSpawner(BlockEntity blockEntity, CompoundTag tag) {
-        if (tag.getBoolean("modified")) {
+        BlockPos pos = blockEntity.getBlockPos();
+        if (PlayerSpawnerSavedData.get(level.getServer()).isMarked(level.dimension(), pos)) {
             return true;
         }
 
-        return hasApothicBeenModified(blockEntity);
+        return isApothicFarm(blockEntity, level);
     }
 
-    private static ResourceLocation readConfiguredEntityId(CompoundTag tag) {
-        CompoundTag spawnData = tag.contains("SpawnData") ? tag.getCompound("SpawnData") : tag.getCompound("spawn_data");
-        if (spawnData.isEmpty()) {
-            return null;
+    /**
+     * Lazily indexes an in-place Apothic-modified dungeon spawner so place-data stays in sync.
+     */
+    public static void ensureIndexedIfFarm(ServerLevel level, BlockEntity blockEntity) {
+        if (!(blockEntity instanceof SpawnerBlockEntity)) {
+            return;
         }
 
-        CompoundTag entityTag = spawnData.contains("entity")
-                ? spawnData.getCompound("entity")
-                : spawnData.getCompound("entityToSpawn");
-        if (entityTag.isEmpty() || !entityTag.contains("id")) {
-            return null;
+        BlockPos pos = blockEntity.getBlockPos();
+        PlayerSpawnerSavedData data = PlayerSpawnerSavedData.get(level.getServer());
+        if (data.isMarked(level.dimension(), pos)) {
+            return;
         }
 
-        return ResourceLocation.tryParse(entityTag.getString("id"));
+        if (isApothicFarm(blockEntity, level)) {
+            data.mark(level, pos);
+        }
     }
 
-    private static boolean hasApothicBeenModified(BlockEntity blockEntity) {
-        try {
-            var method = blockEntity.getClass().getMethod("hasBeenModified");
-            if (method.getReturnType() == boolean.class) {
-                return (Boolean) method.invoke(blockEntity);
+    private static boolean isApothicFarm(BlockEntity blockEntity, ServerLevel level) {
+        if (isApothicModifiedFlag(blockEntity, level)) {
+            return true;
+        }
+        return hasApothicCustomStats(blockEntity, level);
+    }
+
+    private static boolean isApothicModifiedFlag(BlockEntity blockEntity, ServerLevel level) {
+        MethodHandle handle = APOTHIC_MODIFIED_GETTERS.computeIfAbsent(
+                blockEntity.getClass(),
+                PlayerSpawnerService::lookupApothicModifiedGetter
+        );
+        if (handle != NO_HANDLE) {
+            try {
+                return (boolean) handle.invoke(blockEntity);
+            } catch (Throwable ignored) {
+                return readModifiedNbt(blockEntity, level);
             }
-        } catch (ReflectiveOperationException ignored) {
         }
-        return false;
+
+        return readModifiedNbt(blockEntity, level);
     }
 
-    private record SpawnerCandidate(BlockPos pos, double distanceSq, ResourceLocation entityId) {
+    private static boolean hasApothicCustomStats(BlockEntity blockEntity, ServerLevel level) {
+        MethodHandle handle = APOTHIC_STATS_GETTERS.computeIfAbsent(
+                blockEntity.getClass(),
+                PlayerSpawnerService::lookupApothicStatsGetter
+        );
+        if (handle != NO_HANDLE) {
+            try {
+                Object stats = handle.invoke(blockEntity);
+                return stats instanceof Map<?, ?> map && !map.isEmpty();
+            } catch (Throwable ignored) {
+                return readStatsNbt(blockEntity, level);
+            }
+        }
+        return readStatsNbt(blockEntity, level);
+    }
+
+    private static MethodHandle lookupApothicModifiedGetter(Class<?> type) {
+        try {
+            return MethodHandles.publicLookup()
+                    .findVirtual(type, "hasBeenModified", MethodType.methodType(boolean.class));
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {
+            return NO_HANDLE;
+        }
+    }
+
+    private static MethodHandle lookupApothicStatsGetter(Class<?> type) {
+        try {
+            return MethodHandles.publicLookup()
+                    .findVirtual(type, "getStatsMap", MethodType.methodType(Map.class));
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {
+            return NO_HANDLE;
+        }
+    }
+
+    private static boolean readModifiedNbt(BlockEntity blockEntity, ServerLevel level) {
+        CompoundTag tag = blockEntity.saveWithoutMetadata(level.registryAccess());
+        return tag.getBoolean("modified");
+    }
+
+    private static boolean readStatsNbt(BlockEntity blockEntity, ServerLevel level) {
+        CompoundTag tag = blockEntity.saveWithoutMetadata(level.registryAccess());
+        return tag.contains("stats") && !tag.getCompound("stats").isEmpty();
     }
 }

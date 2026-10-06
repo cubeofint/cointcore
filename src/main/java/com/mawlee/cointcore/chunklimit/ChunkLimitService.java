@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.chunklimit;
 
 import com.mawlee.cointcore.config.ChunkLimitConfig;
+import com.mawlee.cointcore.ftb.FtbIntegration;
 import com.mawlee.cointcore.lang.CointCoreMessages;
 import com.mawlee.cointcore.permission.CointPermissionNodes;
 import com.mawlee.cointcore.permission.PermissionService;
@@ -21,15 +22,16 @@ import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.ChunkPos;
+import net.neoforged.neoforge.common.util.FakePlayer;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public final class ChunkLimitService {
@@ -40,58 +42,79 @@ public final class ChunkLimitService {
         return PermissionService.has(player, CointPermissionNodes.CHUNK_LIMIT_BYPASS);
     }
 
+    /**
+     * Whether a limited block entity at {@code pos} may tick.
+     * Always allows ticking: over-limit machines placed by admins (bypass) must keep working.
+     * Enforcement is hard-deny on non-bypass player placement only.
+     */
+    public static boolean shouldTickLimitedBlock(ServerLevel level, net.minecraft.core.BlockPos pos, Block block) {
+        return true;
+    }
+
+    /**
+     * Post-placement check: the new block is already in the world / index.
+     * True when the chunk or team count is strictly above the configured limit.
+     */
     public static boolean wouldExceedBlockLimit(ServerLevel level, ChunkPos chunkPos, Block block) {
-        if (!ChunkLimitConfig.isEnabled() || !ChunkLimitConfig.hasBlockLimit(block)) {
+        return wouldExceedBlockLimit(level, chunkPos, block, 0);
+    }
+
+    /**
+     * Whether placing {@code additionalBlocks} more of this type would exceed chunk/team limits.
+     * Use {@code additionalBlocks = 1} before placement; {@code 0} when the block is already counted.
+     */
+    public static boolean wouldExceedBlockLimit(
+            ServerLevel level,
+            ChunkPos chunkPos,
+            Block block,
+            int additionalBlocks
+    ) {
+        if (!ChunkLimitConfig.isEnabled() || additionalBlocks < 0) {
             return false;
         }
-        ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
-        if (id == null) {
+        ChunkLimitKey chunkKey = ChunkLimitConfig.resolveBlockKey(block);
+        if (chunkKey != null
+                && ChunkLimitIndex.count(level, chunkPos, chunkKey) + additionalBlocks > chunkKey.limit()) {
+            return true;
+        }
+        ChunkLimitKey teamKey = ChunkLimitConfig.resolveTeamBlockKey(block);
+        if (teamKey == null) {
             return false;
         }
-        Integer limit = ChunkLimitConfig.getBlockLimit(id);
-        if (limit == null) {
-            return false;
+        return FtbIntegration.getTeamIdAt(level, chunkPos)
+                .map(teamId -> TeamLimitIndex.count(teamId, teamKey) + additionalBlocks > teamKey.limit())
+                .orElse(false);
+    }
+
+    public static ExceedReason blockExceedReason(ServerLevel level, ChunkPos chunkPos, Block block) {
+        if (!ChunkLimitConfig.isEnabled()) {
+            return ExceedReason.NONE;
         }
-        return countBlocksInChunk(level, chunkPos, block) >= limit;
+        ChunkLimitKey chunkKey = ChunkLimitConfig.resolveBlockKey(block);
+        if (chunkKey != null && ChunkLimitIndex.count(level, chunkPos, chunkKey) > chunkKey.limit()) {
+            return ExceedReason.CHUNK;
+        }
+        ChunkLimitKey teamKey = ChunkLimitConfig.resolveTeamBlockKey(block);
+        if (teamKey != null) {
+            UUID teamId = FtbIntegration.getTeamIdAt(level, chunkPos).orElse(null);
+            if (teamId != null && TeamLimitIndex.count(teamId, teamKey) > teamKey.limit()) {
+                return ExceedReason.TEAM;
+            }
+        }
+        return ExceedReason.NONE;
     }
 
     public static boolean wouldExceedEntityLimit(ServerLevel level, ChunkPos chunkPos, EntityType<?> type) {
-        if (!ChunkLimitConfig.isEnabled() || !ChunkLimitConfig.hasEntityLimit(type)) {
-            return false;
-        }
-        ResourceLocation id = BuiltInRegistries.ENTITY_TYPE.getKey(type);
-        if (id == null) {
-            return false;
-        }
-        Integer limit = ChunkLimitConfig.getEntityLimit(id);
-        if (limit == null) {
-            return false;
-        }
-        return countEntitiesInChunk(level, chunkPos, type) >= limit;
+        return MobLimitService.wouldExceedIfAdded(level, chunkPos, type, true)
+                || MobLimitService.wouldExceedIfAdded(level, chunkPos, type, false);
     }
 
     public static int countBlocksInChunk(ServerLevel level, ChunkPos chunkPos, Block block) {
-        if (!level.hasChunk(chunkPos.x, chunkPos.z)) {
+        ChunkLimitKey key = ChunkLimitConfig.resolveBlockKey(block);
+        if (key == null) {
             return 0;
         }
-
-        LevelChunk chunk = level.getChunk(chunkPos.x, chunkPos.z);
-        int count = 0;
-        for (LevelChunkSection section : chunk.getSections()) {
-            if (section == null || section.hasOnlyAir()) {
-                continue;
-            }
-            for (int x = 0; x < 16; x++) {
-                for (int y = 0; y < 16; y++) {
-                    for (int z = 0; z < 16; z++) {
-                        if (section.getBlockState(x, y, z).is(block)) {
-                            count++;
-                        }
-                    }
-                }
-            }
-        }
-        return count;
+        return ChunkLimitIndex.count(level, chunkPos, key);
     }
 
     public static int countEntitiesInChunk(ServerLevel level, ChunkPos chunkPos, EntityType<?> type) {
@@ -101,20 +124,51 @@ public final class ChunkLimitService {
     }
 
     public static void denyBlockPlacement(ServerPlayer player, BlockState placedState, ChunkPos chunkPos) {
-        Block block = placedState.getBlock();
-        ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
-        Integer limit = id != null ? ChunkLimitConfig.getBlockLimit(id) : null;
-        int current = countBlocksInChunk(player.serverLevel(), chunkPos, block);
-
-        ItemStack returnStack = block.getCloneItemStack(player.serverLevel(), player.blockPosition(), placedState);
+        ItemStack returnStack = placedState.getBlock().getCloneItemStack(
+                player.serverLevel(),
+                player.blockPosition(),
+                placedState
+        );
+        // Always restore into the placer inventory (including FakePlayer used by machines).
         returnStackToPlayer(player, returnStack);
+        if (!(player instanceof FakePlayer)) {
+            notifyBlockPlacementDenied(player, placedState, chunkPos);
+        }
+    }
+
+    /** Message only — use when the item was not consumed (preemptive cancel). */
+    public static void notifyBlockPlacementDenied(ServerPlayer player, BlockState placedState, ChunkPos chunkPos) {
+        if (player instanceof FakePlayer) {
+            return;
+        }
+        Block block = placedState.getBlock();
+        ExceedReason reason = blockExceedReason(player.serverLevel(), chunkPos, block);
+        ChunkLimitKey chunkKey = ChunkLimitConfig.resolveBlockKey(block);
+        ChunkLimitKey teamKey = ChunkLimitConfig.resolveTeamBlockKey(block);
+
+        String messageKey;
+        String targetId;
+        int current;
+        int limit;
+        if (reason == ExceedReason.TEAM && teamKey != null) {
+            UUID teamId = FtbIntegration.getTeamIdAt(player.serverLevel(), chunkPos).orElse(null);
+            messageKey = CointCoreMessages.CHUNK_LIMIT_TEAM_BLOCK_DENIED;
+            targetId = teamKey.id();
+            current = teamId != null ? TeamLimitIndex.count(teamId, teamKey) : 0;
+            limit = teamKey.limit();
+        } else {
+            messageKey = CointCoreMessages.CHUNK_LIMIT_BLOCK_DENIED;
+            targetId = chunkKey != null ? chunkKey.id() : formatId(BuiltInRegistries.BLOCK.getKey(block));
+            current = chunkKey != null ? ChunkLimitIndex.count(player.serverLevel(), chunkPos, chunkKey) : 0;
+            limit = chunkKey != null ? chunkKey.limit() : 0;
+        }
 
         sendLimitMessage(
                 player,
-                CointCoreMessages.CHUNK_LIMIT_BLOCK_DENIED,
-                formatId(id),
+                messageKey,
+                targetId,
                 current,
-                limit != null ? limit : 0,
+                limit,
                 chunkPos.x,
                 chunkPos.z
         );
@@ -188,31 +242,128 @@ public final class ChunkLimitService {
 
     public static List<ChunkLimitStatusEntry> collectChunkStatus(ServerLevel level, ChunkPos chunkPos) {
         List<ChunkLimitStatusEntry> entries = new ArrayList<>();
-        for (Map.Entry<ResourceLocation, Integer> entry : ChunkLimitConfig.getBlockLimits().entrySet()) {
+        Set<String> seenKeys = new LinkedHashSet<>();
+
+        Map<ResourceLocation, Integer> exact = ChunkLimitConfig.getBlockLimits();
+        for (Map.Entry<ResourceLocation, Integer> entry : exact.entrySet()) {
             Block block = BuiltInRegistries.BLOCK.get(entry.getKey());
             if (block == null) {
                 continue;
             }
-            entries.add(new ChunkLimitStatusEntry(
-                    entry.getKey(),
-                    true,
-                    countBlocksInChunk(level, chunkPos, block),
-                    entry.getValue()
-            ));
-        }
-        for (Map.Entry<ResourceLocation, Integer> entry : ChunkLimitConfig.getEntityLimits().entrySet()) {
-            EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(entry.getKey());
-            if (type == null) {
+            ChunkLimitKey key = ChunkLimitConfig.resolveBlockKey(block);
+            if (key == null || !seenKeys.add(key.id())) {
                 continue;
             }
+            int current = ChunkLimitIndex.count(level, chunkPos, key);
             entries.add(new ChunkLimitStatusEntry(
-                    entry.getKey(),
-                    false,
-                    countEntitiesInChunk(level, chunkPos, type),
-                    entry.getValue()
+                    key.id(),
+                    true,
+                    current,
+                    key.limit(),
+                    Math.max(0, current - key.limit())
+            ));
+        }
+
+        for (ChunkLimitConfig.GroupLimit group : ChunkLimitConfig.getGroups().values()) {
+            ChunkLimitKey key = new ChunkLimitKey("group:" + group.name(), group.limit());
+            if (!seenKeys.add(key.id())) {
+                continue;
+            }
+            int current = ChunkLimitIndex.count(level, chunkPos, key);
+            entries.add(new ChunkLimitStatusEntry(
+                    key.id(),
+                    true,
+                    current,
+                    key.limit(),
+                    Math.max(0, current - key.limit())
+            ));
+        }
+
+        for (ChunkLimitConfig.TagLimitBinding binding : ChunkLimitConfig.getTagBindings()) {
+            if (!seenKeys.add(binding.key().id())) {
+                continue;
+            }
+            int current = ChunkLimitIndex.count(level, chunkPos, binding.key());
+            entries.add(new ChunkLimitStatusEntry(
+                    binding.key().id(),
+                    true,
+                    current,
+                    binding.key().limit(),
+                    Math.max(0, current - binding.key().limit())
+            ));
+        }
+
+        for (ChunkLimitConfig.ModLimitBinding binding : ChunkLimitConfig.getModBindings()) {
+            if (!seenKeys.add(binding.key().id())) {
+                continue;
+            }
+            int current = ChunkLimitIndex.count(level, chunkPos, binding.key());
+            entries.add(new ChunkLimitStatusEntry(
+                    binding.key().id(),
+                    true,
+                    current,
+                    binding.key().limit(),
+                    Math.max(0, current - binding.key().limit())
+            ));
+        }
+
+        entries.addAll(MobLimitService.collectMobStatus(level, chunkPos));
+        return entries;
+    }
+
+    public static List<ChunkLimitStatusEntry> collectTeamStatus(ServerLevel level, ChunkPos chunkPos) {
+        List<ChunkLimitStatusEntry> entries = new ArrayList<>();
+        UUID teamId = FtbIntegration.getTeamIdAt(level, chunkPos).orElse(null);
+        if (teamId == null || !ChunkLimitConfig.hasTeamBlockLimits()) {
+            return entries;
+        }
+
+        Set<String> seenKeys = new LinkedHashSet<>();
+        for (Map.Entry<ResourceLocation, Integer> entry : ChunkLimitConfig.getTeamBlockLimits().entrySet()) {
+            Block block = BuiltInRegistries.BLOCK.get(entry.getKey());
+            if (block == null) {
+                continue;
+            }
+            ChunkLimitKey key = ChunkLimitConfig.resolveTeamBlockKey(block);
+            if (key == null || !seenKeys.add(key.id())) {
+                continue;
+            }
+            int current = TeamLimitIndex.count(teamId, key);
+            entries.add(new ChunkLimitStatusEntry(key.id(), true, current, key.limit(), 0));
+        }
+        for (ChunkLimitConfig.GroupLimit group : ChunkLimitConfig.getTeamGroups().values()) {
+            ChunkLimitKey key = new ChunkLimitKey("group:" + group.name(), group.limit());
+            if (!seenKeys.add(key.id())) {
+                continue;
+            }
+            int current = TeamLimitIndex.count(teamId, key);
+            entries.add(new ChunkLimitStatusEntry(key.id(), true, current, key.limit(), 0));
+        }
+        for (ChunkLimitConfig.TagLimitBinding binding : ChunkLimitConfig.getTeamTagBindings()) {
+            if (!seenKeys.add(binding.key().id())) {
+                continue;
+            }
+            int current = TeamLimitIndex.count(teamId, binding.key());
+            entries.add(new ChunkLimitStatusEntry(
+                    binding.key().id(), true, current, binding.key().limit(), 0
+            ));
+        }
+        for (ChunkLimitConfig.ModLimitBinding binding : ChunkLimitConfig.getTeamModBindings()) {
+            if (!seenKeys.add(binding.key().id())) {
+                continue;
+            }
+            int current = TeamLimitIndex.count(teamId, binding.key());
+            entries.add(new ChunkLimitStatusEntry(
+                    binding.key().id(), true, current, binding.key().limit(), 0
             ));
         }
         return entries;
+    }
+
+    public enum ExceedReason {
+        NONE,
+        CHUNK,
+        TEAM
     }
 
     public static void returnStackToPlayer(ServerPlayer player, ItemStack stack) {
@@ -220,7 +371,23 @@ public final class ChunkLimitService {
             return;
         }
         ItemStack copy = stack.copy();
-        if (!player.getInventory().add(copy)) {
+        // Prefer main hand if empty / same item (typical FakePlayer placer slot), else inventory.
+        ItemStack main = player.getMainHandItem();
+        if (main.isEmpty()) {
+            player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, copy);
+            return;
+        }
+        if (ItemStack.isSameItemSameComponents(main, copy)
+                && main.getCount() < main.getMaxStackSize()) {
+            int room = main.getMaxStackSize() - main.getCount();
+            int move = Math.min(room, copy.getCount());
+            main.grow(move);
+            copy.shrink(move);
+            if (copy.isEmpty()) {
+                return;
+            }
+        }
+        if (!player.getInventory().add(copy) && !(player instanceof FakePlayer)) {
             player.drop(copy, false);
         }
     }
@@ -342,10 +509,11 @@ public final class ChunkLimitService {
     }
 
     public record ChunkLimitStatusEntry(
-            ResourceLocation id,
+            String id,
             boolean block,
             int current,
-            int limit
+            int limit,
+            int inert
     ) {
     }
 }

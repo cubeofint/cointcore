@@ -2,20 +2,48 @@ package com.mawlee.cointcore.command;
 
 import com.mawlee.cointcore.ae.MeUniqueFilterConfig;
 import com.mawlee.cointcore.ae.NonStackableItemTagPack;
-import com.mawlee.cointcore.config.JoinMessagesConfig;
-import com.mawlee.cointcore.config.AdminChatConfig;
+import com.mawlee.cointcore.afk.AfkService;
+import com.mawlee.cointcore.config.AfkConfig;
+import com.mawlee.cointcore.config.FtbRanksLuckPermsBridgeConfig;
+import com.mawlee.cointcore.config.ChatDiscordRelayConfig;
+import com.mawlee.cointcore.config.ArsPerfConfigs;
+import com.mawlee.cointcore.config.CataclysmRespawnConfigs;
+import com.mawlee.cointcore.config.ChatConfigs;
+import com.mawlee.cointcore.config.ClaimsConfigs;
 import com.mawlee.cointcore.config.ChunkLimitConfig;
-import com.mawlee.cointcore.config.MobCleanupConfig;
+import com.mawlee.cointcore.config.CleanupConfigs;
+import com.mawlee.cointcore.config.NaturalSpawnConfig;
+import com.mawlee.cointcore.cataclysm.CataclysmStructureRespawnService;
+import com.mawlee.cointcore.cataclysm.SunkenCityRespawnService;
 import com.mawlee.cointcore.config.WorldCleanupConfig;
 import com.mawlee.cointcore.server.WorldCleanupService;
 import com.mawlee.cointcore.config.RelpChatPrefixConfig;
 import com.mawlee.cointcore.config.VoteConfig;
 import com.mawlee.cointcore.config.ServerAutomationConfig;
+import com.mawlee.cointcore.config.SoulSurgePerfConfig;
+import com.mawlee.cointcore.config.SoulSurgeDenyConfig;
+import com.mawlee.cointcore.config.TickAccelerationDenyConfig;
+import com.mawlee.cointcore.config.SpawnerPerfConfig;
+import com.mawlee.cointcore.config.ItemPerfConfig;
+import com.mawlee.cointcore.config.LagFixesConfigs;
+import com.mawlee.cointcore.config.StoragePerfConfigs;
+import com.mawlee.cointcore.config.TickThrottleConfigs;
+import com.mawlee.cointcore.ars.ArsGlyphThrottle;
+import com.mawlee.cointcore.ars.CrushRecipeCache;
+import com.mawlee.cointcore.config.ExplosionTerrainConfig;
+import com.mawlee.cointcore.config.SpawnerByproductConfig;
 import com.mawlee.cointcore.config.SparkProfilerConfig;
+import com.mawlee.cointcore.config.TickWatchdogConfig;
+import com.mawlee.cointcore.config.DimensionWipeConfig;
+import com.mawlee.cointcore.config.StarterKitConfig;
 import com.mawlee.cointcore.server.PeriodicMessageService;
 import com.mawlee.cointcore.server.ScheduledRestartService;
 import com.mawlee.cointcore.server.ServerRestartService;
+import com.mawlee.cointcore.server.DimensionWipeService;
+import com.mawlee.cointcore.server.DimensionWipePending;
+import com.mawlee.cointcore.kit.StarterKitService;
 import com.mawlee.cointcore.vote.VoteService;
+import com.mawlee.cointcore.ftb.ChunkBonusService;
 import com.mawlee.cointcore.ftb.FtbEssentialsIntegration;
 import com.mawlee.cointcore.lang.CointCoreMessages;
 import com.mawlee.cointcore.permission.CointPermissionNodes;
@@ -27,6 +55,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.logging.LogUtils;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import org.slf4j.Logger;
@@ -54,7 +83,34 @@ public final class CointCoreCommand {
                                 .executes(CointCoreCommand::worldCleanupStatus))
                         .then(Commands.literal("run")
                                 .executes(CointCoreCommand::runWorldCleanup)))
-                .then(ChunkLimitCommand.chunkLimitCommand());
+                .then(Commands.literal("dimwipe")
+                        .requires(CointCoreCommand::canRestart)
+                        .then(Commands.literal("status")
+                                .executes(CointCoreCommand::dimWipeStatus))
+                        .then(Commands.literal("now")
+                                .executes(CointCoreCommand::dimWipeNow)))
+                .then(StarterKitCommand.cointCoreBranch())
+                .then(Commands.literal("sunkencity")
+                        .requires(CointCoreCommand::canReload)
+                        .then(Commands.literal("status")
+                                .executes(CointCoreCommand::sunkenCityStatus))
+                        .then(Commands.literal("force")
+                                .executes(CointCoreCommand::sunkenCityForce)))
+                .then(Commands.literal("cataclysmspots")
+                        .requires(CointCoreCommand::canReload)
+                        .then(Commands.literal("status")
+                                .executes(CointCoreCommand::cataclysmSpotsStatus))
+                        .then(Commands.literal("force")
+                                .executes(CointCoreCommand::cataclysmSpotsForce)))
+                // Alias kept for older scripts/docs.
+                .then(Commands.literal("frostedprison")
+                        .requires(CointCoreCommand::canReload)
+                        .then(Commands.literal("status")
+                                .executes(CointCoreCommand::cataclysmSpotsStatus))
+                        .then(Commands.literal("force")
+                                .executes(CointCoreCommand::cataclysmSpotsForce)))
+                .then(ChunkLimitCommand.chunkLimitCommand())
+                .then(WatchdogCommand.branch());
 
         var claimFlags = ClaimFlagCommand.claimFlagCommand();
         if (claimFlags != null) {
@@ -86,20 +142,44 @@ public final class CointCoreCommand {
     private static int reloadConfig(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
         RelpChatPrefixConfig.load();
-        if (JoinMessagesConfig.reload()
-                && MobCleanupConfig.reload()
-                && WorldCleanupConfig.reload()
+        if (ChatConfigs.reload()
+                && AfkConfig.reload()
+                && FtbRanksLuckPermsBridgeConfig.reload()
+                && ChatDiscordRelayConfig.reload()
+                && NaturalSpawnConfig.reload()
+                && CleanupConfigs.reload()
+                && CataclysmRespawnConfigs.reload()
                 && ChunkLimitConfig.reload()
+                && ClaimsConfigs.reload()
                 && VoteConfig.reload()
                 && ServerAutomationConfig.reload()
                 && SparkProfilerConfig.reload()
-                && AdminChatConfig.reload()
-                && MeUniqueFilterConfig.reload()) {
+                && TickThrottleConfigs.reload()
+                && SoulSurgePerfConfig.reload()
+                && SoulSurgeDenyConfig.reload()
+                && TickAccelerationDenyConfig.reload()
+                && SpawnerPerfConfig.reload()
+                && ItemPerfConfig.reload()
+                && ArsPerfConfigs.reload()
+                && StoragePerfConfigs.reload()
+                && LagFixesConfigs.reload()
+                && ExplosionTerrainConfig.reload()
+                && SpawnerByproductConfig.reload()
+                && DimensionWipeConfig.reload()
+                && StarterKitConfig.reload()
+                && MeUniqueFilterConfig.reload()
+                && TickWatchdogConfig.reload()) {
+            CrushRecipeCache.invalidate();
+            ArsGlyphThrottle.clear();
             NonStackableItemTagPack.ensureGenerated();
             VoteService.applySleepPercentage(source.getServer());
             PeriodicMessageService.resetRuntimeState();
             ScheduledRestartService.resetRuntimeState();
+            DimensionWipeService.resetRuntimeState();
+            StarterKitService.syncCooldownFromConfig();
             WorldCleanupService.resetRuntimeState();
+            ChunkBonusService.refreshAllOnlinePlayers(source.getServer());
+            AfkService.rearmAllOnline(source.getServer());
             if (source.getEntity() instanceof ServerPlayer player) {
                 source.sendSuccess(() -> CointCoreMessages.forPlayer(player, CointCoreMessages.CONFIG_RELOAD_SUCCESS), true);
             } else {
@@ -166,6 +246,7 @@ public final class CointCoreCommand {
 
         try {
             if (ServerRestartService.cancelPendingRestart()) {
+                DimensionWipePending.clear();
                 if (source.getEntity() instanceof ServerPlayer player) {
                     source.sendSuccess(() -> CointCoreMessages.forPlayer(player, CointCoreMessages.SERVER_RESTART_CANCELLED), true);
                 } else {
@@ -188,10 +269,15 @@ public final class CointCoreCommand {
     }
 
     private static void sendRestartFailure(CommandSourceStack source) {
-        if (source.getEntity() instanceof ServerPlayer player) {
-            source.sendFailure(CointCoreMessages.forPlayer(player, CointCoreMessages.SERVER_RESTART_FAILED));
-        } else {
-            source.sendFailure(CointCoreMessages.forConsole(CointCoreMessages.SERVER_RESTART_FAILED));
+        try {
+            if (source.getEntity() instanceof ServerPlayer player) {
+                source.sendFailure(CointCoreMessages.forPlayer(player, CointCoreMessages.SERVER_RESTART_FAILED));
+            } else {
+                source.sendFailure(CointCoreMessages.forConsole(CointCoreMessages.SERVER_RESTART_FAILED));
+            }
+        } catch (Throwable messageFailure) {
+            // Never let messaging take down the server (e.g. broken/hot-swapped lang classes).
+            source.sendFailure(Component.literal("CointCore: failed to schedule restart."));
         }
     }
 
@@ -222,6 +308,92 @@ public final class CointCoreCommand {
         }
 
         WorldCleanupService.triggerManualCleanup(source.getServer());
+        return 1;
+    }
+
+    private static int dimWipeStatus(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        String summary = DimensionWipeService.statusSummary();
+        if (source.getEntity() instanceof ServerPlayer player) {
+            source.sendSuccess(() -> CointCoreMessages.forPlayer(player, CointCoreMessages.DIMWIPE_STATUS, summary), false);
+        } else {
+            source.sendSuccess(() -> CointCoreMessages.forConsole(CointCoreMessages.DIMWIPE_STATUS, summary), false);
+        }
+        return 1;
+    }
+
+    private static int dimWipeNow(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        DimensionWipeConfig.Settings settings = DimensionWipeConfig.get();
+        if (settings.dimensions().isEmpty()) {
+            if (source.getEntity() instanceof ServerPlayer player) {
+                source.sendFailure(CointCoreMessages.forPlayer(player, CointCoreMessages.DIMWIPE_DISABLED));
+            } else {
+                source.sendFailure(CointCoreMessages.forConsole(CointCoreMessages.DIMWIPE_DISABLED));
+            }
+            return 0;
+        }
+
+        int delay = settings.restartDelaySeconds();
+        boolean started = DimensionWipeService.triggerNow(source.getServer(), delay);
+        if (!started) {
+            if (source.getEntity() instanceof ServerPlayer player) {
+                source.sendFailure(CointCoreMessages.forPlayer(player, CointCoreMessages.DIMWIPE_NOW_FAILED));
+            } else {
+                source.sendFailure(CointCoreMessages.forConsole(CointCoreMessages.DIMWIPE_NOW_FAILED));
+            }
+            return 0;
+        }
+
+        if (source.getEntity() instanceof ServerPlayer player) {
+            source.sendSuccess(() -> CointCoreMessages.forPlayer(player, CointCoreMessages.DIMWIPE_NOW_OK), true);
+        } else {
+            source.sendSuccess(() -> CointCoreMessages.forConsole(CointCoreMessages.DIMWIPE_NOW_OK), true);
+        }
+        return 1;
+    }
+
+    private static int sunkenCityStatus(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        if (!(source.getEntity() instanceof ServerPlayer player)) {
+            source.sendFailure(Component.literal("Player only"));
+            return 0;
+        }
+        String status = SunkenCityRespawnService.statusNear(player);
+        source.sendSuccess(() -> Component.literal(status), false);
+        return 1;
+    }
+
+    private static int sunkenCityForce(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        if (!(source.getEntity() instanceof ServerPlayer player)) {
+            source.sendFailure(Component.literal("Player only"));
+            return 0;
+        }
+        String result = SunkenCityRespawnService.forceRepopulate(player);
+        source.sendSuccess(() -> Component.literal(result), true);
+        return 1;
+    }
+
+    private static int cataclysmSpotsStatus(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        if (!(source.getEntity() instanceof ServerPlayer player)) {
+            source.sendFailure(Component.literal("Player only"));
+            return 0;
+        }
+        String status = CataclysmStructureRespawnService.statusNear(player);
+        source.sendSuccess(() -> Component.literal(status), false);
+        return 1;
+    }
+
+    private static int cataclysmSpotsForce(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        if (!(source.getEntity() instanceof ServerPlayer player)) {
+            source.sendFailure(Component.literal("Player only"));
+            return 0;
+        }
+        String result = CataclysmStructureRespawnService.forceRepopulate(player);
+        source.sendSuccess(() -> Component.literal(result), true);
         return 1;
     }
 }

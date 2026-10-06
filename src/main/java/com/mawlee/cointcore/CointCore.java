@@ -1,14 +1,22 @@
 package com.mawlee.cointcore;
 
+import com.mawlee.cointcore.afk.AfkNetwork;
 import com.mawlee.cointcore.ae.NonStackableItemTagPack;
+import com.mawlee.cointcore.ars.ArsGlyphEvents;
 import com.mawlee.cointcore.command.ChatSpyCommand;
 import com.mawlee.cointcore.command.CointCoreCommand;
 import com.mawlee.cointcore.command.IgnoreCommand;
 import com.mawlee.cointcore.command.ModCommands;
 import com.mawlee.cointcore.command.NightVisionCommand;
 import com.mawlee.cointcore.command.VanishCommand;
+import com.mawlee.cointcore.claim.ClaimBufferService;
+import com.mawlee.cointcore.claim.ClaimFlagEditNetwork;
+import com.mawlee.cointcore.chunklimit.ClaimLimitSync;
 import com.mawlee.cointcore.ftb.FtbTeamPropertyRegistration;
 import com.mawlee.cointcore.permission.PermissionRegistration;
+import com.mawlee.cointcore.seeinvisible.SeeInvisibleNetwork;
+import com.mawlee.cointcore.invsee.InvSeeMenus;
+import com.mawlee.cointcore.shop.ShopBlocks;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -21,8 +29,15 @@ public class CointCore {
 
     public CointCore(IEventBus modEventBus) {
         modEventBus.addListener(NonStackableItemTagPack::registerPackFinder);
+        modEventBus.addListener(SeeInvisibleNetwork::register);
+        modEventBus.addListener(ClaimFlagEditNetwork::register);
+        modEventBus.addListener(AfkNetwork::register);
+        InvSeeMenus.REGISTER.register(modEventBus);
+        ShopBlocks.register(modEventBus);
 
         FtbTeamPropertyRegistration.register();
+        ClaimBufferService.register();
+        ClaimLimitSync.register();
 
         NeoForge.EVENT_BUS.addListener(VanishCommand::register);
         NeoForge.EVENT_BUS.addListener(ChatSpyCommand::register);
@@ -32,8 +47,11 @@ public class CointCore {
         NeoForge.EVENT_BUS.addListener(CointCoreCommand::register);
         NeoForge.EVENT_BUS.addListener(PermissionRegistration::registerNodes);
         NeoForge.EVENT_BUS.addListener(CointCoreEvents::onServerStarting);
+        NeoForge.EVENT_BUS.addListener(CointCoreEvents::onServerStarted);
         NeoForge.EVENT_BUS.addListener(CointCoreEvents::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(CointCoreEvents::onPlayerRespawn);
         NeoForge.EVENT_BUS.addListener(CointCoreEvents::onPlayerLoggedOut);
+        NeoForge.EVENT_BUS.addListener(CointCoreEvents::onTabListNameFormat);
+        NeoForge.EVENT_BUS.addListener(ArsGlyphEvents::onTagsUpdated);
     }
 }

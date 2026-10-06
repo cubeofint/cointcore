@@ -4,6 +4,7 @@ import com.mawlee.cointcore.CointCore;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.server.permission.nodes.PermissionNode;
 import net.neoforged.neoforge.server.permission.nodes.PermissionTypes;
+import net.neoforged.neoforge.server.permission.nodes.PermissionTypes;
 
 public final class CointPermissionNodes {
     private static final PermissionNode.PermissionResolver<Boolean> OP_ONLY =
@@ -134,11 +135,46 @@ public final class CointPermissionNodes {
             Component.translatable("permission.desc.cointcore.keep_inventory")
     );
 
-    public static final PermissionNode<Boolean> CLAIM_FLAGS = new PermissionNode<>(
-            CointCore.MOD_ID, "claim_flags", PermissionTypes.BOOLEAN, OP_ONLY
+    public static final PermissionNode<Boolean> CLAIM_FLAG_MOB_SPAWN = new PermissionNode<>(
+            CointCore.MOD_ID, "claim_flag.mob_spawn", PermissionTypes.BOOLEAN, OP_ONLY
     ).setInformation(
-            Component.translatable("permission.name.cointcore.claim_flags"),
-            Component.translatable("permission.desc.cointcore.claim_flags")
+            Component.translatable("permission.name.cointcore.claim_flag.mob_spawn"),
+            Component.translatable("permission.desc.cointcore.claim_flag.mob_spawn")
+    );
+
+    public static final PermissionNode<Boolean> CLAIM_FLAG_MOB_DAMAGE = new PermissionNode<>(
+            CointCore.MOD_ID, "claim_flag.mob_damage", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.claim_flag.mob_damage"),
+            Component.translatable("permission.desc.cointcore.claim_flag.mob_damage")
+    );
+
+    public static final PermissionNode<Boolean> CLAIM_FLAG_FIRE_SPREAD = new PermissionNode<>(
+            CointCore.MOD_ID, "claim_flag.fire_spread", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.claim_flag.fire_spread"),
+            Component.translatable("permission.desc.cointcore.claim_flag.fire_spread")
+    );
+
+    public static final PermissionNode<Boolean> CLAIM_FLAG_PVP = new PermissionNode<>(
+            CointCore.MOD_ID, "claim_flag.pvp", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.claim_flag.pvp"),
+            Component.translatable("permission.desc.cointcore.claim_flag.pvp")
+    );
+
+    public static final PermissionNode<Boolean> CLAIM_FLAG_ENTRY = new PermissionNode<>(
+            CointCore.MOD_ID, "claim_flag.entry", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.claim_flag.entry"),
+            Component.translatable("permission.desc.cointcore.claim_flag.entry")
+    );
+
+    public static final PermissionNode<Boolean> CLAIM_FLAG_ENTRY_BYPASS = new PermissionNode<>(
+            CointCore.MOD_ID, "claim_flag.entry.bypass", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.claim_flag.entry.bypass"),
+            Component.translatable("permission.desc.cointcore.claim_flag.entry.bypass")
     );
 
     public static final PermissionNode<Boolean> KIT_CREDITS = new PermissionNode<>(
@@ -196,6 +232,142 @@ public final class CointPermissionNodes {
             Component.translatable("permission.name.cointcore.adminchat"),
             Component.translatable("permission.desc.cointcore.adminchat")
     );
+
+    public static final PermissionNode<Boolean> FLUX_ADMIN = new PermissionNode<>(
+            CointCore.MOD_ID, "flux.admin", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.flux.admin"),
+            Component.translatable("permission.desc.cointcore.flux.admin")
+    );
+
+    public static final PermissionNode<Boolean> AFK_BYPASS = new PermissionNode<>(
+            CointCore.MOD_ID, "afk.bypass", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.afk.bypass"),
+            Component.translatable("permission.desc.cointcore.afk.bypass")
+    );
+
+    public static final PermissionNode<Boolean> AFK_ALERTS = new PermissionNode<>(
+            CointCore.MOD_ID, "afk.alerts", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.afk.alerts"),
+            Component.translatable("permission.desc.cointcore.afk.alerts")
+    );
+
+    public static final PermissionNode<Boolean> INVSEE = new PermissionNode<>(
+            CointCore.MOD_ID, "invsee", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.invsee"),
+            Component.translatable("permission.desc.cointcore.invsee")
+    );
+
+    public static final PermissionNode<Boolean> INVSEE_EDIT = new PermissionNode<>(
+            CointCore.MOD_ID, "invsee.edit", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.invsee.edit"),
+            Component.translatable("permission.desc.cointcore.invsee.edit")
+    );
+
+    public static final PermissionNode<Boolean> INVSEE_VIEW_INVENTORY = invSeeNode("invsee.view.inventory");
+    public static final PermissionNode<Boolean> INVSEE_VIEW_ENDER = invSeeNode("invsee.view.ender");
+    public static final PermissionNode<Boolean> INVSEE_VIEW_CURIOS = invSeeNode("invsee.view.curios");
+    public static final PermissionNode<Boolean> INVSEE_VIEW_COSMETIC = invSeeNode("invsee.view.cosmetic");
+    public static final PermissionNode<Boolean> INVSEE_VIEW_BACKPACK = invSeeNode("invsee.view.backpack");
+    public static final PermissionNode<Boolean> INVSEE_VIEW_POCKET = invSeeNode("invsee.view.pocket");
+    public static final PermissionNode<Boolean> INVSEE_VIEW_MODDATA = invSeeNode("invsee.view.moddata");
+
+    public static final PermissionNode<Boolean> INVSEE_EDIT_INVENTORY = invSeeNode("invsee.edit.inventory");
+    public static final PermissionNode<Boolean> INVSEE_EDIT_ENDER = invSeeNode("invsee.edit.ender");
+    public static final PermissionNode<Boolean> INVSEE_EDIT_CURIOS = invSeeNode("invsee.edit.curios");
+    public static final PermissionNode<Boolean> INVSEE_EDIT_COSMETIC = invSeeNode("invsee.edit.cosmetic");
+    public static final PermissionNode<Boolean> INVSEE_EDIT_BACKPACK = invSeeNode("invsee.edit.backpack");
+    public static final PermissionNode<Boolean> INVSEE_EDIT_POCKET = invSeeNode("invsee.edit.pocket");
+    public static final PermissionNode<Boolean> INVSEE_EDIT_MODDATA = invSeeNode("invsee.edit.moddata");
+
+    public static final PermissionNode<Boolean> INVSEE_OFFLINE = invSeeNode("invsee.offline");
+    public static final PermissionNode<Boolean> INVSEE_EXEMPT = invSeeNode("invsee.exempt");
+    public static final PermissionNode<Boolean> INVSEE_EXEMPT_BYPASS = invSeeNode("invsee.exempt.bypass");
+
+    public static final PermissionNode<Integer> INVSEE_WEIGHT = new PermissionNode<>(
+            CointCore.MOD_ID, "invsee.weight", PermissionTypes.INTEGER,
+            (player, uuid, context) -> {
+                if (player == null) {
+                    return 0;
+                }
+                return player.server.getProfilePermissions(player.getGameProfile()) * 10;
+            }
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.invsee.weight"),
+            Component.translatable("permission.desc.cointcore.invsee.weight")
+    );
+
+    public static final PermissionNode<Boolean> STARTER_KIT = new PermissionNode<>(
+            CointCore.MOD_ID, "starter", PermissionTypes.BOOLEAN, EVERYONE
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.starter"),
+            Component.translatable("permission.desc.cointcore.starter")
+    );
+
+    public static final PermissionNode<Boolean> STARTER_KIT_ADMIN = new PermissionNode<>(
+            CointCore.MOD_ID, "starter.admin", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.starter.admin"),
+            Component.translatable("permission.desc.cointcore.starter.admin")
+    );
+
+    public static final PermissionNode<Boolean> CLAIM_BUFFER_BYPASS = new PermissionNode<>(
+            CointCore.MOD_ID, "claim.buffer.bypass", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.claim.buffer.bypass"),
+            Component.translatable("permission.desc.cointcore.claim.buffer.bypass")
+    );
+
+    public static final PermissionNode<Boolean> WATCHDOG = new PermissionNode<>(
+            CointCore.MOD_ID, "watchdog", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.watchdog"),
+            Component.translatable("permission.desc.cointcore.watchdog")
+    );
+
+    public static PermissionNode<?>[] invSeeNodes() {
+        return new PermissionNode<?>[] {
+                INVSEE,
+                INVSEE_EDIT,
+                INVSEE_VIEW_INVENTORY,
+                INVSEE_VIEW_ENDER,
+                INVSEE_VIEW_CURIOS,
+                INVSEE_VIEW_COSMETIC,
+                INVSEE_VIEW_BACKPACK,
+                INVSEE_VIEW_POCKET,
+                INVSEE_VIEW_MODDATA,
+                INVSEE_EDIT_INVENTORY,
+                INVSEE_EDIT_ENDER,
+                INVSEE_EDIT_CURIOS,
+                INVSEE_EDIT_COSMETIC,
+                INVSEE_EDIT_BACKPACK,
+                INVSEE_EDIT_POCKET,
+                INVSEE_EDIT_MODDATA,
+                INVSEE_OFFLINE,
+                INVSEE_EXEMPT,
+                INVSEE_EXEMPT_BYPASS,
+                INVSEE_WEIGHT
+        };
+    }
+
+    public static String luckPermsKey(PermissionNode<?> node) {
+        String name = node.getNodeName();
+        if (name.startsWith(CointCore.MOD_ID + ".")) {
+            return name;
+        }
+        return CointCore.MOD_ID + "." + name;
+    }
+
+    private static PermissionNode<Boolean> invSeeNode(String path) {
+        return new PermissionNode<>(CointCore.MOD_ID, path, PermissionTypes.BOOLEAN, OP_ONLY).setInformation(
+                Component.translatable("permission.name.cointcore." + path),
+                Component.translatable("permission.desc.cointcore." + path)
+        );
+    }
 
     private CointPermissionNodes() {
     }

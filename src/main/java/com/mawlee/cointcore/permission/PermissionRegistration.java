@@ -25,7 +25,12 @@ public final class PermissionRegistration {
                 CointPermissionNodes.PUNISHMENTS,
                 CointPermissionNodes.TURN_PVP,
                 CointPermissionNodes.KEEP_INVENTORY,
-                CointPermissionNodes.CLAIM_FLAGS,
+                CointPermissionNodes.CLAIM_FLAG_MOB_SPAWN,
+                CointPermissionNodes.CLAIM_FLAG_MOB_DAMAGE,
+                CointPermissionNodes.CLAIM_FLAG_FIRE_SPREAD,
+                CointPermissionNodes.CLAIM_FLAG_PVP,
+                CointPermissionNodes.CLAIM_FLAG_ENTRY,
+                CointPermissionNodes.CLAIM_FLAG_ENTRY_BYPASS,
                 CointPermissionNodes.KIT_CREDITS,
                 CointPermissionNodes.VOTE_DAY,
                 CointPermissionNodes.VOTE_CLEAR_WEATHER,
@@ -33,7 +38,15 @@ public final class PermissionRegistration {
                 CointPermissionNodes.CHAT_SPY,
                 CointPermissionNodes.CHUNK_LIMIT,
                 CointPermissionNodes.CHUNK_LIMIT_BYPASS,
-                CointPermissionNodes.ADMIN_CHAT
+                CointPermissionNodes.ADMIN_CHAT,
+                CointPermissionNodes.FLUX_ADMIN,
+                CointPermissionNodes.AFK_BYPASS,
+                CointPermissionNodes.AFK_ALERTS,
+                CointPermissionNodes.STARTER_KIT,
+                CointPermissionNodes.STARTER_KIT_ADMIN,
+                CointPermissionNodes.CLAIM_BUFFER_BYPASS,
+                CointPermissionNodes.WATCHDOG
         );
+        event.addNodes(CointPermissionNodes.invSeeNodes());
     }
 }

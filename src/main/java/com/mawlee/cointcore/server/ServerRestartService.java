@@ -17,9 +17,13 @@ import java.util.TimerTask;
 
 public final class ServerRestartService {
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static final int REKICK_INTERVAL_TICKS = 20;
+
     private static volatile Timer activeTimer;
     private static volatile boolean restartShutdownActive;
     private static volatile boolean restartSaveStarted;
+    private static volatile boolean awaitingEmptyPlayersForHalt;
+    private static int rekickCooldownTicks;
 
     private ServerRestartService() {
     }
@@ -61,13 +65,29 @@ public final class ServerRestartService {
         beginRestartShutdown();
         kickAllPlayers(server);
         trySaveWhenReady(server);
-        server.execute(() -> completeRestartAfterKick(server));
+        requestHaltWhenEmpty();
     }
 
     public static void tick(MinecraftServer server) {
         if (restartShutdownActive) {
             trySaveWhenReady(server);
         }
+
+        if (!awaitingEmptyPlayersForHalt) {
+            return;
+        }
+
+        if (!server.getPlayerList().getPlayers().isEmpty()) {
+            if (rekickCooldownTicks > 0) {
+                rekickCooldownTicks--;
+            } else {
+                kickAllPlayers(server);
+                rekickCooldownTicks = REKICK_INTERVAL_TICKS;
+            }
+            return;
+        }
+
+        haltNow(server);
     }
 
     public static boolean cancelPendingRestart() {
@@ -79,7 +99,7 @@ public final class ServerRestartService {
             return true;
         }
 
-        if (restartShutdownActive) {
+        if (restartShutdownActive || awaitingEmptyPlayersForHalt) {
             clearRestartShutdown();
             return true;
         }
@@ -126,15 +146,16 @@ public final class ServerRestartService {
             kickAllPlayers(server);
         }
 
-        completeRestartAfterKick(server);
+        trySaveWhenReady(server);
+        requestHaltWhenEmpty();
     }
 
-    private static void completeRestartAfterKick(MinecraftServer server) {
-        if (!server.getPlayerList().getPlayers().isEmpty()) {
-            server.execute(() -> completeRestartAfterKick(server));
-            return;
-        }
+    private static void requestHaltWhenEmpty() {
+        awaitingEmptyPlayersForHalt = true;
+        rekickCooldownTicks = 0;
+    }
 
+    private static void haltNow(MinecraftServer server) {
         trySaveWhenReady(server);
 
         activeTimer = null;
@@ -145,7 +166,13 @@ public final class ServerRestartService {
     private static void kickAllPlayers(MinecraftServer server) {
         List<ServerPlayer> players = new ArrayList<>(server.getPlayerList().getPlayers());
         for (ServerPlayer player : players) {
-            player.connection.disconnect(CointCoreMessages.forPlayer(player, CointCoreMessages.SERVER_RESTART_KICK));
+            Component kickMessage;
+            try {
+                kickMessage = CointCoreMessages.forPlayer(player, CointCoreMessages.SERVER_RESTART_KICK);
+            } catch (Throwable ignored) {
+                kickMessage = Component.literal("Server restarting...");
+            }
+            player.connection.disconnect(kickMessage);
         }
     }
 
@@ -165,16 +192,25 @@ public final class ServerRestartService {
     private static void beginRestartShutdown() {
         restartShutdownActive = true;
         restartSaveStarted = false;
+        awaitingEmptyPlayersForHalt = false;
+        rekickCooldownTicks = 0;
     }
 
     private static void clearRestartShutdown() {
         restartShutdownActive = false;
         restartSaveStarted = false;
+        awaitingEmptyPlayersForHalt = false;
+        rekickCooldownTicks = 0;
     }
 
     private static void broadcastFinalMessage(MinecraftServer server, String messageKey, Object... args) {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            player.sendSystemMessage(CointCoreMessages.forPlayer(player, messageKey, args));
+            try {
+                player.sendSystemMessage(CointCoreMessages.forPlayer(player, messageKey, args));
+            } catch (Throwable exception) {
+                LOGGER.warn("Failed to send restart message to {}", player.getGameProfile().getName(), exception);
+                player.sendSystemMessage(Component.literal("Server restart scheduled."));
+            }
         }
     }
 
@@ -207,5 +243,4 @@ public final class ServerRestartService {
             LOGGER.warn("Failed to run save-all before restart", exception);
         }
     }
-
 }

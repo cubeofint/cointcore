@@ -15,14 +15,12 @@ public abstract class KitCommandAdminRenameMixin {
     }
 
     @ModifyArg(
-            method = "listKits",
+            method = "lambda$listKits$40(Ldev/ftb/mods/ftbessentials/kit/Kit;)Lnet/minecraft/network/chat/Component;",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/network/chat/ClickEvent;<init>(Lnet/minecraft/network/chat/ClickEvent$Action;Ljava/lang/String;)V"
             ),
-            index = 1,
-            remap = true,
-            require = 0
+            index = 1
     )
     private static String cointcore$fixKitListClickCommand(String command) {
         if (command.startsWith("/kit show ")) {

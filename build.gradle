@@ -29,19 +29,39 @@ sourceSets.main.resources {
 repositories {
     mavenCentral()
     maven {
+        name = 'FTB'
         url = 'https://maven.ftb.dev/releases'
+        content {
+            includeGroup 'dev.ftb.mods'
+        }
     }
     maven {
         name = 'Illusive Soulworks'
         url = 'https://maven.theillusivec4.top/'
+        content {
+            includeGroup 'top.theillusivec4.curios'
+        }
     }
     maven {
         name = 'Wisp Forest'
         url = 'https://maven.wispforest.io/releases'
+        content {
+            includeGroup 'io.wispforest'
+        }
     }
     maven {
-        name = 'CyclopsMC'
-        url = 'https://repo.cyclopsmc.net/releases/'
+        name = 'Curse Maven'
+        url = 'https://cursemaven.com'
+        content {
+            includeGroup 'curse.maven'
+        }
+    }
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content {
+            includeGroup 'maven.modrinth'
+        }
     }
 }
 
@@ -104,7 +124,12 @@ neoForge {
 // "optional", meaning it will not be pulled by dependents of this mod.
 configurations {
     runtimeClasspath.extendsFrom localRuntime
+    // ATM10 compile-only jars for mixins. Not packaged into this mod.
+    packMods
+    compileOnly.extendsFrom packMods
 }
+
+def curseMod = { String coord -> "curse.maven:${coord}" }
 
 dependencies {
     compileOnly "net.luckperms:api:5.4"
@@ -120,6 +145,9 @@ dependencies {
     compileOnly("dev.ftb.mods:ftb-chunks-neoforge:${ftb_chunks_version}") {
         transitive = false
     }
+    compileOnly("dev.ftb.mods:ftb-ranks-neoforge:${ftb_ranks_version}") {
+        transitive = false
+    }
     compileOnly("top.theillusivec4.curios:curios-neoforge:${curios_version}:api") {
         transitive = false
     }
@@ -127,19 +155,59 @@ dependencies {
         transitive = false
     }
 
-    compileOnly files("modlist/cyclopscore-1.21.1-neoforge-1.29.1.jar")
-    compileOnly files("modlist/ApothicSpawners-1.21.1-1.3.4.jar")
-    compileOnly files("modlist/appliedenergistics2-19.2.17.jar")
-    compileOnly files("modlist/create-1.21.1-6.0.10.jar")
-    compileOnly files("modlist/entangled-1.3.21-neoforge-mc1.21.jar")
-    compileOnly files("modlist/supermartijn642corelib-1.1.21-neoforge-mc1.21.jar")
-    compileOnly files("modlist/AdditionalEnchantedMiner-1.21.1-neoforge-21.1.153.jar")
-    compileOnly files("modlist/ars_nouveau-1.21.1-5.11.5.jar")
-    compileOnly files("modlist/cc-tweaked-1.21.1-forge-1.113.1.jar")
-    compileOnly files("modlist/industrialforegoing-1.21-3.6.38.jar")
-    compileOnly files("modlist/BrandonsCore-1.21.1-3.2.1.309.jar")
-    compileOnly files("modlist/Draconic-Evolution-1.21.1-3.1.4.632.jar")
-    compileOnly files("modlist/actuallyadditions-1.3.25+mc1.21.1.jar")
+    packMods(curseMod(curse_cyclops_core)) { transitive = false }
+    packMods(curseMod(curse_evilcraft)) { transitive = false }
+    packMods(curseMod(curse_roots_classic)) { transitive = false }
+    packMods(curseMod(curse_regions_unexplored)) { transitive = false }
+    packMods(curseMod(curse_natures_aura)) { transitive = false }
+    packMods(curseMod(curse_apothic_spawners)) { transitive = false }
+    packMods(curseMod(curse_ae2)) { transitive = false }
+    packMods(curseMod(curse_refined_storage)) { transitive = false }
+    packMods(curseMod(curse_create)) { transitive = false }
+    packMods(curseMod(curse_entangled)) { transitive = false }
+    packMods(curseMod(curse_supermartijn_core)) { transitive = false }
+    packMods(curseMod(curse_quarryplus)) { transitive = false }
+    packMods(curseMod(curse_ars_nouveau)) { transitive = false }
+    packMods(curseMod(curse_not_enough_glyphs)) { transitive = false }
+    packMods(curseMod(curse_ars_unification)) { transitive = false }
+    packMods(curseMod(curse_cc_tweaked)) { transitive = false }
+    packMods(curseMod(curse_industrial_foregoing)) { transitive = false }
+    packMods(curseMod(curse_brandons_core)) { transitive = false }
+    packMods(curseMod(curse_draconic_evolution)) { transitive = false }
+    packMods(curseMod(curse_actually_additions)) { transitive = false }
+    packMods(curseMod(curse_mob_grinding_utils)) { transitive = false }
+    packMods(curseMod(curse_rftools_builder)) { transitive = false }
+    packMods(curseMod(curse_rftools_base)) { transitive = false }
+    packMods(curseMod(curse_mcjtylib)) { transitive = false }
+    packMods(curseMod(curse_sfm)) { transitive = false }
+    packMods(curseMod(curse_bookshelf)) { transitive = false }
+    packMods(curseMod(curse_botany_pots)) { transitive = false }
+    packMods(curseMod(curse_just_dire_things)) { transitive = false }
+    packMods(curseMod(curse_powah)) { transitive = false }
+    packMods(curseMod(curse_flux_networks)) { transitive = false }
+    packMods(curseMod(curse_oritech)) { transitive = false }
+    packMods(curseMod(curse_mahou_tsukai)) { transitive = false }
+    packMods(curseMod(curse_ice_and_fire)) { transitive = false }
+    packMods(curseMod(curse_allthemodium)) { transitive = false }
+    packMods(curseMod(curse_modular_routers)) { transitive = false }
+    packMods(curseMod(curse_cosmetic_armor)) { transitive = false }
+    packMods(curseMod(curse_pocket_storage)) { transitive = false }
+    packMods(curseMod(curse_sophisticated_backpacks)) { transitive = false }
+    packMods(curseMod(curse_sophisticated_core)) { transitive = false }
+    packMods(curseMod(curse_ad_astra)) { transitive = false }
+    packMods(curseMod(curse_mystical_agriculture)) { transitive = false }
+    packMods(curseMod(curse_discord_chat)) { transitive = false }
+    packMods(curseMod(curse_tab)) { transitive = false }
+    packMods(curseMod(curse_enderio)) { transitive = false }
+    packMods(curseMod(curse_relics)) { transitive = false }
+    packMods(curseMod(curse_compact_machines)) { transitive = false }
+    packMods(curseMod(curse_hostile_neural_networks)) { transitive = false }
+    packMods(curseMod(curse_immersive_engineering)) { transitive = false }
+    packMods(curseMod(curse_railcraft_reborn)) { transitive = false }
+    packMods(curseMod(curse_steves_carts)) { transitive = false }
+
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
@@ -200,13 +268,17 @@ publishing {
     }
     repositories {
         maven {
-            url "file://${project.projectDir}/repo"
+            url = "file://${project.projectDir}/repo"
         }
     }
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
 }
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.

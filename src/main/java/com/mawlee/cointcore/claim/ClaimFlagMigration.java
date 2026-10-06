@@ -13,11 +13,16 @@ public final class ClaimFlagMigration {
     private ClaimFlagMigration() {
     }
 
-    public static void migrateLegacySavedData(MinecraftServer server) {
+    public static void migrate(MinecraftServer server) {
         if (!FtbIntegration.isAvailable()) {
             return;
         }
 
+        migrateLegacySavedData(server);
+        ClaimFlagService.migrateRemovedFlags(server);
+    }
+
+    private static void migrateLegacySavedData(MinecraftServer server) {
         ClaimTeamFlagsSavedData legacy = ClaimTeamFlagsSavedData.get(server);
         if (legacy.isEmpty()) {
             return;
@@ -25,22 +30,14 @@ public final class ClaimFlagMigration {
 
         int migrated = 0;
         for (UUID teamId : legacy.getTeamIds()) {
-            ClaimTeamFlags flags = legacy.getOrDefault(teamId);
-            FtbIntegration.getTeam(teamId).ifPresent(team -> {
-                if (flags.disablePlayerDamage()) {
-                    ClaimFlagService.setDisablePlayerDamage(server, team, true);
-                }
-                if (flags.disableHostileMobSpawn()) {
-                    ClaimFlagService.setDisableHostileMobSpawn(server, team, true);
-                }
-                if (flags.protectMobsFromOutsiders()) {
-                    ClaimFlagService.setProtectMobsFromOutsiders(server, team, true);
-                }
-            });
+            if (!legacy.hadNoPlayerDamage(teamId)) {
+                continue;
+            }
+            FtbIntegration.getTeam(teamId).ifPresent(team -> ClaimFlagService.setPvp(server, team, false));
             migrated++;
         }
 
         legacy.clear();
-        LOGGER.info("Migrated {} CointCore claim flag entries into FTB team properties", migrated);
+        LOGGER.info("Migrated {} legacy claim flag entries onto team pvp", migrated);
     }
 }

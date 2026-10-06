@@ -1,11 +1,13 @@
 package com.mawlee.cointcore.mixin;
 
 import com.mawlee.cointcore.ban.BanLoginGuard;
+import com.mawlee.cointcore.invsee.InvSeeTargets;
 import com.mawlee.cointcore.join.JoinLeaveMessageFilter;
 import com.mawlee.cointcore.vanish.VanishFieldHolder;
 import com.mawlee.cointcore.vanish.VanishInteractionTracker;
 import com.mawlee.cointcore.vanish.VanishManager;
 import com.mojang.authlib.GameProfile;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
@@ -47,15 +49,23 @@ public abstract class PlayerListMixin {
     @Inject(method = "placeNewPlayer", at = @At("RETURN"))
     private void cointcore$afterPlaceNewPlayer(Connection connection, ServerPlayer player, CommonListenerCookie cookie, CallbackInfo ci) {
         VanishFieldHolder.joiningPlayer = null;
+        InvSeeTargets.switchToOnline(player);
+    }
+
+    @Inject(method = "load(Lnet/minecraft/server/level/ServerPlayer;)Lnet/minecraft/nbt/CompoundTag;", at = @At("HEAD"))
+    private void cointcore$flushInvSeeBeforeLoad(ServerPlayer player, CallbackInfoReturnable<CompoundTag> cir) {
+        InvSeeTargets.flushBeforeLoad(player);
     }
 
     @Inject(method = "remove", at = @At("HEAD"))
     private void cointcore$beforeRemove(ServerPlayer player, CallbackInfo ci) {
         VanishFieldHolder.leavingPlayer = player;
+        InvSeeTargets.freezeForLogout(player);
     }
 
     @Inject(method = "remove", at = @At("RETURN"))
     private void cointcore$afterRemove(ServerPlayer player, CallbackInfo ci) {
+        InvSeeTargets.switchToOfflineAfterSave(player);
         VanishFieldHolder.leavingPlayer = null;
     }
 

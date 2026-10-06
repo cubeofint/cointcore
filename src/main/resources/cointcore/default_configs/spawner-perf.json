@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "forceDelayOnFailedSpawn": true,
+  "minFailCooldownTicks": 40,
+  "cacheNearbyEntityScans": true,
+  "minSpawnDelayFloor": 60,
+  "maxSpawnCount": 4
+}

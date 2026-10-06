@@ -260,7 +260,7 @@ public final class WorldCleanupService {
     }
 
     private static boolean shouldRemoveMob(Entity entity) {
-        if (entity == null || entity instanceof Player) {
+        if (entity == null || entity instanceof Player || isAdAstraVehicle(entity)) {
             return false;
         }
         if (MobCleanupConfig.matchesExcludedType(entity.getType())) {
@@ -271,6 +271,23 @@ public final class WorldCleanupService {
         }
         return MobCleanupConfig.useHostileFallback()
                 && entity.getType().getCategory() == MobCategory.MONSTER;
+    }
+
+    /**
+     * Rockets, rovers, landers, and their multipart pieces are entities.
+     * Item clearing only removes {@link ItemEntity}; this also keeps a configured
+     * mob list from discarding a vehicle.
+     */
+    private static boolean isAdAstraVehicle(Entity entity) {
+        Class<?> type = entity.getClass();
+        while (type != null && type != Entity.class) {
+            String name = type.getName();
+            if (name.startsWith("earth.terrarium.adastra.common.entities.vehicles.")) {
+                return true;
+            }
+            type = type.getSuperclass();
+        }
+        return false;
     }
 
     private static void broadcastWarning(MinecraftServer server, String warningText) {
