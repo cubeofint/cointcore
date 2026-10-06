@@ -1,10 +1,6 @@
 package com.mawlee.cointcore.config;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
 import com.google.gson.annotations.SerializedName;
 import com.mawlee.cointcore.CointCore;
 import com.mawlee.cointcore.shop.TraderOffer;
@@ -86,7 +82,7 @@ public final class TraderOffersConfig {
                 }
                 return parsed;
             }
-        } catch (IOException | JsonSyntaxException | RuntimeException exception) {
+        } catch (IOException | RuntimeException exception) {
             LOGGER.error("Failed to load trader offers from {}", path, exception);
             return reloading ? null : Loaded.empty();
         }
@@ -187,14 +183,5 @@ public final class TraderOffersConfig {
         data.sellPrice = sell;
         data.enabled = true;
         return data;
-    }
-
-    /** Exposed for unit tests that only check JSON shape, not item resolution. */
-    public static JsonObject defaultJson() {
-        return JsonParser.parseString(ConfigMergeSupport.GSON.toJson(FileData.defaults())).getAsJsonObject();
-    }
-
-    public static JsonArray defaultOffersArray() {
-        return defaultJson().getAsJsonArray("offers");
     }
 }
