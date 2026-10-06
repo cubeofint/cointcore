@@ -131,6 +131,25 @@ class MixinConfigGuardTest {
         assertTrue(plugin.contains("sophisticatedbackpacks"));
     }
 
+    /**
+     * Mojmap 1.21.1 PlayerList#load returns Optional&lt;CompoundTag&gt;, not CompoundTag.
+     * Wrong descriptor FATAL-crashes required core mixin apply (InvSee flush-before-load).
+     */
+    @Test
+    void playerListInvSeeFlushTargetsOptionalLoadDescriptor() throws IOException {
+        String source = Files.readString(MIXIN_ROOT.resolve("PlayerListMixin.java"));
+        assertTrue(
+                source.contains("load(Lnet/minecraft/server/level/ServerPlayer;)Ljava/util/Optional;"),
+                "PlayerListMixin must inject into Mojmap 1.21.1 load(ServerPlayer)->Optional"
+        );
+        assertFalse(
+                source.contains("load(Lnet/minecraft/server/level/ServerPlayer;)Lnet/minecraft/nbt/CompoundTag;"),
+                "Pre-1.20.5 CompoundTag return descriptor must not be used"
+        );
+        assertTrue(source.contains("cointcore$flushInvSeeBeforeLoad"));
+        assertTrue(source.contains("CallbackInfoReturnable<Optional<CompoundTag>>"));
+    }
+
     private static Set<String> listedMixins(String json) {
         Set<String> names = new LinkedHashSet<>();
         Matcher section = SECTION_ARRAY.matcher(json);

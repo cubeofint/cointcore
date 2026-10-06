@@ -32,6 +32,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.net.SocketAddress;
 import java.util.Date;
+import java.util.Optional;
 import java.util.function.Function;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -52,8 +53,19 @@ public abstract class PlayerListMixin {
         InvSeeTargets.switchToOnline(player);
     }
 
-    @Inject(method = "load(Lnet/minecraft/server/level/ServerPlayer;)Lnet/minecraft/nbt/CompoundTag;", at = @At("HEAD"))
-    private void cointcore$flushInvSeeBeforeLoad(ServerPlayer player, CallbackInfoReturnable<CompoundTag> cir) {
+    /**
+     * Mojmap 1.21.1: {@code Optional<CompoundTag> load(ServerPlayer)}.
+     * Descriptor must use {@code Ljava/util/Optional;} — not bare {@code CompoundTag}
+     * (pre-1.20.5 signature); a mismatch FATAL-crashes core mixin apply at boot.
+     */
+    @Inject(
+            method = "load(Lnet/minecraft/server/level/ServerPlayer;)Ljava/util/Optional;",
+            at = @At("HEAD")
+    )
+    private void cointcore$flushInvSeeBeforeLoad(
+            ServerPlayer player,
+            CallbackInfoReturnable<Optional<CompoundTag>> cir
+    ) {
         InvSeeTargets.flushBeforeLoad(player);
     }
 
