@@ -14,9 +14,12 @@ class SiteMovementPayloadTest {
     }
 
     @Test
-    void acceptedUpToNeverExceedsSentBatch() {
+    void acceptedUpToRequiresSiteConfirmation() {
         assertEquals(7L, SiteMovementPayload.acceptedUpTo("{\"accepted_up_to\":7,\"stored\":7}", 9L));
         assertEquals(9L, SiteMovementPayload.acceptedUpTo("{\"accepted_up_to\":99}", 9L));
-        assertEquals(9L, SiteMovementPayload.acceptedUpTo("garbage", 9L));
+        assertEquals(null, SiteMovementPayload.acceptedUpTo("garbage", 9L));
+        assertEquals(null, SiteMovementPayload.acceptedUpTo("{\"stored\":9}", 9L));
+        assertEquals(null, SiteMovementPayload.acceptedUpTo("{\"accepted_up_to\":0}", 9L));
+        assertEquals(null, SiteMovementPayload.acceptedUpTo(null, 9L));
     }
 }

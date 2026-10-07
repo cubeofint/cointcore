@@ -15,12 +15,23 @@ final class SiteMovementPayload {
         return current <= 0 ? MIN_BACKOFF_MS : Math.min(MAX_BACKOFF_MS, current * 2);
     }
 
-    static long acceptedUpTo(String json, long fallback) {
+    /**
+     * Highest movement id the site confirmed, capped by the last id we sent.
+     * {@code null} means no confirmation — the outbox must stay unsent and retry.
+     */
+    static Long acceptedUpTo(String json, long batchLastId) {
         try {
             JsonObject root = JsonParser.parseString(json).getAsJsonObject();
-            return root.has("accepted_up_to") ? Math.min(fallback, root.get("accepted_up_to").getAsLong()) : fallback;
+            if (root == null || !root.has("accepted_up_to") || root.get("accepted_up_to").isJsonNull()) {
+                return null;
+            }
+            long accepted = root.get("accepted_up_to").getAsLong();
+            if (accepted <= 0L) {
+                return null;
+            }
+            return Math.min(batchLastId, accepted);
         } catch (RuntimeException e) {
-            return fallback;
+            return null;
         }
     }
 

@@ -2,7 +2,6 @@ package com.mawlee.cointcore.shop;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.mawlee.cointcore.config.CurrencyMovementConfig;
 import com.mojang.logging.LogUtils;
 import net.minecraft.server.MinecraftServer;
@@ -62,7 +61,12 @@ public final class SiteMovementSender {
                         fail(System.currentTimeMillis());
                         return;
                     }
-                    long accepted = SiteMovementPayload.acceptedUpTo(json, lastId);
+                    Long accepted = SiteMovementPayload.acceptedUpTo(json, lastId);
+                    if (accepted == null) {
+                        LOGGER.debug("Currency movements upload had no accepted_up_to confirmation");
+                        fail(System.currentTimeMillis());
+                        return;
+                    }
                     server.execute(() -> data.markSiteSentUpTo(accepted));
                     backoffMs = 0L;
                     // More pending? send the next batch on the next tick.

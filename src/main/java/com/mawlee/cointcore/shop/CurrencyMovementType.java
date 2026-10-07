@@ -30,4 +30,15 @@ public enum CurrencyMovementType {
         }
         return PAY;
     }
+
+    /**
+     * Server-wallet events that the site stores as a log only (must not change the site balance).
+     * Site queue transfers stay local so they are not posted back through AzLink.
+     */
+    public boolean isServerWalletLog() {
+        return switch (this) {
+            case PAY, TRADER_BUY, TRADER_SELL, ADMIN_SET, ADMIN_ADD -> true;
+            case SITE_TO_SERVER, SERVER_TO_SITE -> false;
+        };
+    }
 }

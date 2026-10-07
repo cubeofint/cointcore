@@ -8,9 +8,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 
 public final class CurrencyMovementSavedData extends SavedData {
@@ -18,12 +16,9 @@ public final class CurrencyMovementSavedData extends SavedData {
     private static final String ENTRIES_KEY = "entries";
     private static final String NEXT_ID_KEY = "next_id";
     private static final String SENT_UP_TO_KEY = "site_sent_up_to";
-    static final int MAX_ENTRIES = 10_000;
+    static final int MAX_ENTRIES = CurrencyMovementOutbox.MAX_ENTRIES;
 
-    private final Deque<CurrencyMovement> entries = new ArrayDeque<>();
-    private long nextId = 1L;
-    /** Highest movement id the site confirmed (idempotent on the site, so resending is harmless). */
-    private long siteSentUpTo;
+    private final CurrencyMovementOutbox outbox = new CurrencyMovementOutbox();
 
     private CurrencyMovementSavedData() {
     }
@@ -38,77 +33,49 @@ public final class CurrencyMovementSavedData extends SavedData {
     }
 
     public synchronized CurrencyMovement append(CurrencyMovement draft) {
-        CurrencyMovement stored = new CurrencyMovement(
-                nextId++,
-                draft.timestampMs(),
-                draft.fromId(),
-                draft.fromName(),
-                draft.toId(),
-                draft.toName(),
-                draft.amount(),
-                draft.type(),
-                draft.note()
-        );
-        entries.addLast(stored);
-        while (entries.size() > MAX_ENTRIES) {
-            entries.removeFirst();
-        }
+        CurrencyMovement stored = outbox.append(draft);
         setDirty();
         return stored;
     }
 
     public synchronized List<CurrencyMovement> snapshot() {
-        return new ArrayList<>(entries);
+        return outbox.snapshot();
     }
 
     public synchronized long siteSentUpTo() {
-        return siteSentUpTo;
+        return outbox.siteSentUpTo();
     }
 
     public synchronized void markSiteSentUpTo(long id) {
-        if (id > siteSentUpTo) {
-            siteSentUpTo = id;
+        if (outbox.markSiteSentUpTo(id)) {
             setDirty();
         }
     }
 
-    /** Oldest movements not yet confirmed by the site. */
+    /** Oldest server-wallet movements not yet confirmed by the site. */
     public synchronized List<CurrencyMovement> unsent(int limit) {
-        List<CurrencyMovement> result = new ArrayList<>();
-        for (CurrencyMovement entry : entries) {
-            if (entry.id() > siteSentUpTo) {
-                result.add(entry);
-                if (result.size() >= limit) {
-                    break;
-                }
-            }
-        }
-        return result;
+        return outbox.unsentForSite(limit);
     }
 
     private static CurrencyMovementSavedData load(CompoundTag tag, HolderLookup.Provider provider) {
         CurrencyMovementSavedData data = new CurrencyMovementSavedData();
-        data.nextId = Math.max(1L, tag.getLong(NEXT_ID_KEY));
-        data.siteSentUpTo = tag.getLong(SENT_UP_TO_KEY);
-        if (!tag.contains(ENTRIES_KEY, Tag.TAG_LIST)) {
-            return data;
+        List<CurrencyMovement> loaded = new ArrayList<>();
+        if (tag.contains(ENTRIES_KEY, Tag.TAG_LIST)) {
+            ListTag list = tag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND);
+            for (Tag entryTag : list) {
+                loaded.add(CurrencyMovement.load((CompoundTag) entryTag));
+            }
         }
-        ListTag list = tag.getList(ENTRIES_KEY, Tag.TAG_COMPOUND);
-        for (Tag entryTag : list) {
-            data.entries.addLast(CurrencyMovement.load((CompoundTag) entryTag));
-        }
-        while (data.entries.size() > MAX_ENTRIES) {
-            data.entries.removeFirst();
-        }
+        data.outbox.restore(tag.getLong(NEXT_ID_KEY), tag.getLong(SENT_UP_TO_KEY), loaded);
         return data;
     }
 
     @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
-        tag.putLong(NEXT_ID_KEY, nextId);
-        tag.putLong(SENT_UP_TO_KEY, siteSentUpTo);
+        tag.putLong(NEXT_ID_KEY, outbox.nextId());
+        tag.putLong(SENT_UP_TO_KEY, outbox.siteSentUpTo());
         ListTag list = new ListTag();
-        for (CurrencyMovement entry : entries) {
+        for (CurrencyMovement entry : outbox.snapshot()) {
             list.add(entry.save());
         }
         tag.put(ENTRIES_KEY, list);
