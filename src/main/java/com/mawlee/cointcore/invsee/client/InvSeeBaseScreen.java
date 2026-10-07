@@ -195,7 +195,7 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
             int x = leftPos + col * VanillaContainerSkin.TAB_SHIFT;
             int y = topPos - VanillaContainerSkin.TAB_HEIGHT + 4 - row * (VanillaContainerSkin.TAB_HEIGHT - 4);
             boolean selected = tab.ordinal() == InvSeeClientChrome.activeTab();
-            VanillaContainerSkin.blitCreativeTab(graphics, x, y, selected, tab.iconStack());
+            VanillaContainerSkin.blitCreativeTab(graphics, x, y, selected, InvSeeTabIcons.icon(tab));
         }
     }
 
