@@ -70,18 +70,6 @@ public final class InvSeeTabLayout {
 
         int scrollAvail = Math.max(1, safeAvail - ARROW_WIDTH * 2 - safeGap * 2);
         int start = Math.max(0, Math.min(count - 1, scrollIndex));
-        while (start > 0 && !windowFits(clamped, start - 1, count, scrollAvail, safeGap)) {
-            start--;
-        }
-        while (start < count - 1 && windowFits(clamped, start + 1, count, scrollAvail, safeGap)) {
-            // keep the requested start if it already fits; do not auto-advance
-            break;
-        }
-        if (!windowFits(clamped, start, count, scrollAvail, safeGap) && start < count - 1) {
-            while (start < count - 1 && !windowFits(clamped, start, count, scrollAvail, safeGap)) {
-                start++;
-            }
-        }
 
         List<Placement> placements = new ArrayList<>();
         int x = ARROW_WIDTH + safeGap;
@@ -105,20 +93,6 @@ public final class InvSeeTabLayout {
         int lastShown = placements.isEmpty() ? start : placements.getLast().tabIndex();
         boolean right = lastShown < count - 1;
         return new Result(List.copyOf(placements), 1, true, left, right, safeHeight);
-    }
-
-    private static boolean windowFits(int[] widths, int start, int count, int avail, int gap) {
-        int x = 0;
-        for (int i = start; i < count; i++) {
-            if (i > start) {
-                x += gap;
-            }
-            x += widths[i];
-            if (x > avail) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private static List<List<Integer>> wrap(int[] widths, int avail, int gap) {
