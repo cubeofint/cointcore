@@ -20,13 +20,16 @@ import java.util.List;
  */
 public class TraderMenu extends AbstractContainerMenu {
     public static final int PAGE_SIZE = 5;
-    public static final int ROW_HEIGHT = 22;
-    public static final int TITLE_HEIGHT = 18;
+    public static final int GUI_WIDTH = 256;
+    public static final int VANILLA_INV_WIDTH = 176;
+    public static final int ROW_HEIGHT = 40;
+    public static final int TITLE_HEIGHT = 30;
     public static final int STATUS_HEIGHT = 12;
     public static final int PAGE_BAR_HEIGHT = 18;
     public static final int OFFER_PANEL_HEIGHT =
             TITLE_HEIGHT + PAGE_SIZE * ROW_HEIGHT + STATUS_HEIGHT + PAGE_BAR_HEIGHT;
     public static final int PLAYER_INV_Y = OFFER_PANEL_HEIGHT + 12;
+    public static final int PLAYER_INV_LEFT = (GUI_WIDTH - VANILLA_INV_WIDTH) / 2 + 8;
     public static final int GUI_HEIGHT = PLAYER_INV_Y + 82;
     private static final int BALANCE_SHORTS = 4;
     private static final int MAX_SYNCED_OFFERS = 512;
@@ -55,11 +58,16 @@ public class TraderMenu extends AbstractContainerMenu {
 
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(playerInventory, col + row * 9 + 9, 8 + col * 18, PLAYER_INV_Y + row * 18));
+                addSlot(new Slot(
+                        playerInventory,
+                        col + row * 9 + 9,
+                        PLAYER_INV_LEFT + col * 18,
+                        PLAYER_INV_Y + row * 18
+                ));
             }
         }
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(playerInventory, col, 8 + col * 18, PLAYER_INV_Y + 58));
+            addSlot(new Slot(playerInventory, col, PLAYER_INV_LEFT + col * 18, PLAYER_INV_Y + 58));
         }
 
         for (int index = 0; index < BALANCE_SHORTS; index++) {
