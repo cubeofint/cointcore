@@ -71,6 +71,7 @@ public final class TraderTrades {
             return;
         }
         TraderInventory.giveOrFail(player.getInventory(), goods);
+        TraderPriceHistorySavedData.get(player.server).record(offer.id(), offer.buyPrice());
         CurrencyMovementService.record(
                 player.server,
                 player.getUUID(),
@@ -124,6 +125,7 @@ public final class TraderTrades {
         long totalNet = TraderDealMath.cost(offer.sellNet(), units);
         long totalFee = TraderDealMath.cost(offer.sellFee(), units);
         GluonWallet.add(player.server, player.getUUID(), totalNet);
+        TraderPriceHistorySavedData.get(player.server).record(offer.id(), offer.buyPrice());
         CurrencyMovementService.record(
                 player.server,
                 null,

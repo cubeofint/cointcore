@@ -377,7 +377,7 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/admin-chat.json` | Формат админ-чата |
 | `config/cointcore/spark-profiler.json` | Автопрофилирование Spark + retention профилей |
 | `config/cointcore/tick-watchdog.json` | Tick watchdog (координаты лагов, семплы методов) |
-| `config/cointcore/trader_offers.json` | Офферы торговца и `commission_percent` |
+| `config/cointcore/trader_offers.json` | Офферы торговца, `commission_percent`, кольцо истории цен |
 | `config/cointcore/currency-movement.json` | Outbox движений валюты: опциональный HTTP и `site_movements_enabled` (AzLink, выключено по умолчанию) |
 | `config/cointcore/afk.json` | AFK: пометка и кик |
 | `config/cointcore/ftbranks-luckperms-bridge.json` | Мост FTB Ranks → LuckPerms (`ftbranksLuckPermsBridge`, по умолчанию `false`) |
@@ -393,7 +393,11 @@ Retention старых отчётов: хранятся **7 дней или 512 
 
 Кошелёк: overworld SavedData `cointcore_gluon_wallets`. `/pay` и `/transfer` атомарны, цель может быть офлайн (тот же resolve, что у mute). `/cointcore gluons` только для админов.
 
-Торговец: блок терминала, офферы из `config/cointcore/trader_offers.json`. Комиссия `Commission.of` с округлением вверх. **Покупатель** платит `цена + комиссия`. **Продавец** получает `цена − комиссия`. GUI: список офферов, кнопки купить/продать (Shift — стопка). Сделки только сервером по custom payload. Динамический рынок — следующая фаза.
+Торговец: блок терминала, офферы из `config/cointcore/trader_offers.json`. Комиссия `Commission.of` с округлением вверх. **Покупатель** платит `цена + комиссия`. **Продавец** получает `цена − комиссия`. GUI: ванильный контейнер, список офферов, кнопки купить/продать (Shift — стопка). Сделки только сервером по custom payload.
+
+История цен покупки пишется в overworld SavedData `cointcore_trader_price_history`: семпл на каждую сделку и периодически (`price_history_sample_interval_ticks`, по умолчанию 1200 = 60 с). Кольцо до `price_history_capacity` точек (48). Клиент получает историю вместе с офферами и рисует спарклайн 40×14. Цвет относительно среднего: зелёный — дешевле, красный — дороже, серый — в пределах `price_history_average_band_percent` (±5% по умолчанию). Подсказка по наведению: мин / среднее / макс / сейчас и вердикт.
+
+Иконка глюона: `src/main/resources/assets/cointcore/textures/gui/gluon.png` (16×16, в GUI рисуется 8×8). Сейчас там заглушка; финальный файл кладётся **ровно по этому пути** и пересобирается JAR. В интерфейсе иконка стоит рядом с балансом и рядом с ценами оффера вместо слова «глюонов».
 
 Движения валюты пишутся в overworld SavedData `cointcore_currency_movements` (`pay`, `trader_buy`, `trader_sell`, `admin_set`, `admin_add`). Это outbox для раздела сайта «движение валют». Переводы сайт↔сервер (`site_to_server` / `server_to_site`) тоже пишутся локально, но на сайт не отправляются.
 

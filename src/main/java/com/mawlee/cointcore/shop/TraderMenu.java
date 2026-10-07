@@ -3,6 +3,7 @@ package com.mawlee.cointcore.shop;
 import com.mawlee.cointcore.config.TraderOffersConfig;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -101,6 +102,7 @@ public class TraderMenu extends AbstractContainerMenu {
                 long sellFee = buffer.readLong();
                 long sellNet = buffer.readLong();
                 String id = ByteBufCodecs.STRING_UTF8.decode(buffer);
+                long[] history = readHistory(buffer);
                 offers.add(new TraderOffer(
                         id,
                         stack,
@@ -110,7 +112,8 @@ public class TraderMenu extends AbstractContainerMenu {
                         buyFee,
                         buyTotal,
                         sellFee,
-                        sellNet
+                        sellNet,
+                        history
                 ));
             }
         }
@@ -130,11 +133,45 @@ public class TraderMenu extends AbstractContainerMenu {
             buffer.writeLong(offer.sellFee());
             buffer.writeLong(offer.sellNet());
             ByteBufCodecs.STRING_UTF8.encode(buffer, offer.id());
+            writeHistory(buffer, offer.buyHistory());
         }
     }
 
-    public static List<TraderOffer> serverOffers() {
-        return TraderOffersConfig.offers();
+    public static List<TraderOffer> serverOffers(MinecraftServer server) {
+        List<TraderOffer> offers = TraderOffersConfig.offers();
+        TraderPriceHistorySavedData history = TraderPriceHistorySavedData.get(server);
+        List<TraderOffer> withHistory = new ArrayList<>(offers.size());
+        for (TraderOffer offer : offers) {
+            withHistory.add(offer.withBuyHistory(history.snapshot(offer.id())));
+        }
+        return withHistory;
+    }
+
+    private static void writeHistory(RegistryFriendlyByteBuf buffer, long[] history) {
+        int capacity = TraderOffersConfig.priceHistoryCapacity();
+        int count = history == null ? 0 : Math.min(history.length, capacity);
+        int from = history == null ? 0 : Math.max(0, history.length - count);
+        ByteBufCodecs.VAR_INT.encode(buffer, count);
+        for (int index = 0; index < count; index++) {
+            buffer.writeLong(history[from + index]);
+        }
+    }
+
+    private static long[] readHistory(RegistryFriendlyByteBuf buffer) {
+        if (buffer.readableBytes() <= 0) {
+            return new long[0];
+        }
+        int count = ByteBufCodecs.VAR_INT.decode(buffer);
+        int capacity = TraderOffersConfig.priceHistoryCapacity();
+        int limited = Math.max(0, Math.min(count, capacity));
+        long[] history = new long[limited];
+        for (int index = 0; index < count; index++) {
+            long value = buffer.readLong();
+            if (index < limited) {
+                history[index] = value;
+            }
+        }
+        return history;
     }
 
     public List<TraderOffer> offers() {
