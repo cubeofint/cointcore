@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.invsee.client;
 
+import com.mawlee.cointcore.client.VanillaContainerSkin;
 import com.mawlee.cointcore.invsee.menu.InvSeeAttachmentMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -8,9 +9,7 @@ import net.minecraft.world.entity.player.Inventory;
 public final class InvSeeAttachmentScreen extends InvSeeBaseScreen<InvSeeAttachmentMenu> {
     public InvSeeAttachmentScreen(InvSeeAttachmentMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        this.imageWidth = 176;
-        this.imageHeight = 114 + InvSeeAttachmentMenu.ROWS * 18;
-        this.inventoryLabelY = this.imageHeight - 94;
+        this.imageHeight = menu.viewerInventoryY() + 82;
     }
 
     @Override
@@ -24,8 +23,8 @@ public final class InvSeeAttachmentScreen extends InvSeeBaseScreen<InvSeeAttachm
                 font,
                 Component.translatable("gui.cointcore.invsee.section.readonly"),
                 8,
-                6,
-                InvSeeTheme.MUTED,
+                18,
+                VanillaContainerSkin.LABEL_COLOR,
                 false
         );
     }

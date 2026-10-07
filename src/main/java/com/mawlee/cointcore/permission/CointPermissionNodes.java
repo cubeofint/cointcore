@@ -275,6 +275,10 @@ public final class CointPermissionNodes {
     public static final PermissionNode<Boolean> INVSEE_VIEW_BACKPACK = invSeeNode("invsee.view.backpack");
     public static final PermissionNode<Boolean> INVSEE_VIEW_POCKET = invSeeNode("invsee.view.pocket");
     public static final PermissionNode<Boolean> INVSEE_VIEW_MODDATA = invSeeNode("invsee.view.moddata");
+    public static final PermissionNode<Boolean> INVSEE_VIEW_ACCESSORIES = invSeeNode("invsee.view.accessories");
+    public static final PermissionNode<Boolean> INVSEE_VIEW_STATE = invSeeNode("invsee.view.state");
+    public static final PermissionNode<Boolean> INVSEE_VIEW_FTB = invSeeNode("invsee.view.ftb");
+    public static final PermissionNode<Boolean> INVSEE_VIEW_GRAVES = invSeeNode("invsee.view.graves");
 
     public static final PermissionNode<Boolean> INVSEE_EDIT_INVENTORY = invSeeNode("invsee.edit.inventory");
     public static final PermissionNode<Boolean> INVSEE_EDIT_ENDER = invSeeNode("invsee.edit.ender");
@@ -283,6 +287,7 @@ public final class CointPermissionNodes {
     public static final PermissionNode<Boolean> INVSEE_EDIT_BACKPACK = invSeeNode("invsee.edit.backpack");
     public static final PermissionNode<Boolean> INVSEE_EDIT_POCKET = invSeeNode("invsee.edit.pocket");
     public static final PermissionNode<Boolean> INVSEE_EDIT_MODDATA = invSeeNode("invsee.edit.moddata");
+    public static final PermissionNode<Boolean> INVSEE_EDIT_ACCESSORIES = invSeeNode("invsee.edit.accessories");
 
     public static final PermissionNode<Boolean> INVSEE_OFFLINE = invSeeNode("invsee.offline");
     public static final PermissionNode<Boolean> INVSEE_EXEMPT = invSeeNode("invsee.exempt");
@@ -361,6 +366,10 @@ public final class CointPermissionNodes {
                 INVSEE_VIEW_BACKPACK,
                 INVSEE_VIEW_POCKET,
                 INVSEE_VIEW_MODDATA,
+                INVSEE_VIEW_ACCESSORIES,
+                INVSEE_VIEW_STATE,
+                INVSEE_VIEW_FTB,
+                INVSEE_VIEW_GRAVES,
                 INVSEE_EDIT_INVENTORY,
                 INVSEE_EDIT_ENDER,
                 INVSEE_EDIT_CURIOS,
@@ -368,6 +377,7 @@ public final class CointPermissionNodes {
                 INVSEE_EDIT_BACKPACK,
                 INVSEE_EDIT_POCKET,
                 INVSEE_EDIT_MODDATA,
+                INVSEE_EDIT_ACCESSORIES,
                 INVSEE_OFFLINE,
                 INVSEE_EXEMPT,
                 INVSEE_EXEMPT_BYPASS,

@@ -4,6 +4,8 @@ import com.mawlee.cointcore.CointCore;
 import com.mawlee.cointcore.invsee.menu.InvSeeAttachmentMenu;
 import com.mawlee.cointcore.invsee.menu.InvSeeCuriosMenu;
 import com.mawlee.cointcore.invsee.menu.InvSeeEnderMenu;
+import com.mawlee.cointcore.invsee.menu.InvSeeInfoMenu;
+import com.mawlee.cointcore.invsee.menu.InvSeeNestedMenu;
 import com.mawlee.cointcore.invsee.menu.InvSeePlayerMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -38,6 +40,15 @@ public final class InvSeeMenus {
     public static final DeferredHolder<MenuType<?>, MenuType<?>> BACKPACK =
             REGISTER.register("inv_see_backpack", () -> IMenuTypeExtension.create(InvSeeMenus::backpackFromNetwork));
 
+    public static final DeferredHolder<MenuType<?>, MenuType<?>> ACCESSORIES =
+            REGISTER.register("inv_see_accessories", () -> IMenuTypeExtension.create(InvSeeMenus::accessoriesFromNetwork));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<InvSeeNestedMenu>> NESTED =
+            REGISTER.register("inv_see_nested", () -> IMenuTypeExtension.create(InvSeeNestedMenu::fromNetwork));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<InvSeeInfoMenu>> INFO =
+            REGISTER.register("inv_see_info", () -> IMenuTypeExtension.create(InvSeeInfoMenu::fromNetwork));
+
     private InvSeeMenus() {
     }
 
@@ -51,6 +62,10 @@ public final class InvSeeMenus {
 
     private static AbstractContainerMenu backpackFromNetwork(int id, Inventory inv, RegistryFriendlyByteBuf buf) {
         return invokeFromNetwork("com.mawlee.cointcore.invsee.menu.InvSeeBackpackMenu", id, inv, buf);
+    }
+
+    private static AbstractContainerMenu accessoriesFromNetwork(int id, Inventory inv, RegistryFriendlyByteBuf buf) {
+        return invokeFromNetwork("com.mawlee.cointcore.invsee.menu.InvSeeAccessoriesMenu", id, inv, buf);
     }
 
     private static AbstractContainerMenu invokeFromNetwork(

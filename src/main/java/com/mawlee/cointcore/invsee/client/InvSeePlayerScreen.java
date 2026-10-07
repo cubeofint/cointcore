@@ -1,5 +1,7 @@
 package com.mawlee.cointcore.invsee.client;
 
+import com.mawlee.cointcore.client.VanillaContainerSkin;
+import com.mawlee.cointcore.invsee.InvSeeChromeLayout;
 import com.mawlee.cointcore.invsee.menu.InvSeePlayerMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -9,31 +11,23 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 
 /**
- * Target player inventory — flat chrome + portrait frame (no inventory.png).
+ * Target inventory: gray vanilla panel with frames only on real slots, plus entity preview.
  */
 public final class InvSeePlayerScreen extends InvSeeBaseScreen<InvSeePlayerMenu> {
-    private static final int TARGET_PANEL_HEIGHT = 166;
-    private static final int VIEWER_PANEL_HEIGHT = 96;
-
     public InvSeePlayerScreen(InvSeePlayerMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        this.imageWidth = 176;
-        this.imageHeight = TARGET_PANEL_HEIGHT + VIEWER_PANEL_HEIGHT;
-        this.inventoryLabelY = TARGET_PANEL_HEIGHT + 2;
+        this.imageHeight = InvSeePlayerMenu.VIEWER_INVENTORY_Y + 82;
     }
 
     @Override
     protected void renderExtraBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        // Portrait well (left of main storage / beside armor)
-        InvSeeUi.drawPortraitFrame(graphics, leftPos + 26, topPos + 8, 50, 70);
-
         LivingEntity target = resolveTargetEntity();
         if (target != null) {
             InventoryScreen.renderEntityInInventoryFollowsMouse(
                     graphics,
                     leftPos + 26,
                     topPos + 8,
-                    leftPos + 76,
+                    leftPos + 75,
                     topPos + 78,
                     30,
                     0.0625F,
@@ -45,9 +39,31 @@ public final class InvSeePlayerScreen extends InvSeeBaseScreen<InvSeePlayerMenu>
     }
 
     @Override
-    protected void renderExtraLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, Component.translatable("gui.cointcore.invsee.section.armor"), 8, 1, InvSeeTheme.FAINT, false);
-        graphics.drawString(font, Component.translatable("gui.cointcore.invsee.section.storage"), 80, 74, InvSeeTheme.FAINT, false);
+    protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
+        String name = InvSeeClientChrome.displayName();
+        if (name == null || name.isBlank()) {
+            name = title.getString();
+        }
+        Component status = Component.translatable(
+                InvSeeClientChrome.online() ? "gui.cointcore.invsee.online" : "gui.cointcore.invsee.offline"
+        );
+        Component line = Component.translatable("gui.cointcore.invsee.target_line", name, status.getString());
+        graphics.drawString(
+                font,
+                font.plainSubstrByWidth(line.getString(), InvSeeChromeLayout.titleMaxWidth(imageWidth)),
+                8,
+                6,
+                VanillaContainerSkin.LABEL_COLOR,
+                false
+        );
+        graphics.drawString(
+                font,
+                Component.translatable("gui.cointcore.invsee.viewer_inventory"),
+                inventoryLabelX,
+                inventoryLabelY,
+                VanillaContainerSkin.LABEL_COLOR,
+                false
+        );
     }
 
     private LivingEntity resolveTargetEntity() {

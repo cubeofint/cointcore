@@ -24,21 +24,31 @@ public final class InvSeeBoundSlot extends Slot {
     public void bindEmpty() {
         source = Source.EMPTY;
         readOnly = true;
+        publishPlaceholder();
     }
 
     public void bindReadOnly(ItemStack stack) {
         source = Source.readOnly(stack);
         readOnly = true;
+        publishPlaceholder();
     }
 
     public void bindContainer(Container container, int slotIndex, boolean editable) {
         source = Source.container(container, slotIndex);
         readOnly = !editable;
+        publishPlaceholder();
     }
 
     public void bindHandler(IItemHandler handler, int slotIndex, boolean editable) {
         source = Source.handler(handler, slotIndex);
         readOnly = !editable;
+        publishPlaceholder();
+    }
+
+    private void publishPlaceholder() {
+        if (!clientSide) {
+            this.container.setItem(this.getContainerSlot(), source.get().copy());
+        }
     }
 
     public void setReadOnly(boolean readOnly) {

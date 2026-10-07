@@ -21,5 +21,8 @@ public final class InvSeeClientSetup {
         event.register((net.minecraft.world.inventory.MenuType) InvSeeMenus.COSMETIC.get(), InvSeeCosmeticScreen::new);
         event.register((net.minecraft.world.inventory.MenuType) InvSeeMenus.POCKET.get(), InvSeePocketScreen::new);
         event.register((net.minecraft.world.inventory.MenuType) InvSeeMenus.BACKPACK.get(), InvSeeBackpackScreen::new);
+        event.register((net.minecraft.world.inventory.MenuType) InvSeeMenus.ACCESSORIES.get(), InvSeeAccessoriesScreen::new);
+        event.register(InvSeeMenus.NESTED.get(), InvSeeNestedScreen::new);
+        event.register(InvSeeMenus.INFO.get(), InvSeeInfoScreen::new);
     }
 }

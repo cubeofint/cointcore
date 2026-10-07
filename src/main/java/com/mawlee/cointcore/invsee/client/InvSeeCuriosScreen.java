@@ -1,44 +1,33 @@
 package com.mawlee.cointcore.invsee.client;
 
+import com.mawlee.cointcore.client.VanillaContainerSkin;
 import com.mawlee.cointcore.invsee.menu.InvSeeCuriosMenu;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
 public final class InvSeeCuriosScreen extends InvSeeBaseScreen<InvSeeCuriosMenu> {
-    private InvSeeFlatButton prevButton;
-    private InvSeeFlatButton nextButton;
+    private Button prevButton;
+    private Button nextButton;
 
     public InvSeeCuriosScreen(InvSeeCuriosMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        int rows = InvSeeCuriosMenu.ROWS;
-        this.imageWidth = 176;
-        this.imageHeight = 114 + rows * 18;
-        this.inventoryLabelY = this.imageHeight - 94;
+        this.imageHeight = menu.viewerInventoryY() + 82;
     }
 
     @Override
     protected void initExtraWidgets() {
         int midY = topPos + 18 + (InvSeeCuriosMenu.ROWS * 18) / 2 - 8;
-        prevButton = new InvSeeFlatButton(
-                leftPos - 22,
-                midY,
-                18,
-                16,
-                Component.literal("<"),
-                b -> sendButton(InvSeeCuriosMenu.BUTTON_PREV_PAGE)
-        ).style(InvSeeFlatButton.Style.NEUTRAL);
-        prevButton.setTooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.page.prev")));
-        nextButton = new InvSeeFlatButton(
-                leftPos + imageWidth + 4,
-                midY,
-                18,
-                16,
-                Component.literal(">"),
-                b -> sendButton(InvSeeCuriosMenu.BUTTON_NEXT_PAGE)
-        ).style(InvSeeFlatButton.Style.NEUTRAL);
-        nextButton.setTooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.page.next")));
+        prevButton = Button.builder(Component.literal("<"), b -> sendButton(InvSeeCuriosMenu.BUTTON_PREV_PAGE))
+                .bounds(leftPos - 22, midY, 18, 16)
+                .tooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.page.prev")))
+                .build();
+        nextButton = Button.builder(Component.literal(">"), b -> sendButton(InvSeeCuriosMenu.BUTTON_NEXT_PAGE))
+                .bounds(leftPos + imageWidth + 4, midY, 18, 16)
+                .tooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.page.next")))
+                .build();
         addRenderableWidget(prevButton);
         addRenderableWidget(nextButton);
         updatePageButtons();
@@ -65,7 +54,7 @@ public final class InvSeeCuriosScreen extends InvSeeBaseScreen<InvSeeCuriosMenu>
                     menu.page() + 1,
                     menu.maxPage() + 1
             );
-            graphics.drawString(font, page, 8, 6, InvSeeTheme.MUTED, false);
+            graphics.drawString(font, page, imageWidth - 8 - font.width(page), 6, VanillaContainerSkin.LABEL_COLOR, false);
         }
     }
 }

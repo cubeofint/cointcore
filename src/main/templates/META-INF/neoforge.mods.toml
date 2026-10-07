@@ -66,6 +66,27 @@ ordering="AFTER"
 side="SERVER"
 
 [[dependencies.${mod_id}]]
+modId="yigd"
+type="optional"
+versionRange="[0,)"
+ordering="AFTER"
+side="SERVER"
+
+[[dependencies.${mod_id}]]
+modId="tombstone"
+type="optional"
+versionRange="[0,)"
+ordering="AFTER"
+side="SERVER"
+
+[[dependencies.${mod_id}]]
+modId="gravestone"
+type="optional"
+versionRange="[0,)"
+ordering="AFTER"
+side="SERVER"
+
+[[dependencies.${mod_id}]]
 modId="ftbteams"
 type="optional"
 versionRange="[2101.1.0,)"

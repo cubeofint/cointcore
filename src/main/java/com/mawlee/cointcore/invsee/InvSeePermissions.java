@@ -35,6 +35,9 @@ public final class InvSeePermissions {
     }
 
     public static boolean canEdit(ServerPlayer viewer, InvSeeSection section) {
+        if (!section.allowsEdit()) {
+            return false;
+        }
         return canView(viewer, section) && InvSeePermissionPolicy.allows(
                 triState(viewer, editNode(section)),
                 triState(viewer, CointPermissionNodes.INVSEE_EDIT)
@@ -92,6 +95,10 @@ public final class InvSeePermissions {
             case BACKPACK -> CointPermissionNodes.INVSEE_VIEW_BACKPACK;
             case POCKET -> CointPermissionNodes.INVSEE_VIEW_POCKET;
             case MODDATA -> CointPermissionNodes.INVSEE_VIEW_MODDATA;
+            case ACCESSORIES -> CointPermissionNodes.INVSEE_VIEW_ACCESSORIES;
+            case STATE -> CointPermissionNodes.INVSEE_VIEW_STATE;
+            case FTB -> CointPermissionNodes.INVSEE_VIEW_FTB;
+            case GRAVES -> CointPermissionNodes.INVSEE_VIEW_GRAVES;
         };
     }
 
@@ -104,6 +111,8 @@ public final class InvSeePermissions {
             case BACKPACK -> CointPermissionNodes.INVSEE_EDIT_BACKPACK;
             case POCKET -> CointPermissionNodes.INVSEE_EDIT_POCKET;
             case MODDATA -> CointPermissionNodes.INVSEE_EDIT_MODDATA;
+            case ACCESSORIES -> CointPermissionNodes.INVSEE_EDIT_ACCESSORIES;
+            case STATE, FTB, GRAVES -> CointPermissionNodes.INVSEE_EDIT;
         };
     }
 

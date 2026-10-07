@@ -1,8 +1,11 @@
 package com.mawlee.cointcore.invsee;
 
 import com.mawlee.cointcore.invsee.menu.InvSeeAttachmentMenu;
+import com.mawlee.cointcore.invsee.menu.InvSeeBaseMenu;
 import com.mawlee.cointcore.invsee.menu.InvSeeCuriosMenu;
 import com.mawlee.cointcore.invsee.menu.InvSeeEnderMenu;
+import com.mawlee.cointcore.invsee.menu.InvSeeInfoMenu;
+import com.mawlee.cointcore.invsee.menu.InvSeeNestedMenu;
 import com.mawlee.cointcore.invsee.menu.InvSeePlayerMenu;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -11,7 +14,9 @@ import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,21 +26,140 @@ public final class InvSeeService {
     private InvSeeService() {
     }
 
+    public static boolean openTab(ServerPlayer viewer, InvSeeTarget target, InvSeeTab tab) {
+        if (!InvSeePermissions.canView(viewer, tab.section())) {
+            return false;
+        }
+        return switch (tab) {
+            case INVENTORY -> openPlayer(viewer, target);
+            case ENDER -> openEnder(viewer, target);
+            case ACCESSORIES -> openAccessories(viewer, target);
+            case FTB, GRAVES, STATE -> openInfo(viewer, target, tab.section());
+        };
+    }
+
+    public static int tabMask(ServerPlayer viewer) {
+        return InvSeeTabPolicy.mask(
+                InvSeePermissions.canView(viewer, InvSeeSection.INVENTORY),
+                InvSeePermissions.canView(viewer, InvSeeSection.ENDER),
+                InvSeeMods.accessories(),
+                InvSeePermissions.canView(viewer, InvSeeSection.ACCESSORIES),
+                InvSeeMods.ftbEssentials(),
+                InvSeePermissions.canView(viewer, InvSeeSection.FTB),
+                InvSeeMods.graves(),
+                InvSeePermissions.canView(viewer, InvSeeSection.GRAVES),
+                InvSeePermissions.canView(viewer, InvSeeSection.STATE)
+        );
+    }
+
+    public static void sendChrome(ServerPlayer viewer, InvSeeTarget target, InvSeeSection section) {
+        PacketDistributor.sendToPlayer(
+                viewer,
+                new InvSeeChromePayload(
+                        target.playerId(),
+                        !target.isOffline(),
+                        tabMask(viewer),
+                        InvSeeTab.fromSection(section).ordinal(),
+                        target.displayName() == null ? "" : target.displayName()
+                )
+        );
+    }
+
     public static boolean openPlayer(ServerPlayer viewer, InvSeeTarget target) {
         InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.INVENTORY);
-        return open(viewer, title(target, "gui.cointcore.invsee.tab.player"),
+        boolean opened = open(viewer, title(target, "gui.cointcore.invsee.tab.player"),
                 (id, inv, player) -> new InvSeePlayerMenu(id, inv, session),
                 buf -> {
                     buf.writeBoolean(true);
                     buf.writeUUID(target.playerId());
                 });
+        if (opened) {
+            sendChrome(viewer, target, InvSeeSection.INVENTORY);
+        }
+        return opened;
     }
 
     public static boolean openEnder(ServerPlayer viewer, InvSeeTarget target) {
         InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.ENDER);
-        return open(viewer, title(target, "gui.cointcore.invsee.tab.ender"),
+        boolean opened = open(viewer, title(target, "gui.cointcore.invsee.tab.ender"),
                 (id, inv, player) -> new InvSeeEnderMenu(id, inv, session),
                 buf -> buf.writeBoolean(true));
+        if (opened) {
+            sendChrome(viewer, target, InvSeeSection.ENDER);
+        }
+        return opened;
+    }
+
+    public static boolean openAccessories(ServerPlayer viewer, InvSeeTarget target) {
+        if (!InvSeeMods.accessories()) {
+            return false;
+        }
+        InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.ACCESSORIES);
+        boolean opened = openReflective(
+                viewer,
+                title(target, "gui.cointcore.invsee.tab.accessories"),
+                "com.mawlee.cointcore.invsee.menu.InvSeeAccessoriesMenu",
+                new Class<?>[] {int.class, Inventory.class, InvSeeSession.class},
+                new Object[] {session},
+                buf -> buf.writeBoolean(true)
+        );
+        if (opened) {
+            sendChrome(viewer, target, InvSeeSection.ACCESSORIES);
+        }
+        return opened;
+    }
+
+    public static boolean openInfo(ServerPlayer viewer, InvSeeTarget target, InvSeeSection section) {
+        InvSeeSession session = InvSeeSessions.begin(viewer, target, section);
+        boolean opened = open(viewer, title(target, "gui.cointcore.invsee.tab." + section.id()),
+                (id, inv, player) -> new InvSeeInfoMenu(id, inv, session),
+                buf -> buf.writeBoolean(true));
+        if (opened) {
+            sendChrome(viewer, target, section);
+            List<String> lines = InvSeeInfoMenu.linesFor(section, session, viewer);
+            PacketDistributor.sendToPlayer(viewer, new InvSeeInfoPayload(section.id(), lines));
+        }
+        return opened;
+    }
+
+    public static boolean openNestedFromSlot(ServerPlayer viewer, int containerId, int slotIndex) {
+        if (!(viewer.containerMenu instanceof InvSeeBaseMenu menu) || menu.containerId != containerId) {
+            return false;
+        }
+        InvSeeSession session = menu.session();
+        if (session == null || !menu.stillValid(viewer)) {
+            return false;
+        }
+        ItemStack stack = menu.contentStack(slotIndex);
+        InvSeeNestedKind kind = InvSeeItemContents.kind(stack);
+        if (!kind.opensMenu()) {
+            return false;
+        }
+        if (kind == InvSeeNestedKind.BACKPACK) {
+            String key = backpackKeyForStack(session.target().getPlayer(), stack);
+            return key != null && openBackpack(viewer, session.target(), key);
+        }
+        InvSeeSession nestedSession = InvSeeSessions.begin(viewer, session.target(), session.section());
+        boolean opened = open(
+                viewer,
+                title(session.target(), "gui.cointcore.invsee.tab.nested"),
+                (id, inv, player) -> new InvSeeNestedMenu(id, inv, nestedSession, stack),
+                buf -> buf.writeBoolean(true)
+        );
+        if (opened) {
+            sendChrome(viewer, session.target(), session.section());
+        }
+        return opened;
+    }
+
+    private static String backpackKeyForStack(Player target, ItemStack stack) {
+        if (target == null) {
+            return null;
+        }
+        for (InvSeePlayerStacks.LocatedStack located : InvSeePlayerStacks.collect(target, candidate -> candidate == stack)) {
+            return InvSeePlayerStacks.encodeLocation(located);
+        }
+        return null;
     }
 
     public static boolean openCurios(ServerPlayer viewer, InvSeeTarget target) {
@@ -43,9 +167,13 @@ public final class InvSeeService {
             return false;
         }
         InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.CURIOS);
-        return open(viewer, title(target, "gui.cointcore.invsee.tab.curios_all"),
+        boolean opened = open(viewer, title(target, "gui.cointcore.invsee.tab.curios_all"),
                 (id, inv, player) -> new InvSeeCuriosMenu(id, inv, session),
                 buf -> buf.writeBoolean(true));
+        if (opened) {
+            sendChrome(viewer, target, InvSeeSection.CURIOS);
+        }
+        return opened;
     }
 
     public static boolean openCosmetic(ServerPlayer viewer, InvSeeTarget target) {
@@ -53,7 +181,7 @@ public final class InvSeeService {
             return false;
         }
         InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.COSMETIC);
-        return openReflective(
+        boolean opened = openReflective(
                 viewer,
                 Component.translatable("gui.cointcore.invsee.tab.cosmetic"),
                 "com.mawlee.cointcore.invsee.menu.InvSeeCosmeticMenu",
@@ -64,6 +192,10 @@ public final class InvSeeService {
                     buf.writeUUID(target.playerId());
                 }
         );
+        if (opened) {
+            sendChrome(viewer, target, InvSeeSection.COSMETIC);
+        }
+        return opened;
     }
 
     public static boolean openPocket(ServerPlayer viewer, InvSeeTarget target, UUID storageId) {
@@ -71,7 +203,7 @@ public final class InvSeeService {
             return false;
         }
         InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.POCKET);
-        return openReflective(
+        boolean opened = openReflective(
                 viewer,
                 title(target, "gui.cointcore.invsee.tab.pocket_storage", shortId(storageId.toString())),
                 "com.mawlee.cointcore.invsee.menu.InvSeePocketMenu",
@@ -82,6 +214,10 @@ public final class InvSeeService {
                     buf.writeUUID(storageId);
                 }
         );
+        if (opened) {
+            sendChrome(viewer, target, InvSeeSection.POCKET);
+        }
+        return opened;
     }
 
     public static boolean openBackpack(ServerPlayer viewer, InvSeeTarget target, String locationKey) {
@@ -89,7 +225,7 @@ public final class InvSeeService {
             return false;
         }
         InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.BACKPACK);
-        return openReflective(
+        boolean opened = openReflective(
                 viewer,
                 title(target, "gui.cointcore.invsee.tab.backpack", shortKey(locationKey)),
                 "com.mawlee.cointcore.invsee.menu.InvSeeBackpackMenu",
@@ -100,16 +236,24 @@ public final class InvSeeService {
                     buf.writeUtf(locationKey);
                 }
         );
+        if (opened) {
+            sendChrome(viewer, target, InvSeeSection.BACKPACK);
+        }
+        return opened;
     }
 
     public static boolean openAttachment(ServerPlayer viewer, InvSeeTarget target, String attachmentKey) {
         InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.MODDATA);
-        return open(viewer, title(target, "gui.cointcore.invsee.tab.attachment", shortAttachment(attachmentKey)),
+        boolean opened = open(viewer, title(target, "gui.cointcore.invsee.tab.attachment", shortAttachment(attachmentKey)),
                 (id, inv, player) -> new InvSeeAttachmentMenu(id, inv, session, attachmentKey),
                 buf -> {
                     buf.writeBoolean(true);
                     buf.writeUtf(attachmentKey);
                 });
+        if (opened) {
+            sendChrome(viewer, target, InvSeeSection.MODDATA);
+        }
+        return opened;
     }
 
     public static UUID resolveDefaultPocket(InvSeeTarget target) {

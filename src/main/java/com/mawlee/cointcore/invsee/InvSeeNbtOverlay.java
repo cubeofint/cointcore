@@ -44,6 +44,7 @@ public final class InvSeeNbtOverlay {
         }
         String lower = key.toLowerCase(Locale.ROOT);
         return lower.contains("curios")
+                || lower.contains("accessor")
                 || lower.startsWith("cosmetic")
                 || lower.contains("backpack")
                 || lower.contains("pocketstorage");
