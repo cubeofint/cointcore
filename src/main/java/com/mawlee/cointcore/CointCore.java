@@ -18,6 +18,7 @@ import com.mawlee.cointcore.seeinvisible.SeeInvisibleNetwork;
 import com.mawlee.cointcore.invsee.InvSeeMenus;
 import com.mawlee.cointcore.shop.ShopBlocks;
 import com.mawlee.cointcore.shop.ShopMenus;
+import com.mawlee.cointcore.shop.TraderNetwork;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -33,6 +34,7 @@ public class CointCore {
         modEventBus.addListener(SeeInvisibleNetwork::register);
         modEventBus.addListener(ClaimFlagEditNetwork::register);
         modEventBus.addListener(AfkNetwork::register);
+        modEventBus.addListener(TraderNetwork::register);
         InvSeeMenus.REGISTER.register(modEventBus);
         ShopBlocks.register(modEventBus);
         ShopMenus.register(modEventBus);

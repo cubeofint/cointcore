@@ -1,65 +1,151 @@
 package com.mawlee.cointcore.shop.client;
 
+import com.mawlee.cointcore.shop.TraderFeedbackKind;
+import com.mawlee.cointcore.shop.TraderFeedbackPayload;
 import com.mawlee.cointcore.shop.TraderMenu;
 import com.mawlee.cointcore.shop.TraderOffer;
+import com.mawlee.cointcore.shop.TraderTradePayload;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
-
-import java.util.ArrayList;
-import java.util.List;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
     private static final ResourceLocation BACKGROUND =
             ResourceLocation.withDefaultNamespace("textures/gui/container/generic_54.png");
 
+    private int page;
+    private TraderFeedbackPayload feedback;
+
     public TraderScreen(TraderMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
-        this.imageHeight = 114 + TraderMenu.CONTAINER_ROWS * 18;
-        this.inventoryLabelY = this.imageHeight - 94;
+        this.imageHeight = TraderMenu.GUI_HEIGHT;
+        this.inventoryLabelY = TraderMenu.PLAYER_INV_Y - 11;
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        page = Math.min(page, maxPage());
+        int listLeft = leftPos + 8;
+        int buttonY0 = topPos + TraderMenu.TITLE_HEIGHT + 2;
+        int start = page * TraderMenu.PAGE_SIZE;
+        for (int row = 0; row < TraderMenu.PAGE_SIZE; row++) {
+            int offerIndex = start + row;
+            if (offerIndex >= menu.offers().size()) {
+                break;
+            }
+            TraderOffer offer = menu.offers().get(offerIndex);
+            int y = buttonY0 + row * TraderMenu.ROW_HEIGHT;
+            int buyX = leftPos + 102;
+            int sellX = leftPos + 138;
+            Button buy = Button.builder(Component.translatable("gui.cointcore.trader.buy"), button -> trade(offerIndex, false))
+                    .bounds(buyX, y, 32, 18)
+                    .tooltip(Tooltip.create(Component.translatable("gui.cointcore.trader.shift_hint")))
+                    .build();
+            buy.active = offer.canBuy();
+            addRenderableWidget(buy);
+            Button sell = Button.builder(Component.translatable("gui.cointcore.trader.sell"), button -> trade(offerIndex, true))
+                    .bounds(sellX, y, 32, 18)
+                    .tooltip(Tooltip.create(Component.translatable("gui.cointcore.trader.shift_hint")))
+                    .build();
+            sell.active = offer.canSell();
+            addRenderableWidget(sell);
+        }
+
+        int pagerY = topPos + TraderMenu.OFFER_PANEL_HEIGHT - TraderMenu.PAGE_BAR_HEIGHT + 1;
+        Button prev = Button.builder(Component.literal("<"), button -> changePage(-1))
+                .bounds(listLeft, pagerY, 16, 16)
+                .build();
+        prev.active = page > 0;
+        addRenderableWidget(prev);
+        Button next = Button.builder(Component.literal(">"), button -> changePage(1))
+                .bounds(leftPos + imageWidth - 24, pagerY, 16, 16)
+                .build();
+        next.active = page < maxPage();
+        addRenderableWidget(next);
+    }
+
+    void setFeedback(TraderFeedbackPayload payload) {
+        this.feedback = payload;
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
+        renderOfferItems(graphics);
         renderTooltip(graphics, mouseX, mouseY);
     }
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        super.renderLabels(graphics, mouseX, mouseY);
+        graphics.drawString(font, title, titleLabelX, 6, 0x404040, false);
         Component balance = Component.translatable("container.cointcore.trader.balance", menu.gluonBalance());
         graphics.drawString(font, balance, imageWidth - 8 - font.width(balance), 6, 0x404040, false);
+        graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0x404040, false);
+
+        int start = page * TraderMenu.PAGE_SIZE;
+        for (int row = 0; row < TraderMenu.PAGE_SIZE; row++) {
+            int offerIndex = start + row;
+            if (offerIndex >= menu.offers().size()) {
+                break;
+            }
+            TraderOffer offer = menu.offers().get(offerIndex);
+            int y = TraderMenu.TITLE_HEIGHT + 3 + row * TraderMenu.ROW_HEIGHT;
+            ItemStack stack = offer.display();
+            Component name = Component.literal(font.plainSubstrByWidth(stack.getHoverName().getString(), 70));
+            graphics.drawString(font, name, 28, y, 0x404040, false);
+            Component prices = Component.translatable(
+                    "gui.cointcore.trader.prices",
+                    offer.canBuy() ? Long.toString(offer.buyTotal()) : "—",
+                    offer.canSell() ? Long.toString(offer.sellNet()) : "—"
+            );
+            graphics.drawString(font, prices, 28, y + 9, 0x404040, false);
+        }
+
+        if (menu.offers().isEmpty()) {
+            Component empty = Component.translatable("gui.cointcore.trader.empty");
+            graphics.drawString(
+                    font,
+                    empty,
+                    (imageWidth - font.width(empty)) / 2,
+                    TraderMenu.TITLE_HEIGHT + 20,
+                    0x404040,
+                    false
+            );
+        }
+
+        int pages = maxPage() + 1;
+        Component pageLabel = Component.translatable("gui.cointcore.trader.page", page + 1, pages);
+        int pagerY = TraderMenu.OFFER_PANEL_HEIGHT - 13;
+        graphics.drawString(font, pageLabel, (imageWidth - font.width(pageLabel)) / 2, pagerY, 0x404040, false);
+
+        if (feedback != null) {
+            Component line = feedbackLine(feedback);
+            int color = feedback.kind().error() ? 0xAA0000 : 0x2E7D32;
+            int statusY = TraderMenu.TITLE_HEIGHT + TraderMenu.PAGE_SIZE * TraderMenu.ROW_HEIGHT + 1;
+            graphics.drawString(
+                    font,
+                    Component.literal(font.plainSubstrByWidth(line.getString(), imageWidth - 16)),
+                    8,
+                    statusY,
+                    color,
+                    false
+            );
+        }
     }
 
     @Override
     protected void renderTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
-        if (hoveredSlot != null && hoveredSlot.index < menu.offers().size()) {
-            TraderOffer offer = menu.offers().get(hoveredSlot.index);
-            List<Component> lines = new ArrayList<>();
-            ItemStack stack = offer.display();
-            lines.add(stack.getHoverName());
-            lines.add(Component.translatable("container.cointcore.trader.hint"));
-            if (offer.canBuy()) {
-                lines.add(Component.translatable(
-                        "container.cointcore.trader.tooltip.buy",
-                        offer.buyTotal(),
-                        offer.buyPrice(),
-                        offer.buyFee()
-                ));
-            }
-            if (offer.canSell()) {
-                lines.add(Component.translatable(
-                        "container.cointcore.trader.tooltip.sell",
-                        offer.sellNet(),
-                        offer.sellPrice(),
-                        offer.sellFee()
-                ));
-            }
-            graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
+        int offerIndex = hoveredOffer(mouseX, mouseY);
+        if (offerIndex >= 0) {
+            TraderOffer offer = menu.offers().get(offerIndex);
+            graphics.renderTooltip(font, offer.display(), mouseX, mouseY);
             return;
         }
         super.renderTooltip(graphics, mouseX, mouseY);
@@ -69,7 +155,109 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         int x = leftPos;
         int y = topPos;
-        graphics.blit(BACKGROUND, x, y, 0, 0, imageWidth, TraderMenu.CONTAINER_ROWS * 18 + 17);
-        graphics.blit(BACKGROUND, x, y + TraderMenu.CONTAINER_ROWS * 18 + 17, 0, 126, imageWidth, 96);
+        graphics.blit(BACKGROUND, x, y, 0, 0, imageWidth, TraderMenu.TITLE_HEIGHT);
+        graphics.fill(x + 7, y + TraderMenu.TITLE_HEIGHT, x + imageWidth - 7, y + TraderMenu.OFFER_PANEL_HEIGHT, 0xFF8B8B8B);
+        graphics.fill(x + 8, y + TraderMenu.TITLE_HEIGHT, x + imageWidth - 8, y + TraderMenu.OFFER_PANEL_HEIGHT - 1, 0xFFC6C6C6);
+        graphics.blit(BACKGROUND, x, y + TraderMenu.PLAYER_INV_Y - 13, 0, 125, imageWidth, 96);
+
+        int start = page * TraderMenu.PAGE_SIZE;
+        for (int row = 0; row < TraderMenu.PAGE_SIZE && start + row < menu.offers().size(); row++) {
+            int slotY = y + TraderMenu.TITLE_HEIGHT + 2 + row * TraderMenu.ROW_HEIGHT;
+            graphics.blit(BACKGROUND, x + 7, slotY, 7, 17, 18, 18);
+        }
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (mouseX >= leftPos && mouseX < leftPos + imageWidth
+                && mouseY >= topPos + TraderMenu.TITLE_HEIGHT
+                && mouseY < topPos + TraderMenu.OFFER_PANEL_HEIGHT) {
+            if (scrollY > 0) {
+                changePage(-1);
+                return true;
+            }
+            if (scrollY < 0) {
+                changePage(1);
+                return true;
+            }
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    private void renderOfferItems(GuiGraphics graphics) {
+        int start = page * TraderMenu.PAGE_SIZE;
+        for (int row = 0; row < TraderMenu.PAGE_SIZE; row++) {
+            int offerIndex = start + row;
+            if (offerIndex >= menu.offers().size()) {
+                break;
+            }
+            ItemStack stack = menu.offers().get(offerIndex).display();
+            int itemX = leftPos + 8;
+            int itemY = topPos + TraderMenu.TITLE_HEIGHT + 3 + row * TraderMenu.ROW_HEIGHT;
+            graphics.renderItem(stack, itemX, itemY);
+            graphics.renderItemDecorations(font, stack, itemX, itemY);
+        }
+    }
+
+    private void trade(int offerIndex, boolean sell) {
+        PacketDistributor.sendToServer(new TraderTradePayload(menu.containerId, offerIndex, sell, hasShiftDown()));
+    }
+
+    private void changePage(int delta) {
+        int next = page + delta;
+        int clamped = Math.max(0, Math.min(maxPage(), next));
+        if (clamped != page) {
+            page = clamped;
+            rebuildWidgets();
+        }
+    }
+
+    private int maxPage() {
+        int size = menu.offers().size();
+        if (size <= 0) {
+            return 0;
+        }
+        return (size - 1) / TraderMenu.PAGE_SIZE;
+    }
+
+    private int hoveredOffer(int mouseX, int mouseY) {
+        int localX = mouseX - leftPos;
+        int localY = mouseY - topPos - TraderMenu.TITLE_HEIGHT;
+        if (localX < 7 || localX >= 26 || localY < 2) {
+            return -1;
+        }
+        int row = (localY - 2) / TraderMenu.ROW_HEIGHT;
+        if (row < 0 || row >= TraderMenu.PAGE_SIZE) {
+            return -1;
+        }
+        int offerIndex = page * TraderMenu.PAGE_SIZE + row;
+        if (offerIndex >= menu.offers().size()) {
+            return -1;
+        }
+        return offerIndex;
+    }
+
+    private Component feedbackLine(TraderFeedbackPayload payload) {
+        TraderFeedbackKind kind = payload.kind();
+        return switch (kind) {
+            case OFFER_UNAVAILABLE -> Component.translatable("gui.cointcore.trader.error.offer_unavailable");
+            case INVENTORY_FULL -> Component.translatable("gui.cointcore.trader.error.inventory_full");
+            case NOT_ENOUGH_GLUONS -> Component.translatable("gui.cointcore.trader.error.not_enough", payload.gluons());
+            case NOT_ENOUGH_ITEMS -> Component.translatable("gui.cointcore.trader.error.not_enough_items");
+            case BOUGHT -> Component.translatable(
+                    "gui.cointcore.trader.bought",
+                    payload.count(),
+                    payload.itemName(),
+                    payload.gluons(),
+                    payload.fee()
+            );
+            case SOLD -> Component.translatable(
+                    "gui.cointcore.trader.sold",
+                    payload.count(),
+                    payload.itemName(),
+                    payload.gluons(),
+                    payload.fee()
+            );
+        };
     }
 }
