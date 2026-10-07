@@ -30,6 +30,22 @@ final class TraderInventory {
         return remaining.isEmpty();
     }
 
+    static int spaceFor(Inventory inventory, ItemStack sample) {
+        if (sample.isEmpty()) {
+            return 0;
+        }
+        int space = 0;
+        int max = sample.getMaxStackSize();
+        for (ItemStack existing : inventory.items) {
+            if (existing.isEmpty()) {
+                space += max;
+            } else if (ItemStack.isSameItemSameComponents(existing, sample)) {
+                space += Math.max(0, max - existing.getCount());
+            }
+        }
+        return space;
+    }
+
     static int countMatching(Inventory inventory, ItemStack sample) {
         int total = 0;
         for (ItemStack stack : inventory.items) {

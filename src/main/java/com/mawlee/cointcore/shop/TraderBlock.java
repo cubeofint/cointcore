@@ -74,7 +74,7 @@ public class TraderBlock extends HorizontalDirectionalBlock {
     ) {
         if (player instanceof ServerPlayer serverPlayer) {
             long balance = GluonWallet.get(serverPlayer);
-            var offers = TraderMenu.serverOffers();
+            var offers = TraderMenu.serverOffers(serverPlayer.server);
             serverPlayer.openMenu(
                     new SimpleMenuProvider(
                             (containerId, inventory, opener) -> new TraderMenu(
