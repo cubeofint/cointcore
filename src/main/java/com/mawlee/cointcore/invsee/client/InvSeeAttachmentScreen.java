@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.invsee.client;
 
+import com.mawlee.cointcore.client.VanillaContainerSkin;
 import com.mawlee.cointcore.invsee.menu.InvSeeAttachmentMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -22,8 +23,8 @@ public final class InvSeeAttachmentScreen extends InvSeeBaseScreen<InvSeeAttachm
                 font,
                 Component.translatable("gui.cointcore.invsee.section.readonly"),
                 8,
-                6,
-                InvSeeTheme.MUTED,
+                18,
+                VanillaContainerSkin.LABEL_COLOR,
                 false
         );
     }

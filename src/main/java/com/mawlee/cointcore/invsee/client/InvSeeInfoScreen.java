@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.invsee.client;
 
+import com.mawlee.cointcore.client.VanillaContainerSkin;
 import com.mawlee.cointcore.invsee.InvSeeTab;
 import com.mawlee.cointcore.invsee.menu.InvSeeInfoMenu;
 import net.minecraft.client.gui.GuiGraphics;
@@ -27,11 +28,11 @@ public final class InvSeeInfoScreen extends InvSeeBaseScreen<InvSeeInfoMenu> {
         if (!expected.equals(InvSeeClientChrome.infoKind())) {
             return;
         }
-        int y = 8;
+        int y = 18;
         int maxY = menu.viewerInventoryY() - 16;
         for (String line : InvSeeClientChrome.infoLines()) {
             String clipped = font.plainSubstrByWidth(line, imageWidth - 16);
-            graphics.drawString(font, clipped, 8, y, InvSeeTheme.TEXT, false);
+            graphics.drawString(font, clipped, 8, y, VanillaContainerSkin.LABEL_COLOR, false);
             y += 10;
             if (y > maxY) {
                 break;

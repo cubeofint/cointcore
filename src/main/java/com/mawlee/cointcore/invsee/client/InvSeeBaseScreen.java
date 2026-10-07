@@ -1,126 +1,90 @@
 package com.mawlee.cointcore.invsee.client;
 
+import com.mawlee.cointcore.client.VanillaContainerSkin;
 import com.mawlee.cointcore.invsee.InvSeeOpenNestedPayload;
 import com.mawlee.cointcore.invsee.InvSeeTab;
-import com.mawlee.cointcore.invsee.InvSeeTabLayout;
 import com.mawlee.cointcore.invsee.menu.InvSeeBaseMenu;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import java.util.List;
+
 /**
- * Modern InvSee chrome: flat panels, slot wells, copper header — no vanilla GUI textures.
+ * Vanilla InvSee chrome: generic_54 / inventory textures, creative icon tabs.
  */
 public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends AbstractContainerScreen<T> {
-    private static final Component BRAND = Component.literal("CointCore");
-
-    private InvSeeFlatButton editButton;
+    private Button editButton;
     private int tabScroll;
+    private InvSeeTab hoveredTab;
 
     protected InvSeeBaseScreen(T menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         this.imageWidth = InvSeeBaseMenu.GUI_WIDTH;
     }
 
-    /** Attachment and other RO sections can hide the mode toggle. */
     protected boolean showEditToggle() {
         return true;
+    }
+
+    protected boolean useVanillaInventoryTexture() {
+        return false;
     }
 
     @Override
     protected void init() {
         super.init();
+        this.titleLabelX = 8;
         this.titleLabelY = 6;
-        this.inventoryLabelX = InvSeeBaseMenu.SLOT_ORIGIN;
-        this.inventoryLabelY = menu.viewerInventoryY() - 12;
+        this.inventoryLabelX = 8;
+        this.inventoryLabelY = menu.viewerInventoryY() - 11;
 
         if (showEditToggle()) {
-            editButton = new InvSeeFlatButton(
-                    leftPos + imageWidth - 54,
-                    topPos - InvSeeTheme.HEADER_H - InvSeeTheme.PAD + 3,
-                    50,
-                    16,
-                    editLabel(),
-                    button -> sendButton(InvSeeBaseMenu.BUTTON_TOGGLE_EDIT)
-            );
-            editButton.setTooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.mode.toggle")));
+            editButton = Button.builder(editLabel(), button -> sendButton(InvSeeBaseMenu.BUTTON_TOGGLE_EDIT))
+                    .bounds(leftPos + imageWidth - 42, topPos + 4, 36, 16)
+                    .tooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.mode.toggle")))
+                    .build();
             addRenderableWidget(editButton);
             updateEditButton();
         }
-        addTabButtons();
+        addTabScrollButtons();
         initExtraWidgets();
     }
 
-    private void addTabButtons() {
-        var tabs = InvSeeClientChrome.tabs();
-        int[] widths = new int[tabs.size()];
-        for (int i = 0; i < tabs.size(); i++) {
-            int text = font.width(Component.translatable(tabs.get(i).langKey()));
-            widths[i] = InvSeeTabLayout.tabWidth(text, 12, 24);
+    private void addTabScrollButtons() {
+        List<InvSeeTab> tabs = InvSeeClientChrome.tabs();
+        int perRow = Math.max(1, imageWidth / VanillaContainerSkin.TAB_SHIFT);
+        if (tabs.size() <= perRow * 2) {
+            return;
         }
-        int avail = imageWidth + InvSeeTheme.PAD * 2 - 8;
-        InvSeeTabLayout.Result layout = InvSeeTabLayout.compute(
-                widths,
-                avail,
-                tabScroll,
-                InvSeeTheme.TAB_ROW_H,
-                2
-        );
-        if (layout.scrolled() && layout.canScrollRight() && !layout.placements().isEmpty()) {
-            tabScroll = layout.placements().getFirst().tabIndex();
-        }
-        int originX = leftPos - InvSeeTheme.PAD + 4;
-        int originY = topPos - InvSeeTheme.HEADER_H - InvSeeTheme.TAB_H - InvSeeTheme.PAD + 2;
-        if (layout.scrolled()) {
-            InvSeeFlatButton prev = new InvSeeFlatButton(
-                    originX,
-                    originY,
-                    InvSeeTabLayout.ARROW_WIDTH,
-                    InvSeeTheme.TAB_ROW_H,
-                    Component.literal("<"),
-                    b -> {
-                        tabScroll = Math.max(0, tabScroll - 1);
-                        rebuildWidgets();
-                    }
-            );
-            prev.active = layout.canScrollLeft();
-            addRenderableWidget(prev);
-            InvSeeFlatButton next = new InvSeeFlatButton(
-                    originX + avail - InvSeeTabLayout.ARROW_WIDTH,
-                    originY,
-                    InvSeeTabLayout.ARROW_WIDTH,
-                    InvSeeTheme.TAB_ROW_H,
-                    Component.literal(">"),
-                    b -> {
-                        tabScroll++;
-                        rebuildWidgets();
-                    }
-            );
-            next.active = layout.canScrollRight();
-            addRenderableWidget(next);
-        }
-        for (InvSeeTabLayout.Placement placement : layout.placements()) {
-            InvSeeTab tab = tabs.get(placement.tabIndex());
-            boolean active = tab.ordinal() == InvSeeClientChrome.activeTab();
-            InvSeeFlatButton button = new InvSeeFlatButton(
-                    originX + placement.x(),
-                    originY + placement.y(),
-                    placement.width(),
-                    InvSeeTheme.TAB_ROW_H,
-                    Component.translatable(tab.langKey()),
-                    b -> sendButton(InvSeeBaseMenu.BUTTON_TAB_BASE + tab.ordinal())
-            );
-            button.style(active ? InvSeeFlatButton.Style.ACCENT : InvSeeFlatButton.Style.NEUTRAL);
-            button.setTooltip(Tooltip.create(Component.translatable(tab.langKey())));
-            addRenderableWidget(button);
-        }
+        Button prev = Button.builder(Component.literal("<"), button -> {
+            tabScroll = Math.max(0, tabScroll - 1);
+            rebuildWidgets();
+        }).bounds(leftPos - 18, topPos - 24, 16, 16).build();
+        prev.active = tabScroll > 0;
+        addRenderableWidget(prev);
+        Button next = Button.builder(Component.literal(">"), button -> {
+            tabScroll++;
+            rebuildWidgets();
+        }).bounds(leftPos + imageWidth + 2, topPos - 24, 16, 16).build();
+        next.active = tabScroll + perRow < tabs.size();
+        addRenderableWidget(next);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0) {
+            InvSeeTab tab = tabAt(mouseX, mouseY);
+            if (tab != null) {
+                sendButton(InvSeeBaseMenu.BUTTON_TAB_BASE + tab.ordinal());
+                return true;
+            }
+        }
         if (button == 1 && hoveredSlot != null && menu.isContentSlot(hoveredSlot.index)) {
             PacketDistributor.sendToServer(new InvSeeOpenNestedPayload(menu.containerId, hoveredSlot.index));
             return true;
@@ -128,7 +92,6 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    /** Page controls and other section widgets. */
     protected void initExtraWidgets() {
     }
 
@@ -147,7 +110,6 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
         editButton.visible = can || busy;
         editButton.active = can;
         editButton.setMessage(editLabel());
-        editButton.style(menu.isEditMode() ? InvSeeFlatButton.Style.EDIT : InvSeeFlatButton.Style.ACCENT);
     }
 
     private Component editLabel() {
@@ -172,48 +134,43 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        // ACS normally calls renderBg from here — must keep that chain.
-        InvSeeUi.fill(graphics, 0, 0, this.width, this.height, InvSeeTheme.SCRIM);
-        this.renderBg(graphics, partialTick, mouseX, mouseY);
-    }
-
-    @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
-        renderTooltip(graphics, mouseX, mouseY);
+        hoveredTab = tabAt(mouseX, mouseY);
+        if (hoveredTab != null) {
+            graphics.renderTooltip(font, Component.translatable(hoveredTab.langKey()), mouseX, mouseY);
+        } else {
+            renderTooltip(graphics, mouseX, mouseY);
+        }
     }
 
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        InvSeeUi.drawShell(
-                graphics,
-                font,
-                leftPos,
-                topPos,
-                imageWidth,
-                imageHeight,
-                BRAND,
-                title,
-                menu.viewerInventoryY()
-        );
-        InvSeeUi.drawSlotWells(graphics, leftPos, topPos, menu.slots, mouseX, mouseY);
+        renderCreativeTabs(graphics);
+        if (useVanillaInventoryTexture()) {
+            VanillaContainerSkin.blitPlayerInventoryLayout(graphics, leftPos, topPos);
+            VanillaContainerSkin.blitPlayerStrip(graphics, leftPos, topPos + VanillaContainerSkin.INVENTORY_TEXTURE_HEIGHT);
+        } else {
+            VanillaContainerSkin.blitPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
+            for (Slot slot : menu.slots) {
+                VanillaContainerSkin.blitSlot(graphics, leftPos + slot.x - 1, topPos + slot.y - 1);
+            }
+        }
         renderExtraBg(graphics, partialTick, mouseX, mouseY);
     }
 
-    /** Section-specific overlays (entity preview, etc.). */
     protected void renderExtraBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
     }
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        // Title lives in the absolute header; only the viewer inventory caption here.
+        graphics.drawString(font, title, titleLabelX, titleLabelY, VanillaContainerSkin.LABEL_COLOR, false);
         graphics.drawString(
                 font,
                 Component.translatable("gui.cointcore.invsee.viewer_inventory"),
                 inventoryLabelX,
                 inventoryLabelY,
-                InvSeeTheme.MUTED,
+                VanillaContainerSkin.LABEL_COLOR,
                 false
         );
         renderExtraLabels(graphics, mouseX, mouseY);
@@ -222,9 +179,50 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
     protected void renderExtraLabels(GuiGraphics graphics, int mouseX, int mouseY) {
     }
 
-    protected InvSeeFlatButton flatButton(int x, int y, int w, int h, Component label, Runnable action) {
-        InvSeeFlatButton button = new InvSeeFlatButton(x, y, w, h, label, b -> action.run());
+    protected Button vanillaButton(int x, int y, int w, int h, Component label, Runnable action) {
+        Button button = Button.builder(label, b -> action.run()).bounds(x, y, w, h).build();
         addRenderableWidget(button);
         return button;
+    }
+
+    private void renderCreativeTabs(GuiGraphics graphics) {
+        List<InvSeeTab> tabs = visibleTabs();
+        int perRow = Math.max(1, imageWidth / VanillaContainerSkin.TAB_SHIFT);
+        for (int i = 0; i < tabs.size(); i++) {
+            InvSeeTab tab = tabs.get(i);
+            int row = i / perRow;
+            int col = i % perRow;
+            int x = leftPos + col * VanillaContainerSkin.TAB_SHIFT;
+            int y = topPos - VanillaContainerSkin.TAB_HEIGHT + 4 - row * (VanillaContainerSkin.TAB_HEIGHT - 4);
+            boolean selected = tab.ordinal() == InvSeeClientChrome.activeTab();
+            VanillaContainerSkin.blitCreativeTab(graphics, x, y, selected, tab.iconStack());
+        }
+    }
+
+    private InvSeeTab tabAt(double mouseX, double mouseY) {
+        List<InvSeeTab> tabs = visibleTabs();
+        int perRow = Math.max(1, imageWidth / VanillaContainerSkin.TAB_SHIFT);
+        for (int i = 0; i < tabs.size(); i++) {
+            int row = i / perRow;
+            int col = i % perRow;
+            int x = leftPos + col * VanillaContainerSkin.TAB_SHIFT;
+            int y = topPos - VanillaContainerSkin.TAB_HEIGHT + 4 - row * (VanillaContainerSkin.TAB_HEIGHT - 4);
+            if (mouseX >= x && mouseX < x + VanillaContainerSkin.TAB_WIDTH
+                    && mouseY >= y && mouseY < y + VanillaContainerSkin.TAB_HEIGHT) {
+                return tabs.get(i);
+            }
+        }
+        return null;
+    }
+
+    private List<InvSeeTab> visibleTabs() {
+        List<InvSeeTab> tabs = InvSeeClientChrome.tabs();
+        int perRow = Math.max(1, imageWidth / VanillaContainerSkin.TAB_SHIFT);
+        if (tabs.size() <= perRow * 2) {
+            return tabs;
+        }
+        int start = Math.max(0, Math.min(tabScroll, Math.max(0, tabs.size() - perRow)));
+        int end = Math.min(tabs.size(), start + perRow);
+        return tabs.subList(start, end);
     }
 }

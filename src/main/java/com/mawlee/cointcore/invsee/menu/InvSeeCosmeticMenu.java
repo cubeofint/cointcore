@@ -60,7 +60,7 @@ public final class InvSeeCosmeticMenu extends InvSeeBaseMenu {
 
     @Override
     public int viewerInventoryY() {
-        return 96 + (ROWS - 3) * 18;
+        return 84 + (ROWS - 3) * 18;
     }
 
     @Override

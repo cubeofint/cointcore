@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.invsee.client;
 
+import com.mawlee.cointcore.client.VanillaContainerSkin;
 import com.mawlee.cointcore.invsee.menu.InvSeePlayerMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -9,29 +10,29 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 
 /**
- * Target player inventory — flat chrome + portrait frame (no inventory.png).
+ * Target inventory uses vanilla inventory.png; admin inventory uses generic_54 strip.
  */
 public final class InvSeePlayerScreen extends InvSeeBaseScreen<InvSeePlayerMenu> {
-    private static final int VIEWER_PANEL_HEIGHT = 96;
-
     public InvSeePlayerScreen(InvSeePlayerMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        this.imageHeight = InvSeePlayerMenu.VIEWER_INVENTORY_Y + VIEWER_PANEL_HEIGHT;
+        this.imageHeight = InvSeePlayerMenu.VIEWER_INVENTORY_Y + 82;
+    }
+
+    @Override
+    protected boolean useVanillaInventoryTexture() {
+        return true;
     }
 
     @Override
     protected void renderExtraBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        int shift = leftPos + InvSeePlayerMenu.SLOT_ORIGIN - 8;
-        InvSeeUi.drawPortraitFrame(graphics, shift + 26, topPos + InvSeePlayerMenu.ARMOR_Y, 50, 70);
-
         LivingEntity target = resolveTargetEntity();
         if (target != null) {
             InventoryScreen.renderEntityInInventoryFollowsMouse(
                     graphics,
-                    shift + 26,
-                    topPos + InvSeePlayerMenu.ARMOR_Y,
-                    shift + 76,
-                    topPos + InvSeePlayerMenu.ARMOR_Y + 70,
+                    leftPos + 26,
+                    topPos + 8,
+                    leftPos + 75,
+                    topPos + 78,
                     30,
                     0.0625F,
                     mouseX,
@@ -42,7 +43,7 @@ public final class InvSeePlayerScreen extends InvSeeBaseScreen<InvSeePlayerMenu>
     }
 
     @Override
-    protected void renderExtraLabels(GuiGraphics graphics, int mouseX, int mouseY) {
+    protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         String name = InvSeeClientChrome.displayName();
         if (name == null || name.isBlank()) {
             name = title.getString();
@@ -53,42 +54,18 @@ public final class InvSeePlayerScreen extends InvSeeBaseScreen<InvSeePlayerMenu>
         Component line = Component.translatable("gui.cointcore.invsee.target_line", name, status.getString());
         graphics.drawString(
                 font,
-                font.plainSubstrByWidth(line.getString(), imageWidth - 16),
+                font.plainSubstrByWidth(line.getString(), 110),
                 8,
                 6,
-                InvSeeTheme.TEXT,
+                VanillaContainerSkin.LABEL_COLOR,
                 false
         );
         graphics.drawString(
                 font,
-                Component.translatable("gui.cointcore.invsee.section.armor"),
-                InvSeePlayerMenu.SLOT_ORIGIN,
-                InvSeePlayerMenu.ARMOR_Y - 10,
-                InvSeeTheme.FAINT,
-                false
-        );
-        graphics.drawString(
-                font,
-                Component.translatable("gui.cointcore.invsee.section.offhand"),
-                InvSeePlayerMenu.SLOT_ORIGIN + 69,
-                InvSeePlayerMenu.ARMOR_Y + 3 * 18 - 10,
-                InvSeeTheme.FAINT,
-                false
-        );
-        graphics.drawString(
-                font,
-                Component.translatable("gui.cointcore.invsee.section.storage"),
-                InvSeePlayerMenu.SLOT_ORIGIN,
-                InvSeePlayerMenu.STORAGE_Y - 10,
-                InvSeeTheme.FAINT,
-                false
-        );
-        graphics.drawString(
-                font,
-                Component.translatable("gui.cointcore.invsee.section.hotbar"),
-                InvSeePlayerMenu.SLOT_ORIGIN,
-                InvSeePlayerMenu.HOTBAR_Y - 10,
-                InvSeeTheme.FAINT,
+                Component.translatable("gui.cointcore.invsee.viewer_inventory"),
+                inventoryLabelX,
+                inventoryLabelY,
+                VanillaContainerSkin.LABEL_COLOR,
                 false
         );
     }

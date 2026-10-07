@@ -1,5 +1,8 @@
 package com.mawlee.cointcore.invsee;
 
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+
 /**
  * Top-level admin GUI tabs. Command-only sections (curios/cosmetic/backpack/pocket)
  * stay available via {@code /invsee} subcommands.
@@ -36,6 +39,17 @@ public enum InvSeeTab {
 
     public int mask() {
         return 1 << bit;
+    }
+
+    public ItemStack iconStack() {
+        return switch (this) {
+            case INVENTORY -> new ItemStack(Items.CHEST);
+            case ENDER -> new ItemStack(Items.ENDER_CHEST);
+            case ACCESSORIES -> new ItemStack(Items.GOLDEN_CHESTPLATE);
+            case FTB -> new ItemStack(Items.COMPASS);
+            case GRAVES -> new ItemStack(Items.SKELETON_SKULL);
+            case STATE -> new ItemStack(Items.CLOCK);
+        };
     }
 
     public static InvSeeTab fromSection(InvSeeSection section) {

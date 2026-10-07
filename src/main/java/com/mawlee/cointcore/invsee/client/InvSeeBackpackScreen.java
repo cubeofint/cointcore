@@ -1,14 +1,16 @@
 package com.mawlee.cointcore.invsee.client;
 
+import com.mawlee.cointcore.client.VanillaContainerSkin;
 import com.mawlee.cointcore.invsee.menu.InvSeeBackpackMenu;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
 public final class InvSeeBackpackScreen extends InvSeeBaseScreen<InvSeeBackpackMenu> {
-    private InvSeeFlatButton prevButton;
-    private InvSeeFlatButton nextButton;
+    private Button prevButton;
+    private Button nextButton;
 
     public InvSeeBackpackScreen(InvSeeBackpackMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -17,24 +19,14 @@ public final class InvSeeBackpackScreen extends InvSeeBaseScreen<InvSeeBackpackM
 
     @Override
     protected void initExtraWidgets() {
-        prevButton = new InvSeeFlatButton(
-                leftPos - 22,
-                topPos + 40,
-                18,
-                16,
-                Component.literal("<"),
-                b -> sendButton(InvSeeBackpackMenu.BUTTON_PREV_PAGE)
-        );
-        prevButton.setTooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.page.prev")));
-        nextButton = new InvSeeFlatButton(
-                leftPos + imageWidth + 4,
-                topPos + 40,
-                18,
-                16,
-                Component.literal(">"),
-                b -> sendButton(InvSeeBackpackMenu.BUTTON_NEXT_PAGE)
-        );
-        nextButton.setTooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.page.next")));
+        prevButton = Button.builder(Component.literal("<"), b -> sendButton(InvSeeBackpackMenu.BUTTON_PREV_PAGE))
+                .bounds(leftPos - 22, topPos + 40, 18, 16)
+                .tooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.page.prev")))
+                .build();
+        nextButton = Button.builder(Component.literal(">"), b -> sendButton(InvSeeBackpackMenu.BUTTON_NEXT_PAGE))
+                .bounds(leftPos + imageWidth + 4, topPos + 40, 18, 16)
+                .tooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.page.next")))
+                .build();
         addRenderableWidget(prevButton);
         addRenderableWidget(nextButton);
         updatePageButtons();
@@ -61,7 +53,7 @@ public final class InvSeeBackpackScreen extends InvSeeBaseScreen<InvSeeBackpackM
                     menu.page() + 1,
                     menu.maxPage() + 1
             );
-            graphics.drawString(font, page, 8, 6, InvSeeTheme.MUTED, false);
+            graphics.drawString(font, page, imageWidth - 8 - font.width(page), 6, VanillaContainerSkin.LABEL_COLOR, false);
         }
     }
 }

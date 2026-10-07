@@ -26,20 +26,8 @@ import net.minecraft.world.item.ItemStack;
 public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
     public static final int BUTTON_TOGGLE_EDIT = 100;
     public static final int BUTTON_TAB_BASE = 200;
-    public static final int GUI_WIDTH = 256;
-    public static final int VANILLA_INV_WIDTH = 176;
-    public static final int SLOT_ORIGIN = (GUI_WIDTH - VANILLA_INV_WIDTH) / 2 + 8;
-    public static final int[] SLOT_X = {
-            SLOT_ORIGIN,
-            SLOT_ORIGIN + 18,
-            SLOT_ORIGIN + 36,
-            SLOT_ORIGIN + 54,
-            SLOT_ORIGIN + 72,
-            SLOT_ORIGIN + 90,
-            SLOT_ORIGIN + 108,
-            SLOT_ORIGIN + 126,
-            SLOT_ORIGIN + 144
-    };
+    public static final int GUI_WIDTH = 176;
+    public static final int[] SLOT_X = {8, 26, 44, 62, 80, 98, 116, 134, 152};
 
     public static final int LOCK_NONE = 0;
     public static final int LOCK_CAN_EDIT = 1;
