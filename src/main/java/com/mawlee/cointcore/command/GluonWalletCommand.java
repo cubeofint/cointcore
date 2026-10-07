@@ -4,6 +4,7 @@ import com.mawlee.cointcore.lang.CointCoreMessages;
 import com.mawlee.cointcore.mute.MuteService;
 import com.mawlee.cointcore.permission.CointPermissionNodes;
 import com.mawlee.cointcore.permission.PermissionService;
+import com.mawlee.cointcore.shop.CurrencyMovement;
 import com.mawlee.cointcore.shop.CurrencyMovementService;
 import com.mawlee.cointcore.shop.CurrencyMovementType;
 import com.mawlee.cointcore.shop.GluonWallet;
@@ -52,7 +53,7 @@ public final class GluonWalletCommand {
                                         suggestPlayerNames(context.getSource()),
                                         builder
                                 ))
-                                .then(Commands.argument("amount", LongArgumentType.longArg(0L))
+                                .then(Commands.argument("amount", LongArgumentType.longArg())
                                         .executes(GluonWalletCommand::addBalance))));
     }
 
@@ -80,15 +81,18 @@ public final class GluonWalletCommand {
         long amount = LongArgumentType.getLong(context, "amount");
         long previous = GluonWallet.get(source.getServer(), target.id());
         long balance = GluonWallet.set(source.getServer(), target.id(), amount);
+        long delta = balance - previous;
         CurrencyMovementService.record(
                 source.getServer(),
                 operatorId(source),
                 source.getTextName(),
                 target.id(),
                 target.name(),
-                balance,
+                Math.abs(delta),
                 CurrencyMovementType.ADMIN_SET,
-                "previous=" + previous
+                "previous=" + previous,
+                List.of(new CurrencyMovement.Delta(target.id(), delta, balance)),
+                null
         );
         source.sendSuccess(
                 () -> CointCoreMessages.forSource(source, CointCoreMessages.GLUONS_SET, target.name(), balance),
@@ -101,16 +105,31 @@ public final class GluonWalletCommand {
         CommandSourceStack source = context.getSource();
         ResolvedTarget target = resolveTarget(source, StringArgumentType.getString(context, "player"));
         long amount = LongArgumentType.getLong(context, "amount");
-        long balance = GluonWallet.add(source.getServer(), target.id(), amount);
+        long balance;
+        if (amount > 0L) {
+            balance = GluonWallet.add(source.getServer(), target.id(), amount);
+        } else if (amount < 0L) {
+            long debit = amount == Long.MIN_VALUE ? Long.MAX_VALUE : -amount;
+            if (!GluonWallet.trySubtract(source.getServer(), target.id(), debit)) {
+                throw new SimpleCommandExceptionType(
+                        CointCoreMessages.forConsole(CointCoreMessages.GLUONS_PAY_NOT_ENOUGH, debit)
+                ).create();
+            }
+            balance = GluonWallet.get(source.getServer(), target.id());
+        } else {
+            balance = GluonWallet.get(source.getServer(), target.id());
+        }
         CurrencyMovementService.record(
                 source.getServer(),
                 operatorId(source),
                 source.getTextName(),
                 target.id(),
                 target.name(),
-                amount,
+                Math.abs(amount == Long.MIN_VALUE ? Long.MAX_VALUE : amount),
                 CurrencyMovementType.ADMIN_ADD,
-                "balance=" + balance
+                "balance=" + balance,
+                List.of(new CurrencyMovement.Delta(target.id(), amount == Long.MIN_VALUE ? -Long.MAX_VALUE : amount, balance)),
+                null
         );
         source.sendSuccess(
                 () -> CointCoreMessages.forSource(source, CointCoreMessages.GLUONS_ADD, amount, target.name(), balance),

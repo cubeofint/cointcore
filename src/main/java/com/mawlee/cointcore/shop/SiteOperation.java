@@ -10,8 +10,29 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-/** One queued site&lt;-&gt;server transfer. {@code toServer} credits the wallet, otherwise debits it. */
-public record SiteOperation(String id, UUID playerId, String playerName, long amount, boolean toServer) {
+/** One queued site operation against the in-game wallet. */
+public record SiteOperation(
+        String id,
+        UUID playerId,
+        String playerName,
+        long amount,
+        Kind kind,
+        String reason,
+        String source
+) {
+    public static final int REASON_MAX_LENGTH = 190;
+
+    public enum Kind {
+        TO_SERVER,
+        FROM_SERVER,
+        ADJUST
+    }
+
+    /** {@code true} for legacy {@code to_server} credits. */
+    public boolean toServer() {
+        return kind == Kind.TO_SERVER;
+    }
+
     public static UUID parseGameId(String raw) {
         if (raw == null) {
             return null;
@@ -48,17 +69,49 @@ public record SiteOperation(String id, UUID playerId, String playerName, long am
                 long amount = o.get("amount").getAsBigDecimal().longValueExact();
                 String direction = str(o, "direction");
                 String name = str(o, "name");
-                if (uuid == null || amount <= 0
-                        || !("to_server".equals(direction) || "from_server".equals(direction))) {
+                String reason = clipReason(str(o, "reason"));
+                String source = str(o, "source");
+                if (source == null) {
+                    source = "";
+                }
+                Kind kind = parseKind(direction);
+                if (uuid == null || kind == null || !validAmount(kind, amount, source)) {
                     malformed.accept(id);
                     continue;
                 }
-                result.add(new SiteOperation(id, uuid, name == null ? "" : name, amount, "to_server".equals(direction)));
+                result.add(new SiteOperation(id, uuid, name == null ? "" : name, amount, kind, reason, source));
             } catch (RuntimeException e) {
                 malformed.accept(id);
             }
         }
         return result;
+    }
+
+    static Kind parseKind(String direction) {
+        if ("to_server".equals(direction)) {
+            return Kind.TO_SERVER;
+        }
+        if ("from_server".equals(direction)) {
+            return Kind.FROM_SERVER;
+        }
+        if ("adjust".equals(direction)) {
+            return Kind.ADJUST;
+        }
+        return null;
+    }
+
+    static boolean validAmount(Kind kind, long amount, String source) {
+        return switch (kind) {
+            case TO_SERVER, FROM_SERVER -> amount > 0L;
+            case ADJUST -> amount != 0L || "reconcile".equals(source);
+        };
+    }
+
+    static String clipReason(String reason) {
+        if (reason == null) {
+            return "";
+        }
+        return reason.length() <= REASON_MAX_LENGTH ? reason : reason.substring(0, REASON_MAX_LENGTH);
     }
 
     private static String str(JsonObject o, String key) {

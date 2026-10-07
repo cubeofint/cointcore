@@ -27,7 +27,9 @@ final class CurrencyMovementOutbox {
                 draft.toName(),
                 draft.amount(),
                 draft.type(),
-                draft.note()
+                draft.note(),
+                draft.deltas(),
+                draft.siteOpId()
         );
         entries.addLast(stored);
         trimSentOverflow();

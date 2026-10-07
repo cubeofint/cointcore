@@ -11,6 +11,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 public final class CurrencyMovementService {
@@ -34,6 +35,21 @@ public final class CurrencyMovementService {
             CurrencyMovementType type,
             String note
     ) {
+        return record(server, fromId, fromName, toId, toName, amount, type, note, List.of(), null);
+    }
+
+    public static CurrencyMovement record(
+            MinecraftServer server,
+            UUID fromId,
+            String fromName,
+            UUID toId,
+            String toName,
+            long amount,
+            CurrencyMovementType type,
+            String note,
+            List<CurrencyMovement.Delta> deltas,
+            String siteOpId
+    ) {
         CurrencyMovement draft = new CurrencyMovement(
                 0L,
                 System.currentTimeMillis(),
@@ -43,7 +59,9 @@ public final class CurrencyMovementService {
                 toName,
                 Math.max(0L, amount),
                 type,
-                note
+                note,
+                deltas,
+                siteOpId
         );
         CurrencyMovement stored = CurrencyMovementSavedData.get(server).append(draft);
         try {

@@ -21,6 +21,7 @@
 - [Права доступа](#права-доступа)
 - [Конфигурация](#конфигурация)
 - [Tick watchdog](#tick-watchdog)
+- [Глюоны и торговец](#глюоны-и-торговец)
 - [Лаг-фиксы ATM10 8.2](#лаг-фиксы-atm10-82)
 - [Интеграции](#интеграции)
   - [Мост FTB Ranks → LuckPerms](#мост-ftb-ranks--luckperms)
@@ -399,9 +400,17 @@ Retention старых отчётов: хранятся **7 дней или 512 
 
 Иконка глюона: `src/main/resources/assets/cointcore/textures/gui/gluon.png` (16×16, в GUI рисуется 8×8). Сейчас там заглушка; финальный файл кладётся **ровно по этому пути** и пересобирается JAR. В интерфейсе иконка стоит рядом с балансом и рядом с ценами оффера вместо слова «глюонов».
 
-Движения валюты пишутся в overworld SavedData `cointcore_currency_movements` (`pay`, `trader_buy`, `trader_sell`, `admin_set`, `admin_add`). Это outbox для раздела сайта «движение валют». Переводы сайт↔сервер (`site_to_server` / `server_to_site`) тоже пишутся локально, но на сайт не отправляются.
+Движения валюты пишутся в overworld SavedData `cointcore_currency_movements` (`pay`, `trader_buy`, `trader_sell`, `admin_set`, `admin_add`). Это outbox для раздела сайта «движение валют». Переводы сайт↔сервер (`site_to_server` / `server_to_site` / `site_adjust`) тоже пишутся локально, но на сайт не отправляются. В JSON уходят `deltas` (uuid / signed delta / `balance_after` по каждому игроку) и `site_op_id` (id операции сайта или `null`).
 
-**AzLink / сайт:** у cointcore нет compile-зависимости на AzLink. Доставка идёт рефлексией в `com.azuriom.azlink.common.coins.CoinOperationsBridge.postMovements` (ветка AzLink-mods `feature/gluon-movements-delivery`). Включается флагом `site_movements_enabled` в `currency-movement.json` (по умолчанию `false`). Батчи, идемпотентность по id движения, retry с backoff 5 с…5 мин, курсор `site_sent_up_to` пишется только после `accepted_up_to` от сайта. Это журнал серверного кошелька: баланс сайта не меняется. Опциональный HTTP POST (`enabled` + `endpoint_url`) остаётся отдельным хуком и тоже не должен вызывать API абсолютного баланса.
+**AzLink / сайт:** у cointcore нет compile-зависимости на AzLink. Доставка идёт рефлексией в `com.azuriom.azlink.common.coins.CoinOperationsBridge.postMovements` (ветка AzLink-mods `feature/gluon-movements-delivery`). Включается флагом `site_movements_enabled` в `currency-movement.json` (по умолчанию `false`). Батчи, идемпотентность по id движения, retry с backoff 5 с…5 мин, курсор `site_sent_up_to` пишется только после `accepted_up_to` от сайта. Это журнал серверного кошелька: баланс сайта не меняется абсолютной перезаписью. Опциональный HTTP POST (`enabled` + `endpoint_url`) остаётся отдельным хуком и тоже не должен вызывать API абсолютного баланса.
+
+### Авторитет сайта и очередь adjust
+
+Авторитетный баланс — **per-server баланс на сайте** (`user_server_balances` / mc-azlink). Игровой кошелёк cointcore сходится к нему через очередь `GET /api/azlink/coins/operations`. Игровые изменения (`/pay`, торговец, `/cointcore gluons`) идут на сайт как movements с `deltas`. Обе стороны меняют сумму только операциями и дельтами, без абсолютного overwrite.
+
+Направление `adjust`: signed `amount` (>0 кредит игрового кошелька, <0 дебет, `0` только `source=reconcile` — зонд без изменения, ack с `balance_after`). `adjust` не трогает глобальный кошелёк сайта. `to_server` / `from_server` без изменений. Ack: `applied` | `failed` плюс `balance_after`; повтор той же `id` отвечает тем же статусом (локальный ledger). Недостаточно средств на дебете — `insufficient_server_balance`, кошелёк не меняется.
+
+Дрейф: если игра сообщила `balance_after`, нет pending ops, и баланс сайта ≠ `balance_after`, сайт ставит один corrective `adjust` (`source=reconcile`, amount = сайт − игра). Нулевой probe с тем же source позволяет узнать игровой баланс.
 
 ## Лаг-фиксы ATM10 8.2
 

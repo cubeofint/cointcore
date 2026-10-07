@@ -72,6 +72,7 @@ public final class TraderTrades {
         }
         TraderInventory.giveOrFail(player.getInventory(), goods);
         TraderPriceHistorySavedData.get(player.server).record(offer.id(), offer.buyPrice());
+        long balanceAfter = GluonWallet.get(player);
         CurrencyMovementService.record(
                 player.server,
                 player.getUUID(),
@@ -80,7 +81,9 @@ public final class TraderTrades {
                 "trader",
                 totalCost,
                 CurrencyMovementType.TRADER_BUY,
-                offer.id()
+                offer.id(),
+                List.of(new CurrencyMovement.Delta(player.getUUID(), -totalCost, balanceAfter)),
+                null
         );
         menu.refreshBalance(GluonWallet.get(player));
         int totalItems = offer.count() * units;
@@ -126,6 +129,7 @@ public final class TraderTrades {
         long totalFee = TraderDealMath.cost(offer.sellFee(), units);
         GluonWallet.add(player.server, player.getUUID(), totalNet);
         TraderPriceHistorySavedData.get(player.server).record(offer.id(), offer.buyPrice());
+        long balanceAfter = GluonWallet.get(player);
         CurrencyMovementService.record(
                 player.server,
                 null,
@@ -134,7 +138,9 @@ public final class TraderTrades {
                 player.getGameProfile().getName(),
                 totalNet,
                 CurrencyMovementType.TRADER_SELL,
-                offer.id()
+                offer.id(),
+                List.of(new CurrencyMovement.Delta(player.getUUID(), totalNet, balanceAfter)),
+                null
         );
         menu.refreshBalance(GluonWallet.get(player));
         succeed(

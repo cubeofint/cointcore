@@ -32,6 +32,16 @@ final class SiteMovementPayload {
             o.addProperty("to_id", uuid(m.toId()));
             o.addProperty("to_name", m.toName());
             o.addProperty("note", m.note());
+            JsonArray deltas = new JsonArray();
+            for (CurrencyMovement.Delta delta : m.deltas()) {
+                JsonObject row = new JsonObject();
+                row.addProperty("uuid", uuid(delta.uuid()));
+                row.addProperty("delta", delta.delta());
+                row.addProperty("balance_after", delta.balanceAfter());
+                deltas.add(row);
+            }
+            o.add("deltas", deltas);
+            o.addProperty("site_op_id", m.siteOpId());
             array.add(o);
         }
         JsonObject root = new JsonObject();
