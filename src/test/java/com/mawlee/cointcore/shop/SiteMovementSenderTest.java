@@ -15,7 +15,8 @@ class SiteMovementSenderTest {
     void serializesBatchWithoutSiteBalanceFields() {
         UUID from = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
         CurrencyMovement pay = new CurrencyMovement(
-                12L, 1_700_000_000_000L, from, "Alice", null, null, 25L, CurrencyMovementType.PAY, "tip");
+                12L, 1_700_000_000_000L, from, "Alice", null, null, 25L, CurrencyMovementType.PAY, "tip",
+                List.of(new CurrencyMovement.Delta(from, -25L, 10L)), null);
         String json = SiteMovementPayload.toJson(List.of(pay));
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
         JsonObject row = root.getAsJsonArray("movements").get(0).getAsJsonObject();
@@ -25,6 +26,8 @@ class SiteMovementSenderTest {
         assertEquals(from.toString(), row.get("from_id").getAsString());
         assertTrue(row.get("to_id").isJsonNull());
         assertEquals("tip", row.get("note").getAsString());
-        assertTrue(!json.contains("balance") && !json.contains("set_balance") && !json.contains("absolute"));
+        assertEquals(-25L, row.getAsJsonArray("deltas").get(0).getAsJsonObject().get("delta").getAsLong());
+        assertTrue(row.get("site_op_id").isJsonNull());
+        assertTrue(!json.contains("set_balance") && !json.contains("absolute"));
     }
 }

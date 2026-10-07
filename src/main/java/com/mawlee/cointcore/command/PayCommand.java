@@ -4,6 +4,7 @@ import com.mawlee.cointcore.lang.CointCoreMessages;
 import com.mawlee.cointcore.mute.MuteService;
 import com.mawlee.cointcore.permission.CointPermissionNodes;
 import com.mawlee.cointcore.permission.PermissionService;
+import com.mawlee.cointcore.shop.CurrencyMovement;
 import com.mawlee.cointcore.shop.CurrencyMovementService;
 import com.mawlee.cointcore.shop.CurrencyMovementType;
 import com.mawlee.cointcore.shop.GluonTransfer;
@@ -76,6 +77,8 @@ public final class PayCommand {
                     CointCoreMessages.forPlayer(sender, CointCoreMessages.GLUONS_PAY_NOT_ENOUGH, amount)
             ).create();
         }
+        long payerAfter = GluonWallet.get(sender.server, sender.getUUID());
+        long payeeAfter = GluonWallet.get(sender.server, targetId.get());
         CurrencyMovementService.record(
                 sender.server,
                 sender.getUUID(),
@@ -84,6 +87,11 @@ public final class PayCommand {
                 resolvedName,
                 amount,
                 CurrencyMovementType.PAY,
+                null,
+                List.of(
+                        new CurrencyMovement.Delta(sender.getUUID(), -amount, payerAfter),
+                        new CurrencyMovement.Delta(targetId.get(), amount, payeeAfter)
+                ),
                 null
         );
         context.getSource().sendSuccess(

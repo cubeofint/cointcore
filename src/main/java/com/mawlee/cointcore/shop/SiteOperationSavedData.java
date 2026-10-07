@@ -13,13 +13,14 @@ import java.util.Map;
 
 /**
  * Remembers site operation ids already handled on this server, so a lost ack or a re-delivered
- * operation never changes the wallet twice. Value is the final status ("applied" / "failed").
+ * operation never changes the wallet twice. Value is the final status ("applied" / "failed")
+ * and the in-game {@code balance_after} used for idempotent acks.
  */
 public final class SiteOperationSavedData extends SavedData {
     private static final String DATA_ID = CointCore.MOD_ID + "_site_operations";
     static final int MAX_ENTRIES = 50_000;
 
-    private final LinkedHashMap<String, String> handled = new LinkedHashMap<>();
+    private final LinkedHashMap<String, Outcome> handled = new LinkedHashMap<>();
 
     private SiteOperationSavedData() {
     }
@@ -30,11 +31,25 @@ public final class SiteOperationSavedData extends SavedData {
     }
 
     public synchronized String status(String operationId) {
+        Outcome outcome = handled.get(operationId);
+        return outcome == null ? null : outcome.status();
+    }
+
+    public synchronized Long balanceAfter(String operationId) {
+        Outcome outcome = handled.get(operationId);
+        return outcome == null ? null : outcome.balanceAfter();
+    }
+
+    public synchronized Outcome outcome(String operationId) {
         return handled.get(operationId);
     }
 
     public synchronized void mark(String operationId, String status) {
-        handled.put(operationId, status);
+        mark(operationId, status, null);
+    }
+
+    public synchronized void mark(String operationId, String status, Long balanceAfter) {
+        handled.put(operationId, new Outcome(status, balanceAfter));
         while (handled.size() > MAX_ENTRIES) {
             handled.remove(handled.keySet().iterator().next());
         }
@@ -46,7 +61,8 @@ public final class SiteOperationSavedData extends SavedData {
         ListTag list = tag.getList("handled", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) {
             CompoundTag entry = list.getCompound(i);
-            data.handled.put(entry.getString("id"), entry.getString("status"));
+            Long balance = entry.contains("balance_after") ? entry.getLong("balance_after") : null;
+            data.handled.put(entry.getString("id"), new Outcome(entry.getString("status"), balance));
         }
         return data;
     }
@@ -54,13 +70,19 @@ public final class SiteOperationSavedData extends SavedData {
     @Override
     public synchronized CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
         ListTag list = new ListTag();
-        for (Map.Entry<String, String> e : handled.entrySet()) {
+        for (Map.Entry<String, Outcome> e : handled.entrySet()) {
             CompoundTag entry = new CompoundTag();
             entry.putString("id", e.getKey());
-            entry.putString("status", e.getValue());
+            entry.putString("status", e.getValue().status());
+            if (e.getValue().balanceAfter() != null) {
+                entry.putLong("balance_after", e.getValue().balanceAfter());
+            }
             list.add(entry);
         }
         tag.put("handled", list);
         return tag;
+    }
+
+    public record Outcome(String status, Long balanceAfter) {
     }
 }

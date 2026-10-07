@@ -29,5 +29,6 @@ class CurrencyMovementTypeTest {
         assertTrue(CurrencyMovementType.ADMIN_ADD.isServerWalletLog());
         assertFalse(CurrencyMovementType.SITE_TO_SERVER.isServerWalletLog());
         assertFalse(CurrencyMovementType.SERVER_TO_SITE.isServerWalletLog());
+        assertFalse(CurrencyMovementType.SITE_ADJUST.isServerWalletLog());
     }
 }

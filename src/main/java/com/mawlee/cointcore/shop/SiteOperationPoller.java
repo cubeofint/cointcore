@@ -11,7 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Pulls queued site&lt;-&gt;server gluon transfers through AzLink and applies them to the server wallet.
+ * Pulls queued site operations through AzLink and applies them to the server wallet.
  * Works for offline players: the wallet is keyed by UUID, no login is required.
  * Each operation id is applied at most once (local {@link SiteOperationSavedData} + site-side ack idempotency).
  */
@@ -23,6 +23,7 @@ public final class SiteOperationPoller {
     private static Method isAvailable;
     private static Method fetchPending;
     private static Method ack;
+    private static Method ackWithBalance;
     private static boolean bridgeResolved;
 
     private SiteOperationPoller() {
@@ -62,8 +63,8 @@ public final class SiteOperationPoller {
                 server.execute(() -> {
                     try {
                         for (SiteOperation op : ops) {
-                            String status = apply(server, op);
-                            sendAck(op.id(), status, "failed".equals(status) ? "insufficient_server_balance" : null);
+                            SiteOperationApply.Decision decision = apply(server, op);
+                            sendAck(op.id(), decision.status(), decision.error(), decision.balanceAfter());
                         }
                     } finally {
                         IN_FLIGHT.set(false);
@@ -76,39 +77,77 @@ public final class SiteOperationPoller {
         }
     }
 
-    /** Applies one operation on the server thread. Returns "applied" or "failed". Package-private for tests. */
-    static String apply(MinecraftServer server, SiteOperation op) {
+    /** Applies one operation on the server thread. Package-private for tests. */
+    static SiteOperationApply.Decision apply(MinecraftServer server, SiteOperation op) {
         SiteOperationSavedData handled = SiteOperationSavedData.get(server);
-        String previous = handled.status(op.id());
+        SiteOperationSavedData.Outcome previous = handled.outcome(op.id());
+        long current = GluonWallet.get(server, op.playerId());
         if (previous != null) {
-            return previous;
+            return SiteOperationApply.replay(previous.status(), previous.balanceAfter(), current);
         }
-        String status;
-        if (op.toServer()) {
-            GluonWallet.add(server, op.playerId(), op.amount());
-            status = "applied";
-        } else {
-            status = GluonWallet.trySubtract(server, op.playerId(), op.amount()) ? "applied" : "failed";
+        SiteOperationApply.Decision decision = SiteOperationApply.decide(op.kind(), op.amount(), current);
+        if (decision.mutated()) {
+            if (decision.signedDelta() > 0L) {
+                GluonWallet.add(server, op.playerId(), decision.signedDelta());
+            } else if (decision.signedDelta() < 0L) {
+                GluonWallet.trySubtract(server, op.playerId(), -decision.signedDelta());
+            }
         }
-        handled.mark(op.id(), status);
-        if ("applied".equals(status)) {
-            CurrencyMovementService.record(server,
-                    op.toServer() ? null : op.playerId(), op.toServer() ? "site" : op.playerName(),
-                    op.toServer() ? op.playerId() : null, op.toServer() ? op.playerName() : "site",
-                    op.amount(),
-                    op.toServer() ? CurrencyMovementType.SITE_TO_SERVER : CurrencyMovementType.SERVER_TO_SITE,
-                    "site-op:" + op.id());
+        long balanceAfter = GluonWallet.get(server, op.playerId());
+        SiteOperationApply.Decision stored = new SiteOperationApply.Decision(
+                decision.status(),
+                decision.error(),
+                balanceAfter,
+                decision.mutated(),
+                decision.movementAmount(),
+                decision.signedDelta()
+        );
+        handled.mark(op.id(), stored.status(), stored.balanceAfter());
+        if (SiteOperationApply.APPLIED.equals(stored.status())) {
+            recordMovement(server, op, stored);
         }
-        LOGGER.info("Site gluon operation {} {} {} for {} -> {}", op.id(), op.toServer() ? "+" : "-",
-                op.amount(), op.playerId(), status);
-        return status;
+        LOGGER.info("Site gluon operation {} {} {} ({}/{}) for {} -> {} balance_after={}",
+                op.id(), describeSign(op), op.amount(), op.kind(), op.source(), op.playerId(), stored.status(),
+                stored.balanceAfter());
+        return stored;
+    }
+
+    private static void recordMovement(MinecraftServer server, SiteOperation op, SiteOperationApply.Decision decision) {
+        CurrencyMovementType type = switch (op.kind()) {
+            case TO_SERVER -> CurrencyMovementType.SITE_TO_SERVER;
+            case FROM_SERVER -> CurrencyMovementType.SERVER_TO_SITE;
+            case ADJUST -> CurrencyMovementType.SITE_ADJUST;
+        };
+        boolean creditPlayer = decision.signedDelta() >= 0L && op.kind() != SiteOperation.Kind.FROM_SERVER;
+        List<CurrencyMovement.Delta> deltas = List.of(new CurrencyMovement.Delta(
+                op.playerId(), decision.signedDelta(), decision.balanceAfter()));
+        CurrencyMovementService.record(
+                server,
+                creditPlayer ? null : op.playerId(),
+                creditPlayer ? "site" : op.playerName(),
+                creditPlayer ? op.playerId() : null,
+                creditPlayer ? op.playerName() : "site",
+                decision.movementAmount(),
+                type,
+                "site-op:" + op.id(),
+                deltas,
+                op.id()
+        );
+    }
+
+    private static String describeSign(SiteOperation op) {
+        return switch (op.kind()) {
+            case TO_SERVER -> "+";
+            case FROM_SERVER -> "-";
+            case ADJUST -> op.amount() >= 0L ? "+" : "";
+        };
     }
 
     static List<SiteOperation> parse(String json) {
         try {
             return SiteOperation.parseAll(json, malformedId -> {
                 LOGGER.warn("Skipping malformed site operation {}", malformedId);
-                sendAck(malformedId, "failed", "malformed_operation");
+                sendAck(malformedId, "failed", "malformed_operation", null);
             });
         } catch (RuntimeException e) {
             LOGGER.warn("Unable to parse site operations response", e);
@@ -116,10 +155,14 @@ public final class SiteOperationPoller {
         }
     }
 
-    private static void sendAck(String id, String status, String error) {
+    private static void sendAck(String id, String status, String error, Long balanceAfter) {
         try {
+            boolean useBalance = ackWithBalance != null
+                    && (balanceAfter != null || ackWithBalance.getParameterTypes()[3] != long.class);
             @SuppressWarnings("unchecked")
-            CompletableFuture<String> f = (CompletableFuture<String>) ack.invoke(null, id, status, error);
+            CompletableFuture<String> f = useBalance
+                    ? (CompletableFuture<String>) ackWithBalance.invoke(null, id, status, error, balanceAfter)
+                    : (CompletableFuture<String>) ack.invoke(null, id, status, error);
             f.exceptionally(e -> {
                 // Op stays pending on the site and is re-delivered; local dedup keeps it exactly-once.
                 LOGGER.debug("Ack for site operation {} failed: {}", id, e.toString());
@@ -140,11 +183,24 @@ public final class SiteOperationPoller {
             isAvailable = c.getMethod("isAvailable");
             fetchPending = c.getMethod("fetchPending", int.class);
             ack = c.getMethod("ack", String.class, String.class, String.class);
+            ackWithBalance = resolveAckWithBalance(c);
             LOGGER.info("AzLink coin operation bridge found; site gluon queue polling active");
             return true;
         } catch (ReflectiveOperationException | LinkageError e) {
             LOGGER.warn("Site gluon queue enabled but AzLink {} not found; polling disabled", BRIDGE);
             return false;
+        }
+    }
+
+    private static Method resolveAckWithBalance(Class<?> bridge) {
+        try {
+            return bridge.getMethod("ackWithBalance", String.class, String.class, String.class, Long.class);
+        } catch (NoSuchMethodException ignored) {
+        }
+        try {
+            return bridge.getMethod("ackWithBalance", String.class, String.class, String.class, long.class);
+        } catch (NoSuchMethodException ignored) {
+            return null;
         }
     }
 }
