@@ -78,9 +78,10 @@ public final class CurrencyMovementConfig {
     }
 
     public record Settings(boolean enabled, String endpointUrl, String authorizationHeader,
-                           boolean siteQueueEnabled, int siteQueuePollSeconds) {
+                           boolean siteQueueEnabled, int siteQueuePollSeconds,
+                           boolean siteMovementsEnabled, int siteMovementsBatch) {
         static Settings disabled() {
-            return new Settings(false, "", "", false, 5);
+            return new Settings(false, "", "", false, 5, false, 100);
         }
 
         static Settings from(FileData data) {
@@ -92,7 +93,9 @@ public final class CurrencyMovementConfig {
                     data.endpointUrl != null ? data.endpointUrl.trim() : "",
                     data.authorization != null ? data.authorization.trim() : "",
                     data.siteQueueEnabled,
-                    Math.max(1, Math.min(300, data.siteQueuePollSeconds <= 0 ? 5 : data.siteQueuePollSeconds))
+                    Math.max(1, Math.min(300, data.siteQueuePollSeconds <= 0 ? 5 : data.siteQueuePollSeconds)),
+                    data.siteMovementsEnabled,
+                    Math.max(1, Math.min(200, data.siteMovementsBatch <= 0 ? 100 : data.siteMovementsBatch))
             );
         }
     }
@@ -107,6 +110,11 @@ public final class CurrencyMovementConfig {
         boolean siteQueueEnabled;
         @SerializedName("site_queue_poll_seconds")
         int siteQueuePollSeconds = 5;
+        /** Send the movement outbox to the site through AzLink. Off by default. */
+        @SerializedName("site_movements_enabled")
+        boolean siteMovementsEnabled;
+        @SerializedName("site_movements_batch")
+        int siteMovementsBatch = 100;
 
         static FileData defaults() {
             FileData data = new FileData();
@@ -115,6 +123,8 @@ public final class CurrencyMovementConfig {
             data.authorization = "";
             data.siteQueueEnabled = false;
             data.siteQueuePollSeconds = 5;
+            data.siteMovementsEnabled = false;
+            data.siteMovementsBatch = 100;
             return data;
         }
     }
