@@ -56,6 +56,9 @@ public class CointCore {
         NeoForge.EVENT_BUS.addListener(CointCoreEvents::onTabListNameFormat);
         NeoForge.EVENT_BUS.addListener(ArsGlyphEvents::onTagsUpdated);
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) ->
-                com.mawlee.cointcore.shop.SiteOperationPoller.tick(event.getServer()));
+                {
+                    com.mawlee.cointcore.shop.SiteOperationPoller.tick(event.getServer());
+                    com.mawlee.cointcore.shop.SiteMovementSender.tick(event.getServer());
+                });
     }
 }
