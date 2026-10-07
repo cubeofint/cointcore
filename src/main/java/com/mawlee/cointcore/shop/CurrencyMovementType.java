@@ -5,7 +5,9 @@ public enum CurrencyMovementType {
     TRADER_BUY("trader_buy"),
     TRADER_SELL("trader_sell"),
     ADMIN_SET("admin_set"),
-    ADMIN_ADD("admin_add");
+    ADMIN_ADD("admin_add"),
+    SITE_TO_SERVER("site_to_server"),
+    SERVER_TO_SITE("server_to_site");
 
     private final String id;
 

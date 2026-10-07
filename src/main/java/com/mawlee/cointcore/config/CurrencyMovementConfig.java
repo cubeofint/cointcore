@@ -77,9 +77,10 @@ public final class CurrencyMovementConfig {
         return FMLPaths.CONFIGDIR.get().resolve(CointCore.MOD_ID).resolve("currency-movement.json");
     }
 
-    public record Settings(boolean enabled, String endpointUrl, String authorizationHeader) {
+    public record Settings(boolean enabled, String endpointUrl, String authorizationHeader,
+                           boolean siteQueueEnabled, int siteQueuePollSeconds) {
         static Settings disabled() {
-            return new Settings(false, "", "");
+            return new Settings(false, "", "", false, 5);
         }
 
         static Settings from(FileData data) {
@@ -89,7 +90,9 @@ public final class CurrencyMovementConfig {
             return new Settings(
                     data.enabled,
                     data.endpointUrl != null ? data.endpointUrl.trim() : "",
-                    data.authorization != null ? data.authorization.trim() : ""
+                    data.authorization != null ? data.authorization.trim() : "",
+                    data.siteQueueEnabled,
+                    Math.max(1, Math.min(300, data.siteQueuePollSeconds <= 0 ? 5 : data.siteQueuePollSeconds))
             );
         }
     }
@@ -99,12 +102,19 @@ public final class CurrencyMovementConfig {
         @SerializedName("endpoint_url")
         String endpointUrl;
         String authorization;
+        /** Pull site&lt;-&gt;server transfers through AzLink. Off by default. */
+        @SerializedName("site_queue_enabled")
+        boolean siteQueueEnabled;
+        @SerializedName("site_queue_poll_seconds")
+        int siteQueuePollSeconds = 5;
 
         static FileData defaults() {
             FileData data = new FileData();
             data.enabled = false;
             data.endpointUrl = "";
             data.authorization = "";
+            data.siteQueueEnabled = false;
+            data.siteQueuePollSeconds = 5;
             return data;
         }
     }
