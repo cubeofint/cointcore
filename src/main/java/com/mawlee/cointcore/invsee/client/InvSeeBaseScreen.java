@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.invsee.client;
 
 import com.mawlee.cointcore.client.VanillaContainerSkin;
+import com.mawlee.cointcore.invsee.InvSeeChromeLayout;
 import com.mawlee.cointcore.invsee.InvSeeOpenNestedPayload;
 import com.mawlee.cointcore.invsee.InvSeeTab;
 import com.mawlee.cointcore.invsee.menu.InvSeeBaseMenu;
@@ -41,7 +42,12 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
 
         if (showEditToggle()) {
             editButton = Button.builder(editLabel(), button -> sendButton(InvSeeBaseMenu.BUTTON_TOGGLE_EDIT))
-                    .bounds(leftPos + imageWidth - 42, topPos + 4, 36, 16)
+                    .bounds(
+                            InvSeeChromeLayout.editButtonX(leftPos, imageWidth),
+                            InvSeeChromeLayout.editButtonY(topPos),
+                            InvSeeChromeLayout.EDIT_BUTTON_WIDTH,
+                            InvSeeChromeLayout.EDIT_BUTTON_HEIGHT
+                    )
                     .tooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.mode.toggle")))
                     .build();
             addRenderableWidget(editButton);
@@ -85,6 +91,12 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    void resetHoverAfterTabSwitch(double mouseX, double mouseY) {
+        hoveredSlot = null;
+        hoveredTab = null;
+        mouseMoved(mouseX, mouseY);
     }
 
     protected void initExtraWidgets() {
@@ -152,7 +164,8 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, title, titleLabelX, titleLabelY, VanillaContainerSkin.LABEL_COLOR, false);
+        String clippedTitle = font.plainSubstrByWidth(title.getString(), InvSeeChromeLayout.titleMaxWidth(imageWidth));
+        graphics.drawString(font, clippedTitle, titleLabelX, titleLabelY, VanillaContainerSkin.LABEL_COLOR, false);
         graphics.drawString(
                 font,
                 Component.translatable("gui.cointcore.invsee.viewer_inventory"),

@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.invsee.client;
 
 import com.mawlee.cointcore.client.VanillaContainerSkin;
+import com.mawlee.cointcore.invsee.InvSeeChromeLayout;
 import com.mawlee.cointcore.invsee.menu.InvSeePlayerMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -49,7 +50,7 @@ public final class InvSeePlayerScreen extends InvSeeBaseScreen<InvSeePlayerMenu>
         Component line = Component.translatable("gui.cointcore.invsee.target_line", name, status.getString());
         graphics.drawString(
                 font,
-                font.plainSubstrByWidth(line.getString(), 110),
+                font.plainSubstrByWidth(line.getString(), InvSeeChromeLayout.titleMaxWidth(imageWidth)),
                 8,
                 6,
                 VanillaContainerSkin.LABEL_COLOR,

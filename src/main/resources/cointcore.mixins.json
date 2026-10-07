@@ -7,7 +7,9 @@
   "mixins": [],
   "client": [
     "client.EntitySeeInvisibleMixin",
-    "client.LivingEntitySeeInvisibleParticlesMixin"
+    "client.LivingEntitySeeInvisibleParticlesMixin",
+    "client.MinecraftInvSeeCursorMixin",
+    "client.accessor.MouseHandlerAccessor"
   ],
   "server": [
     "MinecraftServerMixin",
