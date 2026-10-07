@@ -5,7 +5,9 @@ public enum CurrencyMovementType {
     TRADER_BUY("trader_buy"),
     TRADER_SELL("trader_sell"),
     ADMIN_SET("admin_set"),
-    ADMIN_ADD("admin_add");
+    ADMIN_ADD("admin_add"),
+    SITE_TO_SERVER("site_to_server"),
+    SERVER_TO_SITE("server_to_site");
 
     private final String id;
 
@@ -27,5 +29,16 @@ public enum CurrencyMovementType {
             }
         }
         return PAY;
+    }
+
+    /**
+     * Server-wallet events that the site stores as a log only (must not change the site balance).
+     * Site queue transfers stay local so they are not posted back through AzLink.
+     */
+    public boolean isServerWalletLog() {
+        return switch (this) {
+            case PAY, TRADER_BUY, TRADER_SELL, ADMIN_SET, ADMIN_ADD -> true;
+            case SITE_TO_SERVER, SERVER_TO_SITE -> false;
+        };
     }
 }

@@ -55,47 +55,12 @@ public final class CurrencyMovementService {
     }
 
     private static CurrencyMovementSink createSink(CurrencyMovementConfig.Settings settings) {
-        CurrencyMovementSink azLink = AzLinkCurrencyMovementSink.tryCreate();
-        CurrencyMovementSink http = settings.enabled() && !settings.endpointUrl().isBlank()
-                ? new HttpCurrencyMovementSink(settings)
-                : CurrencyMovementSink.NOOP;
-        return movement -> {
-            azLink.enqueue(movement);
-            http.enqueue(movement);
-        };
-    }
-
-    /**
-     * Soft AzLink adapter. No compile dependency. Never sets an absolute site balance.
-     * Looks for an append/queue API; if none is found, stays a no-op.
-     */
-    static final class AzLinkCurrencyMovementSink implements CurrencyMovementSink {
-        private AzLinkCurrencyMovementSink() {
+        // Site delivery of the outbox is SiteMovementSender (AzLink postMovements, config-gated).
+        // This optional HTTP sink is a leftover debug hook and must not set an absolute site balance.
+        if (settings.enabled() && !settings.endpointUrl().isBlank()) {
+            return new HttpCurrencyMovementSink(settings);
         }
-
-        static CurrencyMovementSink tryCreate() {
-            String[] candidates = {
-                    "com.azlink.api.AzLink",
-                    "net.azlink.AzLink",
-                    "com.azuriom.azlink.common.AzLinkApi"
-            };
-            for (String className : candidates) {
-                try {
-                    Class.forName(className, false, CurrencyMovementService.class.getClassLoader());
-                    LOGGER.info(
-                            "AzLink class {} is present, but cointcore has no known append-only movement API. "
-                                    + "Leaving the durable outbox local. See README (currency movements / AzLink).",
-                            className
-                    );
-                } catch (ClassNotFoundException ignored) {
-                }
-            }
-            return CurrencyMovementSink.NOOP;
-        }
-
-        @Override
-        public void enqueue(CurrencyMovement movement) {
-        }
+        return CurrencyMovementSink.NOOP;
     }
 
     static final class HttpCurrencyMovementSink implements CurrencyMovementSink {

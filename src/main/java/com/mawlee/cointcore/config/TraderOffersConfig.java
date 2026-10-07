@@ -3,6 +3,7 @@ package com.mawlee.cointcore.config;
 import com.google.gson.JsonElement;
 import com.google.gson.annotations.SerializedName;
 import com.mawlee.cointcore.CointCore;
+import com.mawlee.cointcore.shop.OfferBuyPriceHistory;
 import com.mawlee.cointcore.shop.TraderOffer;
 import com.mojang.logging.LogUtils;
 import com.mojang.serialization.JsonOps;
@@ -38,6 +39,18 @@ public final class TraderOffersConfig {
 
     public static double commissionPercent() {
         return loaded.commissionPercent;
+    }
+
+    public static int priceHistoryCapacity() {
+        return loaded.priceHistoryCapacity;
+    }
+
+    public static int priceHistorySampleIntervalTicks() {
+        return loaded.priceHistorySampleIntervalTicks;
+    }
+
+    public static double priceHistoryAverageBandPercent() {
+        return loaded.priceHistoryAverageBandPercent;
     }
 
     public static List<TraderOffer> offers() {
@@ -98,7 +111,16 @@ public final class TraderOffersConfig {
                 toOffer(entry, percent).ifPresent(offers::add);
             }
         }
-        return new Loaded(percent, List.copyOf(offers));
+        int historyCapacity = data.priceHistoryCapacity != null
+                ? Math.max(1, Math.min(256, data.priceHistoryCapacity))
+                : OfferBuyPriceHistory.DEFAULT_CAPACITY;
+        int sampleTicks = data.priceHistorySampleIntervalTicks != null
+                ? Math.max(1, data.priceHistorySampleIntervalTicks)
+                : 1200;
+        double band = data.priceHistoryAverageBandPercent != null && !Double.isNaN(data.priceHistoryAverageBandPercent)
+                ? Math.max(0.0d, data.priceHistoryAverageBandPercent)
+                : 5.0d;
+        return new Loaded(percent, historyCapacity, sampleTicks, band, List.copyOf(offers));
     }
 
     private static Optional<TraderOffer> toOffer(OfferData entry, double commissionPercent) {
@@ -136,20 +158,35 @@ public final class TraderOffersConfig {
         return FMLPaths.CONFIGDIR.get().resolve(CointCore.MOD_ID).resolve("trader_offers.json");
     }
 
-    record Loaded(double commissionPercent, List<TraderOffer> offers) {
+    record Loaded(
+            double commissionPercent,
+            int priceHistoryCapacity,
+            int priceHistorySampleIntervalTicks,
+            double priceHistoryAverageBandPercent,
+            List<TraderOffer> offers
+    ) {
         static Loaded empty() {
-            return new Loaded(2.5d, List.of());
+            return new Loaded(2.5d, OfferBuyPriceHistory.DEFAULT_CAPACITY, 1200, 5.0d, List.of());
         }
     }
 
     static final class FileData {
         @SerializedName("commission_percent")
         Double commissionPercent;
+        @SerializedName("price_history_capacity")
+        Integer priceHistoryCapacity;
+        @SerializedName("price_history_sample_interval_ticks")
+        Integer priceHistorySampleIntervalTicks;
+        @SerializedName("price_history_average_band_percent")
+        Double priceHistoryAverageBandPercent;
         List<OfferData> offers;
 
         static FileData defaults() {
             FileData data = new FileData();
             data.commissionPercent = 2.5d;
+            data.priceHistoryCapacity = OfferBuyPriceHistory.DEFAULT_CAPACITY;
+            data.priceHistorySampleIntervalTicks = 1200;
+            data.priceHistoryAverageBandPercent = 5.0d;
             data.offers = List.of(
                     offer("diamond", "minecraft:diamond", 1, 100L, 80L),
                     offer("emerald", "minecraft:emerald", 1, 80L, 64L),

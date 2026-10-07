@@ -377,8 +377,8 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/admin-chat.json` | Формат админ-чата |
 | `config/cointcore/spark-profiler.json` | Автопрофилирование Spark + retention профилей |
 | `config/cointcore/tick-watchdog.json` | Tick watchdog (координаты лагов, семплы методов) |
-| `config/cointcore/trader_offers.json` | Офферы торговца и `commission_percent` |
-| `config/cointcore/currency-movement.json` | HTTP-форвардер движений валюты (выключен по умолчанию) |
+| `config/cointcore/trader_offers.json` | Офферы торговца, `commission_percent`, кольцо истории цен |
+| `config/cointcore/currency-movement.json` | Outbox движений валюты: опциональный HTTP и `site_movements_enabled` (AzLink, выключено по умолчанию) |
 | `config/cointcore/afk.json` | AFK: пометка и кик |
 | `config/cointcore/ftbranks-luckperms-bridge.json` | Мост FTB Ranks → LuckPerms (`ftbranksLuckPermsBridge`, по умолчанию `false`) |
 | `config/cointcore/me-unique-filter.json` | Уникальные фильтры ME (AE2) |
@@ -393,11 +393,15 @@ Retention старых отчётов: хранятся **7 дней или 512 
 
 Кошелёк: overworld SavedData `cointcore_gluon_wallets`. `/pay` и `/transfer` атомарны, цель может быть офлайн (тот же resolve, что у mute). `/cointcore gluons` только для админов.
 
-Торговец: блок терминала, офферы из `config/cointcore/trader_offers.json`. Комиссия `Commission.of` с округлением вверх. **Покупатель** платит `цена + комиссия`. **Продавец** получает `цена − комиссия`. ЛКМ по слоту оффера — купить, ПКМ — продать. Динамический рынок — следующая фаза.
+Торговец: блок терминала, офферы из `config/cointcore/trader_offers.json`. Комиссия `Commission.of` с округлением вверх. **Покупатель** платит `цена + комиссия`. **Продавец** получает `цена − комиссия`. GUI: ванильный контейнер, список офферов, кнопки купить/продать (Shift — стопка). Сделки только сервером по custom payload.
 
-Движения валюты пишутся в overworld SavedData `cointcore_currency_movements` (`pay`, `trader_buy`, `trader_sell`, `admin_set`, `admin_add`). Это outbox для раздела сайта «движение валют».
+История цен покупки пишется в overworld SavedData `cointcore_trader_price_history`: семпл на каждую сделку и периодически (`price_history_sample_interval_ticks`, по умолчанию 1200 = 60 с). Кольцо до `price_history_capacity` точек (48). Клиент получает историю вместе с офферами и рисует спарклайн 40×14. Цвет относительно среднего: зелёный — дешевле, красный — дороже, серый — в пределах `price_history_average_band_percent` (±5% по умолчанию). Подсказка по наведению: мин / среднее / макс / сейчас и вердикт.
 
-**AzLink / сайт (TODO):** у cointcore нет зависимости на AzLink. Старый AzLink умел затирать баланс сайта абсолютным значением с сервера — так делать нельзя. Сейчас: локальный outbox + `CurrencyMovementSink` (no-op) + опциональный HTTP POST, если в `currency-movement.json` включить `enabled` и задать `endpoint_url` (без выдуманных токенов). Когда в AzLink-mods появится очередь append-only, её можно подключить рефлексией в `AzLinkCurrencyMovementSink`.
+Иконка глюона: `src/main/resources/assets/cointcore/textures/gui/gluon.png` (16×16, в GUI рисуется 8×8). Сейчас там заглушка; финальный файл кладётся **ровно по этому пути** и пересобирается JAR. В интерфейсе иконка стоит рядом с балансом и рядом с ценами оффера вместо слова «глюонов».
+
+Движения валюты пишутся в overworld SavedData `cointcore_currency_movements` (`pay`, `trader_buy`, `trader_sell`, `admin_set`, `admin_add`). Это outbox для раздела сайта «движение валют». Переводы сайт↔сервер (`site_to_server` / `server_to_site`) тоже пишутся локально, но на сайт не отправляются.
+
+**AzLink / сайт:** у cointcore нет compile-зависимости на AzLink. Доставка идёт рефлексией в `com.azuriom.azlink.common.coins.CoinOperationsBridge.postMovements` (ветка AzLink-mods `feature/gluon-movements-delivery`). Включается флагом `site_movements_enabled` в `currency-movement.json` (по умолчанию `false`). Батчи, идемпотентность по id движения, retry с backoff 5 с…5 мин, курсор `site_sent_up_to` пишется только после `accepted_up_to` от сайта. Это журнал серверного кошелька: баланс сайта не меняется. Опциональный HTTP POST (`enabled` + `endpoint_url`) остаётся отдельным хуком и тоже не должен вызывать API абсолютного баланса.
 
 ## Лаг-фиксы ATM10 8.2
 

@@ -19,6 +19,7 @@ import com.mawlee.cointcore.invsee.InvSeeMenus;
 import com.mawlee.cointcore.invsee.InvSeeNetwork;
 import com.mawlee.cointcore.shop.ShopBlocks;
 import com.mawlee.cointcore.shop.ShopMenus;
+import com.mawlee.cointcore.shop.TraderNetwork;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -35,6 +36,7 @@ public class CointCore {
         modEventBus.addListener(ClaimFlagEditNetwork::register);
         modEventBus.addListener(AfkNetwork::register);
         modEventBus.addListener(InvSeeNetwork::register);
+        modEventBus.addListener(TraderNetwork::register);
         InvSeeMenus.REGISTER.register(modEventBus);
         ShopBlocks.register(modEventBus);
         ShopMenus.register(modEventBus);
@@ -57,5 +59,11 @@ public class CointCore {
         NeoForge.EVENT_BUS.addListener(CointCoreEvents::onPlayerLoggedOut);
         NeoForge.EVENT_BUS.addListener(CointCoreEvents::onTabListNameFormat);
         NeoForge.EVENT_BUS.addListener(ArsGlyphEvents::onTagsUpdated);
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) ->
+                {
+                    com.mawlee.cointcore.shop.SiteOperationPoller.tick(event.getServer());
+                    com.mawlee.cointcore.shop.SiteMovementSender.tick(event.getServer());
+                    com.mawlee.cointcore.shop.TraderPriceHistorySampler.tick(event.getServer());
+                });
     }
 }

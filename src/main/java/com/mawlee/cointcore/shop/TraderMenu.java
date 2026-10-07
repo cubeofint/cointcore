@@ -3,13 +3,10 @@ package com.mawlee.cointcore.shop;
 import com.mawlee.cointcore.config.TraderOffersConfig;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.Container;
-import net.minecraft.world.SimpleContainer;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
@@ -19,17 +16,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Trader UI: offer ghost slots, player inventory, synced gluon balance.
- * Left-click an offer to buy (price + commission). Right-click to sell (price − commission).
+ * Trader container: player inventory plus synced gluon balance and offer catalog.
+ * Deals are requested with {@link TraderTradePayload}, not slot clicks.
  */
 public class TraderMenu extends AbstractContainerMenu {
-    public static final int CONTAINER_ROWS = 3;
-    public static final int OFFER_SLOTS = CONTAINER_ROWS * 9;
+    public static final int PAGE_SIZE = 5;
+    public static final int GUI_WIDTH = 256;
+    public static final int VANILLA_INV_WIDTH = 176;
+    public static final int ROW_HEIGHT = 40;
+    public static final int TITLE_HEIGHT = 30;
+    public static final int STATUS_HEIGHT = 12;
+    public static final int PAGE_BAR_HEIGHT = 18;
+    public static final int OFFER_PANEL_HEIGHT =
+            TITLE_HEIGHT + PAGE_SIZE * ROW_HEIGHT + STATUS_HEIGHT + PAGE_BAR_HEIGHT;
+    public static final int PLAYER_INV_Y = OFFER_PANEL_HEIGHT + 14;
+    public static final int PLAYER_INV_LEFT = (GUI_WIDTH - VANILLA_INV_WIDTH) / 2 + 8;
+    public static final int GUI_HEIGHT = PLAYER_INV_Y + 82;
     private static final int BALANCE_SHORTS = 4;
+    private static final int MAX_SYNCED_OFFERS = 512;
 
     private final ContainerLevelAccess access;
     private final List<TraderOffer> offers;
-    private final SimpleContainer offerContainer;
     private long gluonBalance;
     private final int[] balanceParts = new int[BALANCE_SHORTS];
 
@@ -47,26 +54,21 @@ public class TraderMenu extends AbstractContainerMenu {
         super(ShopMenus.TRADER.get(), containerId);
         this.access = access;
         this.offers = List.copyOf(offers);
-        this.offerContainer = new SimpleContainer(OFFER_SLOTS);
         this.gluonBalance = Math.max(0L, gluonBalance);
         writeBalanceParts(this.gluonBalance);
-        fillOfferSlots();
 
-        for (int row = 0; row < CONTAINER_ROWS; row++) {
-            for (int col = 0; col < 9; col++) {
-                int index = col + row * 9;
-                addSlot(new OfferSlot(offerContainer, index, 8 + col * 18, 18 + row * 18));
-            }
-        }
-
-        int playerInvY = 84 + (CONTAINER_ROWS - 3) * 18;
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(playerInventory, col + row * 9 + 9, 8 + col * 18, playerInvY + row * 18));
+                addSlot(new Slot(
+                        playerInventory,
+                        col + row * 9 + 9,
+                        PLAYER_INV_LEFT + col * 18,
+                        PLAYER_INV_Y + row * 18
+                ));
             }
         }
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(playerInventory, col, 8 + col * 18, playerInvY + 58));
+            addSlot(new Slot(playerInventory, col, PLAYER_INV_LEFT + col * 18, PLAYER_INV_Y + 58));
         }
 
         for (int index = 0; index < BALANCE_SHORTS; index++) {
@@ -91,7 +93,7 @@ public class TraderMenu extends AbstractContainerMenu {
         List<TraderOffer> offers = new ArrayList<>();
         if (buffer.readableBytes() > 0) {
             int count = ByteBufCodecs.VAR_INT.decode(buffer);
-            for (int index = 0; index < count && index < OFFER_SLOTS; index++) {
+            for (int index = 0; index < count && index < MAX_SYNCED_OFFERS; index++) {
                 ItemStack stack = ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer);
                 long buyPrice = buffer.readLong();
                 long sellPrice = buffer.readLong();
@@ -100,7 +102,19 @@ public class TraderMenu extends AbstractContainerMenu {
                 long sellFee = buffer.readLong();
                 long sellNet = buffer.readLong();
                 String id = ByteBufCodecs.STRING_UTF8.decode(buffer);
-                offers.add(new TraderOffer(id, stack, Math.max(1, stack.getCount()), buyPrice, sellPrice, buyFee, buyTotal, sellFee, sellNet));
+                long[] history = readHistory(buffer);
+                offers.add(new TraderOffer(
+                        id,
+                        stack,
+                        Math.max(1, stack.getCount()),
+                        buyPrice,
+                        sellPrice,
+                        buyFee,
+                        buyTotal,
+                        sellFee,
+                        sellNet,
+                        history
+                ));
             }
         }
         return new TraderMenu(containerId, playerInventory, ContainerLevelAccess.NULL, balance, offers);
@@ -108,7 +122,7 @@ public class TraderMenu extends AbstractContainerMenu {
 
     public static void writeOpenData(RegistryFriendlyByteBuf buffer, long balance, List<TraderOffer> offers) {
         buffer.writeLong(balance);
-        List<TraderOffer> limited = offers.size() > OFFER_SLOTS ? offers.subList(0, OFFER_SLOTS) : offers;
+        List<TraderOffer> limited = offers.size() > MAX_SYNCED_OFFERS ? offers.subList(0, MAX_SYNCED_OFFERS) : offers;
         ByteBufCodecs.VAR_INT.encode(buffer, limited.size());
         for (TraderOffer offer : limited) {
             ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, offer.display());
@@ -119,11 +133,45 @@ public class TraderMenu extends AbstractContainerMenu {
             buffer.writeLong(offer.sellFee());
             buffer.writeLong(offer.sellNet());
             ByteBufCodecs.STRING_UTF8.encode(buffer, offer.id());
+            writeHistory(buffer, offer.buyHistory());
         }
     }
 
-    public static List<TraderOffer> serverOffers() {
-        return TraderOffersConfig.offers();
+    public static List<TraderOffer> serverOffers(MinecraftServer server) {
+        List<TraderOffer> offers = TraderOffersConfig.offers();
+        TraderPriceHistorySavedData history = TraderPriceHistorySavedData.get(server);
+        List<TraderOffer> withHistory = new ArrayList<>(offers.size());
+        for (TraderOffer offer : offers) {
+            withHistory.add(offer.withBuyHistory(history.snapshot(offer.id())));
+        }
+        return withHistory;
+    }
+
+    private static void writeHistory(RegistryFriendlyByteBuf buffer, long[] history) {
+        int capacity = TraderOffersConfig.priceHistoryCapacity();
+        int count = history == null ? 0 : Math.min(history.length, capacity);
+        int from = history == null ? 0 : Math.max(0, history.length - count);
+        ByteBufCodecs.VAR_INT.encode(buffer, count);
+        for (int index = 0; index < count; index++) {
+            buffer.writeLong(history[from + index]);
+        }
+    }
+
+    private static long[] readHistory(RegistryFriendlyByteBuf buffer) {
+        if (buffer.readableBytes() <= 0) {
+            return new long[0];
+        }
+        int count = ByteBufCodecs.VAR_INT.decode(buffer);
+        int capacity = TraderOffersConfig.priceHistoryCapacity();
+        int limited = Math.max(0, Math.min(count, capacity));
+        long[] history = new long[limited];
+        for (int index = 0; index < count; index++) {
+            long value = buffer.readLong();
+            if (index < limited) {
+                history[index] = value;
+            }
+        }
+        return history;
     }
 
     public List<TraderOffer> offers() {
@@ -141,24 +189,6 @@ public class TraderMenu extends AbstractContainerMenu {
     }
 
     @Override
-    public void clicked(int slotId, int button, ClickType clickType, Player player) {
-        if (slotId >= 0 && slotId < offers.size()) {
-            if (player instanceof ServerPlayer serverPlayer && (clickType == ClickType.PICKUP || clickType == ClickType.QUICK_MOVE)) {
-                if (button == 1) {
-                    TraderTrades.sell(serverPlayer, this, slotId);
-                } else {
-                    TraderTrades.buy(serverPlayer, this, slotId);
-                }
-            }
-            return;
-        }
-        if (slotId >= 0 && slotId < OFFER_SLOTS) {
-            return;
-        }
-        super.clicked(slotId, button, clickType, player);
-    }
-
-    @Override
     public ItemStack quickMoveStack(Player player, int index) {
         return ItemStack.EMPTY;
     }
@@ -166,12 +196,6 @@ public class TraderMenu extends AbstractContainerMenu {
     @Override
     public boolean stillValid(Player player) {
         return stillValid(access, player, ShopBlocks.TRADER.get());
-    }
-
-    private void fillOfferSlots() {
-        for (int index = 0; index < Math.min(offers.size(), OFFER_SLOTS); index++) {
-            offerContainer.setItem(index, offers.get(index).display().copy());
-        }
     }
 
     private void writeBalanceParts(long balance) {
@@ -187,21 +211,5 @@ public class TraderMenu extends AbstractContainerMenu {
             value |= ((long) (balanceParts[index] & 0xFFFF)) << (index * 16);
         }
         return value;
-    }
-
-    private static final class OfferSlot extends Slot {
-        OfferSlot(Container container, int slot, int x, int y) {
-            super(container, slot, x, y);
-        }
-
-        @Override
-        public boolean mayPickup(Player player) {
-            return false;
-        }
-
-        @Override
-        public boolean mayPlace(ItemStack stack) {
-            return false;
-        }
     }
 }
