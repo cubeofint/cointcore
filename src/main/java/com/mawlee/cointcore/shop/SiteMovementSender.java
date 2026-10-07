@@ -1,7 +1,5 @@
 package com.mawlee.cointcore.shop;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import com.mawlee.cointcore.config.CurrencyMovementConfig;
 import com.mojang.logging.LogUtils;
 import net.minecraft.server.MinecraftServer;
@@ -9,7 +7,6 @@ import org.slf4j.Logger;
 
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -53,7 +50,7 @@ public final class SiteMovementSender {
             }
             long lastId = batch.get(batch.size() - 1).id();
             @SuppressWarnings("unchecked")
-            CompletableFuture<String> future = (CompletableFuture<String>) postMovements.invoke(null, toJson(batch));
+            CompletableFuture<String> future = (CompletableFuture<String>) postMovements.invoke(null, SiteMovementPayload.toJson(batch));
             future.whenComplete((json, error) -> {
                 try {
                     if (error != null) {
@@ -85,30 +82,6 @@ public final class SiteMovementSender {
         backoffMs = SiteMovementPayload.nextBackoff(backoffMs);
         nextAttemptAt = now + backoffMs;
         IN_FLIGHT.set(false);
-    }
-
-    static String toJson(List<CurrencyMovement> batch) {
-        JsonArray array = new JsonArray();
-        for (CurrencyMovement m : batch) {
-            JsonObject o = new JsonObject();
-            o.addProperty("id", m.id());
-            o.addProperty("timestamp", m.timestampMs());
-            o.addProperty("type", m.type().id());
-            o.addProperty("amount", m.amount());
-            o.addProperty("from_id", uuid(m.fromId()));
-            o.addProperty("from_name", m.fromName());
-            o.addProperty("to_id", uuid(m.toId()));
-            o.addProperty("to_name", m.toName());
-            o.addProperty("note", m.note());
-            array.add(o);
-        }
-        JsonObject root = new JsonObject();
-        root.add("movements", array);
-        return root.toString();
-    }
-
-    private static String uuid(UUID id) {
-        return id == null ? null : id.toString();
     }
 
     private static synchronized boolean resolve() {

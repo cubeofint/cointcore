@@ -1,7 +1,11 @@
 package com.mawlee.cointcore.shop;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
+import java.util.List;
+import java.util.UUID;
 
 /** Pure helpers for {@link SiteMovementSender} (no Minecraft classes, unit-testable). */
 final class SiteMovementPayload {
@@ -13,6 +17,30 @@ final class SiteMovementPayload {
 
     static long nextBackoff(long current) {
         return current <= 0 ? MIN_BACKOFF_MS : Math.min(MAX_BACKOFF_MS, current * 2);
+    }
+
+    static String toJson(List<CurrencyMovement> batch) {
+        JsonArray array = new JsonArray();
+        for (CurrencyMovement m : batch) {
+            JsonObject o = new JsonObject();
+            o.addProperty("id", m.id());
+            o.addProperty("timestamp", m.timestampMs());
+            o.addProperty("type", m.type().id());
+            o.addProperty("amount", m.amount());
+            o.addProperty("from_id", uuid(m.fromId()));
+            o.addProperty("from_name", m.fromName());
+            o.addProperty("to_id", uuid(m.toId()));
+            o.addProperty("to_name", m.toName());
+            o.addProperty("note", m.note());
+            array.add(o);
+        }
+        JsonObject root = new JsonObject();
+        root.add("movements", array);
+        return root.toString();
+    }
+
+    private static String uuid(UUID id) {
+        return id == null ? null : id.toString();
     }
 
     /**
