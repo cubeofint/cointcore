@@ -28,7 +28,7 @@ public class TraderMenu extends AbstractContainerMenu {
     public static final int PAGE_BAR_HEIGHT = 18;
     public static final int OFFER_PANEL_HEIGHT =
             TITLE_HEIGHT + PAGE_SIZE * ROW_HEIGHT + STATUS_HEIGHT + PAGE_BAR_HEIGHT;
-    public static final int PLAYER_INV_Y = OFFER_PANEL_HEIGHT + 12;
+    public static final int PLAYER_INV_Y = OFFER_PANEL_HEIGHT + 14;
     public static final int PLAYER_INV_LEFT = (GUI_WIDTH - VANILLA_INV_WIDTH) / 2 + 8;
     public static final int GUI_HEIGHT = PLAYER_INV_Y + 82;
     private static final int BALANCE_SHORTS = 4;

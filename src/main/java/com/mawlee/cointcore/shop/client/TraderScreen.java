@@ -35,7 +35,7 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
         this.imageWidth = TraderMenu.GUI_WIDTH;
         this.imageHeight = TraderMenu.GUI_HEIGHT;
         this.inventoryLabelX = TraderMenu.PLAYER_INV_LEFT;
-        this.inventoryLabelY = TraderMenu.PLAYER_INV_Y - 11;
+        this.inventoryLabelY = TraderMenu.PLAYER_INV_Y - 12;
     }
 
     @Override
@@ -194,14 +194,15 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
         int x = leftPos;
         int y = topPos;
         VanillaContainerSkin.blitPanel(graphics, x, y, imageWidth, imageHeight);
-        int invX = x + (imageWidth - VanillaContainerSkin.PANEL_WIDTH) / 2;
-        VanillaContainerSkin.blitPlayerStrip(graphics, invX, y + TraderMenu.PLAYER_INV_Y - 13);
-
         int start = page * TraderMenu.PAGE_SIZE;
+        int rowLeft = x + 7;
+        int rowWidth = imageWidth - 14;
         for (int row = 0; row < TraderMenu.PAGE_SIZE && start + row < menu.offers().size(); row++) {
-            int slotY = y + TraderMenu.TITLE_HEIGHT + 2 + row * TraderMenu.ROW_HEIGHT;
-            VanillaContainerSkin.blitSlot(graphics, x + 7, slotY);
+            int rowY = y + TraderMenu.TITLE_HEIGHT + 2 + row * TraderMenu.ROW_HEIGHT;
+            VanillaContainerSkin.blitOfferRow(graphics, rowLeft, rowY, rowWidth, TraderMenu.ROW_HEIGHT - 2);
+            VanillaContainerSkin.blitSlot(graphics, x + 7, rowY);
         }
+        VanillaContainerSkin.blitMenuSlots(graphics, x, y, menu.slots);
     }
 
     @Override
