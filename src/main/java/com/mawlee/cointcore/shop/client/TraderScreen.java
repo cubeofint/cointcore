@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.shop.client;
 
+import com.mawlee.cointcore.client.VanillaContainerSkin;
 import com.mawlee.cointcore.shop.TraderFeedbackKind;
 import com.mawlee.cointcore.shop.TraderFeedbackPayload;
 import com.mawlee.cointcore.shop.TraderMenu;
@@ -10,14 +11,11 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
-    private static final ResourceLocation BACKGROUND =
-            ResourceLocation.withDefaultNamespace("textures/gui/container/generic_54.png");
     private static final int TEXT_LEFT = 28;
     private static final int ICON_LEFT = 8;
     private static final int ICON_SIZE = 18;
@@ -98,10 +96,10 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, title, titleLabelX, 6, 0x404040, false);
+        graphics.drawString(font, title, titleLabelX, 6, VanillaContainerSkin.LABEL_COLOR, false);
         Component balance = Component.translatable("container.cointcore.trader.balance", menu.gluonBalance());
-        graphics.drawString(font, balance, titleLabelX, 16, 0x404040, false);
-        graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0x404040, false);
+        graphics.drawString(font, balance, titleLabelX, 16, VanillaContainerSkin.LABEL_COLOR, false);
+        graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, VanillaContainerSkin.LABEL_COLOR, false);
 
         int start = page * TraderMenu.PAGE_SIZE;
         for (int row = 0; row < TraderMenu.PAGE_SIZE; row++) {
@@ -112,13 +110,27 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
             TraderOffer offer = menu.offers().get(offerIndex);
             int y = TraderMenu.TITLE_HEIGHT + 3 + row * TraderMenu.ROW_HEIGHT;
             ItemStack stack = offer.display();
-            graphics.drawString(font, ellipsize(stack.getHoverName().getString(), textMaxWidth), TEXT_LEFT, y, 0x404040, false);
+            graphics.drawString(
+                    font,
+                    ellipsize(stack.getHoverName().getString(), textMaxWidth),
+                    TEXT_LEFT,
+                    y,
+                    VanillaContainerSkin.LABEL_COLOR,
+                    false
+            );
             Component prices = Component.translatable(
                     "gui.cointcore.trader.prices",
                     offer.canBuy() ? Long.toString(offer.buyTotal()) : "—",
                     offer.canSell() ? Long.toString(offer.sellNet()) : "—"
             );
-            graphics.drawString(font, ellipsize(prices.getString(), textMaxWidth), TEXT_LEFT, y + 11, 0x404040, false);
+            graphics.drawString(
+                    font,
+                    ellipsize(prices.getString(), textMaxWidth),
+                    TEXT_LEFT,
+                    y + 11,
+                    VanillaContainerSkin.LABEL_COLOR,
+                    false
+            );
         }
 
         if (menu.offers().isEmpty()) {
@@ -128,7 +140,7 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
                     empty,
                     (imageWidth - font.width(empty)) / 2,
                     TraderMenu.TITLE_HEIGHT + 20,
-                    0x404040,
+                    VanillaContainerSkin.LABEL_COLOR,
                     false
             );
         }
@@ -136,7 +148,14 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
         int pages = maxPage() + 1;
         Component pageLabel = Component.translatable("gui.cointcore.trader.page", page + 1, pages);
         int pagerY = TraderMenu.OFFER_PANEL_HEIGHT - 13;
-        graphics.drawString(font, pageLabel, (imageWidth - font.width(pageLabel)) / 2, pagerY, 0x404040, false);
+        graphics.drawString(
+                font,
+                pageLabel,
+                (imageWidth - font.width(pageLabel)) / 2,
+                pagerY,
+                VanillaContainerSkin.LABEL_COLOR,
+                false
+        );
 
         if (feedback != null) {
             Component line = feedbackLine(feedback);
@@ -174,19 +193,14 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         int x = leftPos;
         int y = topPos;
-        graphics.fill(x, y, x + imageWidth, y + imageHeight, 0xFFC6C6C6);
-        graphics.fill(x + 1, y + 1, x + imageWidth - 1, y + imageHeight - 1, 0xFF8B8B8B);
-        graphics.fill(x + 2, y + 2, x + imageWidth - 2, y + TraderMenu.OFFER_PANEL_HEIGHT, 0xFFC6C6C6);
-        graphics.fill(x + 7, y + TraderMenu.TITLE_HEIGHT, x + imageWidth - 7, y + TraderMenu.OFFER_PANEL_HEIGHT, 0xFF8B8B8B);
-        graphics.fill(x + 8, y + TraderMenu.TITLE_HEIGHT, x + imageWidth - 8, y + TraderMenu.OFFER_PANEL_HEIGHT - 1, 0xFFC6C6C6);
-
-        int invX = x + (imageWidth - TraderMenu.VANILLA_INV_WIDTH) / 2;
-        graphics.blit(BACKGROUND, invX, y + TraderMenu.PLAYER_INV_Y - 13, 0, 125, TraderMenu.VANILLA_INV_WIDTH, 96);
+        VanillaContainerSkin.blitPanel(graphics, x, y, imageWidth, imageHeight);
+        int invX = x + (imageWidth - VanillaContainerSkin.PANEL_WIDTH) / 2;
+        VanillaContainerSkin.blitPlayerStrip(graphics, invX, y + TraderMenu.PLAYER_INV_Y - 13);
 
         int start = page * TraderMenu.PAGE_SIZE;
         for (int row = 0; row < TraderMenu.PAGE_SIZE && start + row < menu.offers().size(); row++) {
             int slotY = y + TraderMenu.TITLE_HEIGHT + 2 + row * TraderMenu.ROW_HEIGHT;
-            graphics.blit(BACKGROUND, x + 7, slotY, 7, 17, 18, 18);
+            VanillaContainerSkin.blitSlot(graphics, x + 7, slotY);
         }
     }
 
