@@ -39,8 +39,13 @@ public final class SiteOperationApply {
         };
     }
 
+    /**
+     * Re-delivery of an already handled op: same status, but report the wallet as it is now.
+     * The stored balance may be stale (pay/trader since), and the site compares balance_after
+     * with its mirror for drift, so a stale value would enqueue a spurious reconcile.
+     */
     public static Decision replay(String previousStatus, Long previousBalanceAfter, long currentBalance) {
-        long balance = previousBalanceAfter != null ? previousBalanceAfter : Math.max(0L, currentBalance);
+        long balance = Math.max(0L, currentBalance);
         return new Decision(previousStatus, errorFor(previousStatus), balance, false, 0L, 0L);
     }
 

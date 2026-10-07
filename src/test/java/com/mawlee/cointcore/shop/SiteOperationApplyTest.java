@@ -59,7 +59,7 @@ class SiteOperationApplyTest {
         SiteOperationApply.Decision first = SiteOperationApply.decide(SiteOperation.Kind.ADJUST, -20, 50);
         SiteOperationApply.Decision replay = SiteOperationApply.replay(first.status(), first.balanceAfter(), 999);
         assertEquals("applied", replay.status());
-        assertEquals(30L, replay.balanceAfter());
+        assertEquals(999L, replay.balanceAfter());
         assertFalse(replay.mutated());
 
         SiteOperationApply.Decision failed = SiteOperationApply.decide(SiteOperation.Kind.FROM_SERVER, 10, 3);
