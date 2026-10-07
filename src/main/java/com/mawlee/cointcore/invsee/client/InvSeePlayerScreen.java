@@ -12,29 +12,26 @@ import net.minecraft.world.entity.player.Player;
  * Target player inventory — flat chrome + portrait frame (no inventory.png).
  */
 public final class InvSeePlayerScreen extends InvSeeBaseScreen<InvSeePlayerMenu> {
-    private static final int TARGET_PANEL_HEIGHT = 166;
     private static final int VIEWER_PANEL_HEIGHT = 96;
 
     public InvSeePlayerScreen(InvSeePlayerMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        this.imageWidth = 176;
-        this.imageHeight = TARGET_PANEL_HEIGHT + VIEWER_PANEL_HEIGHT;
-        this.inventoryLabelY = TARGET_PANEL_HEIGHT + 2;
+        this.imageHeight = InvSeePlayerMenu.VIEWER_INVENTORY_Y + VIEWER_PANEL_HEIGHT;
     }
 
     @Override
     protected void renderExtraBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        // Portrait well (left of main storage / beside armor)
-        InvSeeUi.drawPortraitFrame(graphics, leftPos + 26, topPos + 8, 50, 70);
+        int shift = leftPos + InvSeePlayerMenu.SLOT_ORIGIN - 8;
+        InvSeeUi.drawPortraitFrame(graphics, shift + 26, topPos + InvSeePlayerMenu.ARMOR_Y, 50, 70);
 
         LivingEntity target = resolveTargetEntity();
         if (target != null) {
             InventoryScreen.renderEntityInInventoryFollowsMouse(
                     graphics,
-                    leftPos + 26,
-                    topPos + 8,
-                    leftPos + 76,
-                    topPos + 78,
+                    shift + 26,
+                    topPos + InvSeePlayerMenu.ARMOR_Y,
+                    shift + 76,
+                    topPos + InvSeePlayerMenu.ARMOR_Y + 70,
                     30,
                     0.0625F,
                     mouseX,
@@ -46,8 +43,54 @@ public final class InvSeePlayerScreen extends InvSeeBaseScreen<InvSeePlayerMenu>
 
     @Override
     protected void renderExtraLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, Component.translatable("gui.cointcore.invsee.section.armor"), 8, 1, InvSeeTheme.FAINT, false);
-        graphics.drawString(font, Component.translatable("gui.cointcore.invsee.section.storage"), 80, 74, InvSeeTheme.FAINT, false);
+        String name = InvSeeClientChrome.displayName();
+        if (name == null || name.isBlank()) {
+            name = title.getString();
+        }
+        Component status = Component.translatable(
+                InvSeeClientChrome.online() ? "gui.cointcore.invsee.online" : "gui.cointcore.invsee.offline"
+        );
+        Component line = Component.translatable("gui.cointcore.invsee.target_line", name, status.getString());
+        graphics.drawString(
+                font,
+                font.plainSubstrByWidth(line.getString(), imageWidth - 16),
+                8,
+                6,
+                InvSeeTheme.TEXT,
+                false
+        );
+        graphics.drawString(
+                font,
+                Component.translatable("gui.cointcore.invsee.section.armor"),
+                InvSeePlayerMenu.SLOT_ORIGIN,
+                InvSeePlayerMenu.ARMOR_Y - 10,
+                InvSeeTheme.FAINT,
+                false
+        );
+        graphics.drawString(
+                font,
+                Component.translatable("gui.cointcore.invsee.section.offhand"),
+                InvSeePlayerMenu.SLOT_ORIGIN + 69,
+                InvSeePlayerMenu.ARMOR_Y + 3 * 18 - 10,
+                InvSeeTheme.FAINT,
+                false
+        );
+        graphics.drawString(
+                font,
+                Component.translatable("gui.cointcore.invsee.section.storage"),
+                InvSeePlayerMenu.SLOT_ORIGIN,
+                InvSeePlayerMenu.STORAGE_Y - 10,
+                InvSeeTheme.FAINT,
+                false
+        );
+        graphics.drawString(
+                font,
+                Component.translatable("gui.cointcore.invsee.section.hotbar"),
+                InvSeePlayerMenu.SLOT_ORIGIN,
+                InvSeePlayerMenu.HOTBAR_Y - 10,
+                InvSeeTheme.FAINT,
+                false
+        );
     }
 
     private LivingEntity resolveTargetEntity() {

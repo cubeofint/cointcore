@@ -11,9 +11,12 @@ import net.minecraft.world.entity.player.Inventory;
 public final class InvSeePlayerMenu extends InvSeeBaseMenu {
     public static final int CONTENT_SLOTS = 41; // 4 armor + offhand + 27 + 9
     /** inventory.png (166) + chest strip label offset (14) — matches generic_54 player slots. */
-    public static final int VIEWER_INVENTORY_Y = 180;
-    private static final int ARMOR_X = 8;
-    private static final int OFFHAND_X = 77;
+    public static final int ARMOR_Y = 18;
+    public static final int STORAGE_Y = 98;
+    public static final int HOTBAR_Y = 164;
+    public static final int VIEWER_INVENTORY_Y = 198;
+    private static final int ARMOR_X = SLOT_ORIGIN;
+    private static final int OFFHAND_X = SLOT_ORIGIN + 69;
     private static final int[] ARMOR_SLOTS = {39, 38, 37, 36}; // head -> boots
 
     private final java.util.UUID targetPlayerId;
@@ -54,16 +57,16 @@ public final class InvSeePlayerMenu extends InvSeeBaseMenu {
     protected void buildContentSlots() {
         // armor top→bottom
         for (int i = 0; i < 4; i++) {
-            createContentSlot(i, ARMOR_X, 8 + i * 18);
+            createContentSlot(i, ARMOR_X, ARMOR_Y + i * 18);
         }
-        createContentSlot(4, OFFHAND_X, 62);
+        createContentSlot(4, OFFHAND_X, ARMOR_Y + 3 * 18);
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                createContentSlot(5 + col + row * 9, SLOT_X[col], 84 + row * 18);
+                createContentSlot(5 + col + row * 9, SLOT_X[col], STORAGE_Y + row * 18);
             }
         }
         for (int col = 0; col < 9; col++) {
-            createContentSlot(32 + col, SLOT_X[col], 142);
+            createContentSlot(32 + col, SLOT_X[col], HOTBAR_Y);
         }
     }
 

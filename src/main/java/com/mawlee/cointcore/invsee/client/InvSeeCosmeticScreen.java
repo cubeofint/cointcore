@@ -8,10 +8,7 @@ import net.minecraft.world.entity.player.Inventory;
 public final class InvSeeCosmeticScreen extends InvSeeBaseScreen<InvSeeCosmeticMenu> {
     public InvSeeCosmeticScreen(InvSeeCosmeticMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        int rows = InvSeeCosmeticMenu.ROWS;
-        this.imageWidth = 176;
-        this.imageHeight = 114 + rows * 18;
-        this.inventoryLabelY = this.imageHeight - 94;
+        this.imageHeight = menu.viewerInventoryY() + 82;
     }
 
     @Override

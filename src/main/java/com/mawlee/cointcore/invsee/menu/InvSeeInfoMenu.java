@@ -16,7 +16,7 @@ import java.util.List;
 
 public final class InvSeeInfoMenu extends InvSeeBaseMenu {
     public static final int CONTENT_SLOTS = 0;
-    public static final int VIEWER_INVENTORY_Y = 86;
+    public static final int VIEWER_INVENTORY_Y = 110;
     private int syncTicker;
 
     public static InvSeeInfoMenu fromNetwork(int containerId, Inventory inventory, RegistryFriendlyByteBuf buf) {
@@ -72,7 +72,7 @@ public final class InvSeeInfoMenu extends InvSeeBaseMenu {
     public static List<String> linesFor(InvSeeSection section, InvSeeSession session, ServerPlayer viewer) {
         return switch (section) {
             case STATE -> InvSeeStateCollector.collect(session.target());
-            case FTB -> InvSeeFtbData.collect(session.target().getPlayer());
+            case FTB -> InvSeeFtbData.collect(session.target());
             case GRAVES -> InvSeeGravesData.collect(session.target().getPlayer(), session.target().playerId());
             default -> List.of();
         };

@@ -12,9 +12,7 @@ public final class InvSeeBackpackScreen extends InvSeeBaseScreen<InvSeeBackpackM
 
     public InvSeeBackpackScreen(InvSeeBackpackMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        this.imageWidth = 176;
-        this.imageHeight = 114 + InvSeeBackpackMenu.ROWS * 18;
-        this.inventoryLabelY = this.imageHeight - 94;
+        this.imageHeight = menu.viewerInventoryY() + 82;
     }
 
     @Override

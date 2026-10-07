@@ -88,7 +88,7 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
     @Override
     public int viewerInventoryY() {
         // Same formula as ChestMenu for N rows: 84 + (rows - 3) * 18
-        return 84 + (ROWS - 3) * 18;
+        return 96 + (ROWS - 3) * 18;
     }
 
     @Override

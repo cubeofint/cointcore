@@ -11,7 +11,13 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.UUID;
 
-public record InvSeeChromePayload(UUID targetId, boolean online, int tabMask, int activeTab) implements CustomPacketPayload {
+public record InvSeeChromePayload(
+        UUID targetId,
+        boolean online,
+        int tabMask,
+        int activeTab,
+        String displayName
+) implements CustomPacketPayload {
     public static final Type<InvSeeChromePayload> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(CointCore.MOD_ID, "invsee_chrome")
     );
@@ -26,6 +32,8 @@ public record InvSeeChromePayload(UUID targetId, boolean online, int tabMask, in
                     InvSeeChromePayload::tabMask,
                     ByteBufCodecs.VAR_INT,
                     InvSeeChromePayload::activeTab,
+                    ByteBufCodecs.STRING_UTF8,
+                    InvSeeChromePayload::displayName,
                     InvSeeChromePayload::new
             );
 

@@ -89,7 +89,7 @@ public final class InvSeePocketMenu extends InvSeeBaseMenu {
 
     @Override
     public int viewerInventoryY() {
-        return 140;
+        return 152;
     }
 
     @Override

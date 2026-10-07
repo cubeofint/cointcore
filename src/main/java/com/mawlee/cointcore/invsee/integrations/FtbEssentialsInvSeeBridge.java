@@ -19,27 +19,48 @@ public final class FtbEssentialsInvSeeBridge {
     }
 
     public static List<String> collect(Player player) {
-        Object data = loadData(player);
+        UUID id = player == null ? null : player.getUUID();
+        String name = player == null ? "" : player.getGameProfile().getName();
+        return collect(player, id, name);
+    }
+
+    public static List<String> collect(Player player, UUID playerId, String fallbackName) {
+        Object data = loadData(player, playerId);
         if (data == null) {
-            return InvSeeInfoLines.ftb(true, "", List.of(), "");
+            return InvSeeInfoLines.ftb(true, fallbackName == null ? "" : fallbackName, List.of(), "");
         }
-        String nick = stringInvoke(data, "getNick", "nick");
-        String lastDeath = stringify(invoke(data, "getLastDeath", "lastDeath"));
+        String nick = stringInvoke(data, "getNick", "nick", "getName", "name");
+        if (nick == null || nick.isBlank()) {
+            nick = fallbackName == null ? "" : fallbackName;
+        }
+        String lastDeath = stringify(invoke(data, "getLastDeath", "lastDeath", "getLastDeathPoint"));
         List<String> homes = homes(data);
         return InvSeeInfoLines.ftb(true, nick, homes, lastDeath);
     }
 
-    private static Object loadData(Player player) {
+    private static Object loadData(Player player, UUID playerId) {
         try {
             Class<?> dataClass = Class.forName("dev.ftb.mods.ftbessentials.util.FTBEPlayerData");
-            Object created = invokeStatic(dataClass, player, "getOrCreate", Player.class);
-            if (created instanceof Optional<?> optional) {
-                return optional.orElse(null);
+            if (playerId != null) {
+                Object byId = invokeStatic(dataClass, playerId, "get", UUID.class);
+                if (byId instanceof Optional<?> optional && optional.isPresent()) {
+                    return optional.get();
+                }
+                if (byId != null && !(byId instanceof Optional<?>)) {
+                    return byId;
+                }
             }
-            if (created != null) {
-                return created;
+            if (player != null) {
+                Object created = invokeStatic(dataClass, player, "getOrCreate", Player.class);
+                if (created instanceof Optional<?> optional) {
+                    return optional.orElse(null);
+                }
+                if (created != null) {
+                    return created;
+                }
+                return invokeStatic(dataClass, player.getUUID(), "get", UUID.class);
             }
-            return invokeStatic(dataClass, player.getUUID(), "get", UUID.class);
+            return null;
         } catch (ReflectiveOperationException ignored) {
             return null;
         }

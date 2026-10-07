@@ -12,10 +12,7 @@ public final class InvSeeAccessoriesScreen extends InvSeeBaseScreen<InvSeeAccess
 
     public InvSeeAccessoriesScreen(InvSeeAccessoriesMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        int rows = InvSeeAccessoriesMenu.ROWS;
-        this.imageWidth = 176;
-        this.imageHeight = 114 + rows * 18;
-        this.inventoryLabelY = this.imageHeight - 94;
+        this.imageHeight = menu.viewerInventoryY() + 82;
     }
 
     @Override

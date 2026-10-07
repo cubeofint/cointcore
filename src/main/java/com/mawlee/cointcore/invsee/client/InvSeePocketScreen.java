@@ -12,9 +12,7 @@ public final class InvSeePocketScreen extends InvSeeBaseScreen<InvSeePocketMenu>
 
     public InvSeePocketScreen(InvSeePocketMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        this.imageWidth = 176;
-        this.imageHeight = 114 + InvSeePocketMenu.ROWS * 18;
-        this.inventoryLabelY = this.imageHeight - 94;
+        this.imageHeight = menu.viewerInventoryY() + 82;
     }
 
     @Override

@@ -16,6 +16,7 @@ public final class InvSeeClientChrome {
     private static boolean online;
     private static int tabMask;
     private static int activeTab;
+    private static String displayName = "";
     private static List<String> infoLines = List.of();
     private static String infoKind = "";
 
@@ -27,6 +28,12 @@ public final class InvSeeClientChrome {
         online = payload.online();
         tabMask = payload.tabMask();
         activeTab = payload.activeTab();
+        displayName = payload.displayName() == null ? "" : payload.displayName();
+        InvSeeTab tab = InvSeeTab.fromOrdinalOrInventory(activeTab);
+        if (tab != InvSeeTab.FTB && tab != InvSeeTab.GRAVES && tab != InvSeeTab.STATE) {
+            infoLines = List.of();
+            infoKind = "";
+        }
     }
 
     public static void applyInfo(InvSeeInfoPayload payload) {
@@ -48,6 +55,10 @@ public final class InvSeeClientChrome {
 
     public static int activeTab() {
         return activeTab;
+    }
+
+    public static String displayName() {
+        return displayName;
     }
 
     public static List<InvSeeTab> tabs() {

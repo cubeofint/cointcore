@@ -12,10 +12,7 @@ public final class InvSeeCuriosScreen extends InvSeeBaseScreen<InvSeeCuriosMenu>
 
     public InvSeeCuriosScreen(InvSeeCuriosMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        int rows = InvSeeCuriosMenu.ROWS;
-        this.imageWidth = 176;
-        this.imageHeight = 114 + rows * 18;
-        this.inventoryLabelY = this.imageHeight - 94;
+        this.imageHeight = menu.viewerInventoryY() + 82;
     }
 
     @Override

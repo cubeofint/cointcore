@@ -87,7 +87,7 @@ public final class InvSeeBackpackMenu extends InvSeeBaseMenu {
 
     @Override
     public int viewerInventoryY() {
-        return 140;
+        return 152;
     }
 
     @Override

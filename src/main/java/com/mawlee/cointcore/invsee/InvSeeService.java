@@ -59,7 +59,8 @@ public final class InvSeeService {
                         target.playerId(),
                         !target.isOffline(),
                         tabMask(viewer),
-                        InvSeeTab.fromSection(section).ordinal()
+                        InvSeeTab.fromSection(section).ordinal(),
+                        target.displayName() == null ? "" : target.displayName()
                 )
         );
     }

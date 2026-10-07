@@ -2,6 +2,7 @@ package com.mawlee.cointcore.invsee.client;
 
 import com.mawlee.cointcore.invsee.InvSeeOpenNestedPayload;
 import com.mawlee.cointcore.invsee.InvSeeTab;
+import com.mawlee.cointcore.invsee.InvSeeTabLayout;
 import com.mawlee.cointcore.invsee.menu.InvSeeBaseMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Tooltip;
@@ -17,9 +18,11 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
     private static final Component BRAND = Component.literal("CointCore");
 
     private InvSeeFlatButton editButton;
+    private int tabScroll;
 
     protected InvSeeBaseScreen(T menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
+        this.imageWidth = InvSeeBaseMenu.GUI_WIDTH;
     }
 
     /** Attachment and other RO sections can hide the mode toggle. */
@@ -31,7 +34,8 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
     protected void init() {
         super.init();
         this.titleLabelY = 6;
-        this.inventoryLabelX = 8;
+        this.inventoryLabelX = InvSeeBaseMenu.SLOT_ORIGIN;
+        this.inventoryLabelY = menu.viewerInventoryY() - 12;
 
         if (showEditToggle()) {
             editButton = new InvSeeFlatButton(
@@ -51,22 +55,67 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
     }
 
     private void addTabButtons() {
-        int tabY = topPos - InvSeeTheme.HEADER_H - InvSeeTheme.TAB_H - InvSeeTheme.PAD + 2;
-        int x = leftPos - InvSeeTheme.PAD + 4;
-        for (InvSeeTab tab : InvSeeClientChrome.tabs()) {
+        var tabs = InvSeeClientChrome.tabs();
+        int[] widths = new int[tabs.size()];
+        for (int i = 0; i < tabs.size(); i++) {
+            int text = font.width(Component.translatable(tabs.get(i).langKey()));
+            widths[i] = InvSeeTabLayout.tabWidth(text, 12, 24);
+        }
+        int avail = imageWidth + InvSeeTheme.PAD * 2 - 8;
+        InvSeeTabLayout.Result layout = InvSeeTabLayout.compute(
+                widths,
+                avail,
+                tabScroll,
+                InvSeeTheme.TAB_ROW_H,
+                2
+        );
+        if (layout.scrolled() && layout.canScrollRight() && !layout.placements().isEmpty()) {
+            tabScroll = layout.placements().getFirst().tabIndex();
+        }
+        int originX = leftPos - InvSeeTheme.PAD + 4;
+        int originY = topPos - InvSeeTheme.HEADER_H - InvSeeTheme.TAB_H - InvSeeTheme.PAD + 2;
+        if (layout.scrolled()) {
+            InvSeeFlatButton prev = new InvSeeFlatButton(
+                    originX,
+                    originY,
+                    InvSeeTabLayout.ARROW_WIDTH,
+                    InvSeeTheme.TAB_ROW_H,
+                    Component.literal("<"),
+                    b -> {
+                        tabScroll = Math.max(0, tabScroll - 1);
+                        rebuildWidgets();
+                    }
+            );
+            prev.active = layout.canScrollLeft();
+            addRenderableWidget(prev);
+            InvSeeFlatButton next = new InvSeeFlatButton(
+                    originX + avail - InvSeeTabLayout.ARROW_WIDTH,
+                    originY,
+                    InvSeeTabLayout.ARROW_WIDTH,
+                    InvSeeTheme.TAB_ROW_H,
+                    Component.literal(">"),
+                    b -> {
+                        tabScroll++;
+                        rebuildWidgets();
+                    }
+            );
+            next.active = layout.canScrollRight();
+            addRenderableWidget(next);
+        }
+        for (InvSeeTabLayout.Placement placement : layout.placements()) {
+            InvSeeTab tab = tabs.get(placement.tabIndex());
             boolean active = tab.ordinal() == InvSeeClientChrome.activeTab();
             InvSeeFlatButton button = new InvSeeFlatButton(
-                    x,
-                    tabY,
-                    52,
-                    14,
+                    originX + placement.x(),
+                    originY + placement.y(),
+                    placement.width(),
+                    InvSeeTheme.TAB_ROW_H,
                     Component.translatable(tab.langKey()),
                     b -> sendButton(InvSeeBaseMenu.BUTTON_TAB_BASE + tab.ordinal())
             );
             button.style(active ? InvSeeFlatButton.Style.ACCENT : InvSeeFlatButton.Style.NEUTRAL);
             button.setTooltip(Tooltip.create(Component.translatable(tab.langKey())));
             addRenderableWidget(button);
-            x += 54;
         }
     }
 
@@ -161,7 +210,7 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
         // Title lives in the absolute header; only the viewer inventory caption here.
         graphics.drawString(
                 font,
-                playerInventoryTitle,
+                Component.translatable("gui.cointcore.invsee.viewer_inventory"),
                 inventoryLabelX,
                 inventoryLabelY,
                 InvSeeTheme.MUTED,

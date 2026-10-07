@@ -35,7 +35,7 @@ public final class InvSeeEnderMenu extends InvSeeBaseMenu {
 
     @Override
     public int viewerInventoryY() {
-        return 84;
+        return 96;
     }
 
     @Override
