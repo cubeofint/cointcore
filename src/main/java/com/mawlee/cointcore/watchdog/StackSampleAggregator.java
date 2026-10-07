@@ -49,7 +49,7 @@ public final class StackSampleAggregator {
     private final Map<String, MutableMethod> methods = new HashMap<>();
     private long sampleCount;
 
-    public void addSample(StackTraceElement[] stack, ClassToModMapper mapper, TickProbe.Snapshot probe) {
+    public synchronized void addSample(StackTraceElement[] stack, ClassToModMapper mapper, TickProbe.Snapshot probe) {
         if (stack == null || stack.length == 0) {
             return;
         }
@@ -102,16 +102,16 @@ public final class StackSampleAggregator {
         return top(limit, false);
     }
 
-    public long sampleCount() {
+    public synchronized long sampleCount() {
         return sampleCount;
     }
 
-    public void clear() {
+    public synchronized void clear() {
         methods.clear();
         sampleCount = 0L;
     }
 
-    private List<MethodStat> top(int limit, boolean bySelf) {
+    private synchronized List<MethodStat> top(int limit, boolean bySelf) {
         int capped = Math.max(0, limit);
         double denom = sampleCount <= 0L ? 1.0D : (double) sampleCount;
         List<MethodStat> list = new ArrayList<>(methods.size());
