@@ -16,7 +16,7 @@ import java.util.List;
 
 public final class InvSeeInfoMenu extends InvSeeBaseMenu {
     public static final int CONTENT_SLOTS = 0;
-    public static final int VIEWER_INVENTORY_Y = 110;
+    public static final int VIEWER_INVENTORY_Y = 124;
     private int syncTicker;
 
     public static InvSeeInfoMenu fromNetwork(int containerId, Inventory inventory, RegistryFriendlyByteBuf buf) {

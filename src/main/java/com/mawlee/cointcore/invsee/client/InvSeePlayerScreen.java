@@ -10,17 +10,12 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 
 /**
- * Target inventory uses vanilla inventory.png; admin inventory uses generic_54 strip.
+ * Target inventory: gray vanilla panel with frames only on real slots, plus entity preview.
  */
 public final class InvSeePlayerScreen extends InvSeeBaseScreen<InvSeePlayerMenu> {
     public InvSeePlayerScreen(InvSeePlayerMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         this.imageHeight = InvSeePlayerMenu.VIEWER_INVENTORY_Y + 82;
-    }
-
-    @Override
-    protected boolean useVanillaInventoryTexture() {
-        return true;
     }
 
     @Override

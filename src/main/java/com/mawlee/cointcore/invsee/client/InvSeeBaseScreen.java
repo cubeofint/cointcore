@@ -10,7 +10,6 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.Slot;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.List;
@@ -32,17 +31,13 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
         return true;
     }
 
-    protected boolean useVanillaInventoryTexture() {
-        return false;
-    }
-
     @Override
     protected void init() {
         super.init();
         this.titleLabelX = 8;
         this.titleLabelY = 6;
         this.inventoryLabelX = 8;
-        this.inventoryLabelY = menu.viewerInventoryY() - 11;
+        this.inventoryLabelY = menu.viewerInventoryY() - 12;
 
         if (showEditToggle()) {
             editButton = Button.builder(editLabel(), button -> sendButton(InvSeeBaseMenu.BUTTON_TOGGLE_EDIT))
@@ -147,15 +142,8 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         renderCreativeTabs(graphics);
-        if (useVanillaInventoryTexture()) {
-            VanillaContainerSkin.blitPlayerInventoryLayout(graphics, leftPos, topPos);
-            VanillaContainerSkin.blitPlayerStrip(graphics, leftPos, topPos + VanillaContainerSkin.INVENTORY_TEXTURE_HEIGHT);
-        } else {
-            VanillaContainerSkin.blitPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
-            for (Slot slot : menu.slots) {
-                VanillaContainerSkin.blitSlot(graphics, leftPos + slot.x - 1, topPos + slot.y - 1);
-            }
-        }
+        VanillaContainerSkin.blitPanel(graphics, leftPos, topPos, imageWidth, imageHeight);
+        VanillaContainerSkin.blitMenuSlots(graphics, leftPos, topPos, menu.slots);
         renderExtraBg(graphics, partialTick, mouseX, mouseY);
     }
 

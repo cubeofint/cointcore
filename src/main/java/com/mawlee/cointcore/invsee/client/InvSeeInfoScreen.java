@@ -29,14 +29,14 @@ public final class InvSeeInfoScreen extends InvSeeBaseScreen<InvSeeInfoMenu> {
             return;
         }
         int y = 18;
-        int maxY = menu.viewerInventoryY() - 16;
+        int maxY = inventoryLabelY - 10;
         for (String line : InvSeeClientChrome.infoLines()) {
+            if (y + 8 > maxY) {
+                break;
+            }
             String clipped = font.plainSubstrByWidth(line, imageWidth - 16);
             graphics.drawString(font, clipped, 8, y, VanillaContainerSkin.LABEL_COLOR, false);
             y += 10;
-            if (y > maxY) {
-                break;
-            }
         }
     }
 }
