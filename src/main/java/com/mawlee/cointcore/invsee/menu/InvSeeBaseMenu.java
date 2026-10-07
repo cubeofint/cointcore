@@ -4,8 +4,10 @@ import com.mawlee.cointcore.invsee.InvSeeAuditLog;
 import com.mawlee.cointcore.invsee.InvSeeItemStacks;
 import com.mawlee.cointcore.invsee.InvSeePermissions;
 import com.mawlee.cointcore.invsee.InvSeeSection;
+import com.mawlee.cointcore.invsee.InvSeeService;
 import com.mawlee.cointcore.invsee.InvSeeSession;
 import com.mawlee.cointcore.invsee.InvSeeSessions;
+import com.mawlee.cointcore.invsee.InvSeeTab;
 import com.mawlee.cointcore.lang.CointCoreMessages;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
@@ -23,6 +25,7 @@ import net.minecraft.world.item.ItemStack;
  */
 public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
     public static final int BUTTON_TOGGLE_EDIT = 100;
+    public static final int BUTTON_TAB_BASE = 200;
     public static final int[] SLOT_X = {8, 26, 44, 62, 80, 98, 116, 134, 152};
 
     public static final int LOCK_NONE = 0;
@@ -218,6 +221,10 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
             broadcastChanges();
             return true;
         }
+        if (id >= BUTTON_TAB_BASE && id < BUTTON_TAB_BASE + InvSeeTab.values().length) {
+            InvSeeTab tab = InvSeeTab.fromOrdinalOrInventory(id - BUTTON_TAB_BASE);
+            return InvSeeService.openTab(viewer, session.target(), tab);
+        }
         return handleSectionButton(player, id);
     }
 
@@ -288,8 +295,15 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
         return copy;
     }
 
-    protected boolean isContentSlot(int index) {
+    public boolean isContentSlot(int index) {
         return index >= 0 && index < contentSlotCount;
+    }
+
+    public ItemStack contentStack(int index) {
+        if (!isContentSlot(index)) {
+            return ItemStack.EMPTY;
+        }
+        return contentSlots[index].getItem();
     }
 
     @Override

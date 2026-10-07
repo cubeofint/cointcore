@@ -25,6 +25,7 @@ public final class InvSeeTheme {
     public static final int OK = 0xFF7A9E7E;
 
     public static final int HEADER_H = 22;
+    public static final int TAB_H = 18;
     public static final int PAD = 4;
 
     private InvSeeTheme() {

@@ -1,11 +1,14 @@
 package com.mawlee.cointcore.invsee.client;
 
+import com.mawlee.cointcore.invsee.InvSeeOpenNestedPayload;
+import com.mawlee.cointcore.invsee.InvSeeTab;
 import com.mawlee.cointcore.invsee.menu.InvSeeBaseMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
  * Modern InvSee chrome: flat panels, slot wells, copper header — no vanilla GUI textures.
@@ -43,7 +46,37 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
             addRenderableWidget(editButton);
             updateEditButton();
         }
+        addTabButtons();
         initExtraWidgets();
+    }
+
+    private void addTabButtons() {
+        int tabY = topPos - InvSeeTheme.HEADER_H - InvSeeTheme.TAB_H - InvSeeTheme.PAD + 2;
+        int x = leftPos - InvSeeTheme.PAD + 4;
+        for (InvSeeTab tab : InvSeeClientChrome.tabs()) {
+            boolean active = tab.ordinal() == InvSeeClientChrome.activeTab();
+            InvSeeFlatButton button = new InvSeeFlatButton(
+                    x,
+                    tabY,
+                    52,
+                    14,
+                    Component.translatable(tab.langKey()),
+                    b -> sendButton(InvSeeBaseMenu.BUTTON_TAB_BASE + tab.ordinal())
+            );
+            button.style(active ? InvSeeFlatButton.Style.ACCENT : InvSeeFlatButton.Style.NEUTRAL);
+            button.setTooltip(Tooltip.create(Component.translatable(tab.langKey())));
+            addRenderableWidget(button);
+            x += 54;
+        }
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 1 && hoveredSlot != null && menu.isContentSlot(hoveredSlot.index)) {
+            PacketDistributor.sendToServer(new InvSeeOpenNestedPayload(menu.containerId, hoveredSlot.index));
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     /** Page controls and other section widgets. */

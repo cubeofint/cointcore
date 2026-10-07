@@ -14,6 +14,7 @@ class InvSeeNbtOverlayTest {
         assertTrue(InvSeeNbtOverlay.shouldOverlay("SelectedItemSlot"));
         assertTrue(InvSeeNbtOverlay.shouldOverlay("neoforge:attachments"));
         assertTrue(InvSeeNbtOverlay.shouldOverlay("curios:inventory"));
+        assertTrue(InvSeeNbtOverlay.shouldOverlay("accessories:inventory"));
     }
 
     @Test

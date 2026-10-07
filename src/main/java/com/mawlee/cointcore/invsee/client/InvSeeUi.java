@@ -46,9 +46,9 @@ public final class InvSeeUi {
             int viewerInventoryY
     ) {
         int hx = left - InvSeeTheme.PAD;
-        int hy = top - InvSeeTheme.HEADER_H - InvSeeTheme.PAD;
+        int hy = top - InvSeeTheme.HEADER_H - InvSeeTheme.TAB_H - InvSeeTheme.PAD;
         int hw = width + InvSeeTheme.PAD * 2;
-        int hh = height + InvSeeTheme.HEADER_H + InvSeeTheme.PAD * 2;
+        int hh = height + InvSeeTheme.HEADER_H + InvSeeTheme.TAB_H + InvSeeTheme.PAD * 2;
 
         panel(graphics, hx, hy, hw, hh);
         fill(graphics, hx + 1, hy + 1, hw - 2, InvSeeTheme.HEADER_H, InvSeeTheme.PANEL_INNER);

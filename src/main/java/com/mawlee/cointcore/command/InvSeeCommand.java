@@ -59,6 +59,14 @@ public final class InvSeeCommand {
                                         .suggests(backpackSuggestions())
                                         .executes(ctx -> open(ctx, InvSeeSection.BACKPACK,
                                                 StringArgumentType.getString(ctx, "backpack")))))
+                        .then(Commands.literal("accessories")
+                                .executes(ctx -> open(ctx, InvSeeSection.ACCESSORIES, null)))
+                        .then(Commands.literal("ftb")
+                                .executes(ctx -> open(ctx, InvSeeSection.FTB, null)))
+                        .then(Commands.literal("graves")
+                                .executes(ctx -> open(ctx, InvSeeSection.GRAVES, null)))
+                        .then(Commands.literal("state")
+                                .executes(ctx -> open(ctx, InvSeeSection.STATE, null)))
                         .then(Commands.literal("attachment")
                                 .executes(ctx -> open(ctx, InvSeeSection.MODDATA, null))
                                 .then(Commands.argument("key", StringArgumentType.greedyString())
@@ -121,6 +129,8 @@ public final class InvSeeCommand {
             case POCKET -> openPocket(viewer, resolved, arg);
             case BACKPACK -> openBackpack(viewer, resolved, arg);
             case MODDATA -> openAttachment(viewer, resolved, arg);
+            case ACCESSORIES -> InvSeeService.openAccessories(viewer, resolved);
+            case STATE, FTB, GRAVES -> InvSeeService.openInfo(viewer, resolved, section);
         };
 
         if (opened) {
