@@ -34,7 +34,7 @@ public final class InvSeeCuriosScreen extends InvSeeBaseScreen<InvSeeCuriosMenu>
     }
 
     private void updatePageButtons() {
-        boolean multi = menu.maxPage() > 0;
+        boolean multi = menu.maxPage() > 0 && !menu.unavailableOffline();
         prevButton.visible = multi;
         nextButton.visible = multi;
         prevButton.active = menu.page() > 0;
@@ -48,6 +48,19 @@ public final class InvSeeCuriosScreen extends InvSeeBaseScreen<InvSeeCuriosMenu>
 
     @Override
     protected void renderExtraLabels(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (menu.unavailableOffline()) {
+            Component unavailable = Component.translatable("gui.cointcore.invsee.curios.offline_unavailable");
+            int panelHeight = InvSeeCuriosMenu.ROWS * 18;
+            graphics.drawString(
+                    font,
+                    unavailable,
+                    Math.max(8, (imageWidth - font.width(unavailable)) / 2),
+                    18 + panelHeight / 2 - 4,
+                    VanillaContainerSkin.LABEL_COLOR,
+                    false
+            );
+            return;
+        }
         if (menu.maxPage() > 0) {
             Component page = Component.translatable(
                     "gui.cointcore.invsee.page.status",

@@ -43,6 +43,7 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
 
     private boolean syncedEditMode;
     private int syncedLockState;
+    private int syncedBoundCount;
     private final int viewerInvStart;
     private long seenGeneration = Long.MIN_VALUE;
 
@@ -62,6 +63,7 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
         this.contentSlotCount = contentSlotCount;
         this.placeholders = new SimpleContainer(Math.max(1, contentSlotCount));
         this.contentSlots = new InvSeeBoundSlot[contentSlotCount];
+        this.syncedBoundCount = contentSlotCount;
 
         if (session != null && viewer != null && !InvSeePermissions.canEdit(viewer, session.section())) {
             session.exitEdit();
@@ -71,6 +73,17 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
         this.viewerInvStart = slots.size();
         addViewerInventory(viewerInventory, viewerInventoryY());
 
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return syncedBoundCount;
+            }
+
+            @Override
+            public void set(int value) {
+                syncedBoundCount = value;
+            }
+        });
         addDataSlot(new DataSlot() {
             @Override
             public int get() {
@@ -118,7 +131,7 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
     public abstract int viewerInventoryY();
 
     protected InvSeeBoundSlot createContentSlot(int index, int x, int y) {
-        InvSeeBoundSlot slot = new InvSeeBoundSlot(placeholders, index, x, y, clientSide);
+        InvSeeBoundSlot slot = new InvSeeBoundSlot(placeholders, index, x, y, clientSide, this, index);
         contentSlots[index] = slot;
         addSlot(slot);
         return slot;
@@ -141,6 +154,18 @@ public abstract class InvSeeBaseMenu extends AbstractContainerMenu {
 
     public int contentSlotCount() {
         return contentSlotCount;
+    }
+
+    public int boundSlotCount() {
+        return syncedBoundCount;
+    }
+
+    public boolean isContentSlotBound(int index) {
+        return index >= 0 && index < syncedBoundCount;
+    }
+
+    protected void setBoundSlotCount(int count) {
+        syncedBoundCount = Math.max(0, Math.min(contentSlotCount, count));
     }
 
     public boolean isEditMode() {
