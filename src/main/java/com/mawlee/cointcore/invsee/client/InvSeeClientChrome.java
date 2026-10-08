@@ -1,9 +1,12 @@
 package com.mawlee.cointcore.invsee.client;
 
 import com.mawlee.cointcore.invsee.InvSeeChromePayload;
+import com.mawlee.cointcore.invsee.InvSeeCuriosLayoutPayload;
 import com.mawlee.cointcore.invsee.InvSeeInfoPayload;
 import com.mawlee.cointcore.invsee.InvSeeTab;
 import com.mawlee.cointcore.invsee.InvSeeTabPolicy;
+import com.mawlee.cointcore.invsee.menu.InvSeeCuriosMenu;
+import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -39,6 +42,15 @@ public final class InvSeeClientChrome {
     public static void applyInfo(InvSeeInfoPayload payload) {
         infoKind = payload.kind();
         infoLines = List.copyOf(payload.lines());
+    }
+
+    public static void applyCuriosLayout(InvSeeCuriosLayoutPayload payload) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player != null
+                && minecraft.player.containerMenu instanceof InvSeeCuriosMenu menu
+                && menu.containerId == payload.containerId()) {
+            menu.applyClientLayout(payload.slots());
+        }
     }
 
     public static UUID targetId() {

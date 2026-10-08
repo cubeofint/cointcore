@@ -20,6 +20,11 @@ public final class InvSeeNetwork {
                 InvSeeInfoPayload.STREAM_CODEC,
                 InvSeeInfoPayload::handleClient
         );
+        registrar.playToClient(
+                InvSeeCuriosLayoutPayload.TYPE,
+                InvSeeCuriosLayoutPayload.STREAM_CODEC,
+                InvSeeCuriosLayoutPayload::handleClient
+        );
         registrar.playToServer(
                 InvSeeOpenNestedPayload.TYPE,
                 InvSeeOpenNestedPayload.STREAM_CODEC,

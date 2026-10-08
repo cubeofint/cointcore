@@ -1,19 +1,26 @@
 package com.mawlee.cointcore.invsee.menu;
 
+import com.mawlee.cointcore.invsee.InvSeeCurioSlotMeta;
+import com.mawlee.cointcore.invsee.InvSeeCurioSlotOrder;
+import com.mawlee.cointcore.invsee.InvSeeCuriosLayoutPayload;
 import com.mawlee.cointcore.invsee.InvSeeMenus;
 import com.mawlee.cointcore.invsee.InvSeeSession;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.network.PacketDistributor;
 import top.theillusivec4.curios.api.CuriosApi;
 import top.theillusivec4.curios.api.SlotContext;
+import top.theillusivec4.curios.api.type.ISlotType;
 import top.theillusivec4.curios.api.type.capability.ICuriosItemHandler;
 import top.theillusivec4.curios.api.type.inventory.ICurioStacksHandler;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,10 +47,15 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
     private final List<String> flatIds = new ArrayList<>();
     private final List<Boolean> flatCosmetic = new ArrayList<>();
     private final List<Boolean> flatVisible = new ArrayList<>();
+    private List<InvSeeCurioSlotMeta> clientLayout = List.of();
 
     public static InvSeeCuriosMenu fromNetwork(int containerId, Inventory inventory, RegistryFriendlyByteBuf buf) {
         buf.readBoolean();
-        return new InvSeeCuriosMenu(containerId, inventory, null, true);
+        InvSeeCuriosMenu menu = new InvSeeCuriosMenu(containerId, inventory, null, true);
+        if (buf.readableBytes() > 0) {
+            menu.applyClientLayout(InvSeeCurioSlotMeta.readList(buf));
+        }
+        return menu;
     }
 
     public InvSeeCuriosMenu(int containerId, Inventory inventory, InvSeeSession session) {
@@ -61,6 +73,9 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
             @Override
             public void set(int value) {
                 syncedPage = value;
+                if (clientSide) {
+                    applyPageIcons();
+                }
             }
         });
         addDataSlot(new DataSlot() {
@@ -100,12 +115,42 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
         return syncedUnavailable != 0;
     }
 
+    public void writeClientLayout(RegistryFriendlyByteBuf buf) {
+        InvSeeCurioSlotMeta.writeList(buf, snapshotLayout());
+    }
+
+    public void applyClientLayout(List<InvSeeCurioSlotMeta> slots) {
+        clientLayout = slots == null ? List.of() : List.copyOf(slots);
+        applyPageIcons();
+    }
+
+    private void applyPageIcons() {
+        if (!clientSide) {
+            return;
+        }
+        int start = syncedPage * PANEL_SLOTS;
+        for (int i = 0; i < PANEL_SLOTS; i++) {
+            if (!(contentSlots[i] instanceof InvSeeCurioSlot curio)) {
+                continue;
+            }
+            int flatIndex = start + i;
+            if (flatIndex < clientLayout.size()) {
+                curio.applyMeta(clientLayout.get(flatIndex));
+            } else {
+                curio.clearMeta();
+            }
+        }
+    }
+
     @Override
     protected void buildContentSlots() {
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLUMNS; col++) {
                 int index = col + row * COLUMNS;
-                createContentSlot(index, SLOT_X[col], PANEL_TOP + row * 18);
+                InvSeeCurioSlot slot = new InvSeeCurioSlot(
+                        placeholders, index, SLOT_X[col], PANEL_TOP + row * 18, clientSide, this, index);
+                contentSlots[index] = slot;
+                addSlot(slot);
             }
         }
     }
@@ -156,6 +201,7 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
             }
         }
         setBoundSlotCount(bound);
+        sendLayout();
     }
 
     private void clearBoundSlots() {
@@ -166,6 +212,25 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
             contentSlots[i].bindEmpty();
         }
         setBoundSlotCount(0);
+        sendLayout();
+    }
+
+    private void sendLayout() {
+        if (clientSide || !(viewer instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        PacketDistributor.sendToPlayer(
+                serverPlayer,
+                new InvSeeCuriosLayoutPayload(containerId, snapshotLayout())
+        );
+    }
+
+    private List<InvSeeCurioSlotMeta> snapshotLayout() {
+        List<InvSeeCurioSlotMeta> slots = new ArrayList<>(flatIds.size());
+        for (int i = 0; i < flatIds.size(); i++) {
+            slots.add(new InvSeeCurioSlotMeta(flatIds.get(i), flatSlots.get(i), flatCosmetic.get(i)));
+        }
+        return List.copyOf(slots);
     }
 
     private void rebuildFlattened() {
@@ -178,27 +243,47 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
         if (curios.isEmpty()) {
             return;
         }
-        for (Map.Entry<String, ICurioStacksHandler> entry : curios.get().getCurios().entrySet()) {
-            ICurioStacksHandler handler = entry.getValue();
-            addHandler(entry.getKey(), handler, handler.getStacks(), false);
-            // Cosmetic stacks always exist in Curios; only show them for slot types that use them.
-            if (handler.hasCosmetic()) {
-                addHandler(entry.getKey(), handler, handler.getCosmeticStacks(), true);
+        List<Map.Entry<String, ICurioStacksHandler>> entries = new ArrayList<>(curios.get().getCurios().entrySet());
+        entries.sort(Comparator
+                .comparingInt((Map.Entry<String, ICurioStacksHandler> entry) -> slotTypeOrder(entry.getKey()))
+                .thenComparing(Map.Entry::getKey));
+        List<InvSeeCurioSlotOrder.TypeGroup> groups = new ArrayList<>();
+        for (Map.Entry<String, ICurioStacksHandler> entry : entries) {
+            IItemHandler stacks = entry.getValue().getStacks();
+            if (stacks == null) {
+                continue;
             }
+            groups.add(new InvSeeCurioSlotOrder.TypeGroup(
+                    entry.getKey(),
+                    slotTypeOrder(entry.getKey()),
+                    stacks.getSlots(),
+                    entry.getValue().hasCosmetic()
+            ));
+        }
+        for (InvSeeCurioSlotMeta placed : InvSeeCurioSlotOrder.flatten(groups)) {
+            ICurioStacksHandler handler = curios.get().getCurios().get(placed.identifier());
+            if (handler == null) {
+                continue;
+            }
+            IItemHandler stacks = placed.cosmetic() ? handler.getCosmeticStacks() : handler.getStacks();
+            if (stacks == null || placed.index() >= stacks.getSlots()) {
+                continue;
+            }
+            flatHandlers.add(stacks);
+            flatSlots.add(placed.index());
+            flatIds.add(placed.identifier());
+            flatCosmetic.add(placed.cosmetic());
+            flatVisible.add(renders(handler, placed.index()));
         }
     }
 
-    private void addHandler(String identifier, ICurioStacksHandler handler, IItemHandler stacks, boolean cosmetic) {
-        if (stacks == null) {
-            return;
+    private int slotTypeOrder(String identifier) {
+        if (target == null || target.level() == null) {
+            return Integer.MAX_VALUE;
         }
-        for (int slot = 0; slot < stacks.getSlots(); slot++) {
-            flatHandlers.add(stacks);
-            flatSlots.add(slot);
-            flatIds.add(identifier);
-            flatCosmetic.add(cosmetic);
-            flatVisible.add(renders(handler, slot));
-        }
+        return CuriosApi.getSlot(identifier, target.level())
+                .map(ISlotType::getOrder)
+                .orElse(Integer.MAX_VALUE);
     }
 
     private static boolean renders(ICurioStacksHandler handler, int slot) {
