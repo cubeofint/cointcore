@@ -7,6 +7,8 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
+import java.util.function.Predicate;
+
 /**
  * Rebindable slot. Server reads/writes the live source; client only stores stacks from sync packets.
  */
@@ -57,7 +59,11 @@ public final class InvSeeBoundSlot extends Slot {
     }
 
     public void bindHandler(IItemHandler handler, int slotIndex, boolean editable) {
-        source = Source.handler(handler, slotIndex);
+        bindHandler(handler, slotIndex, editable, stack -> true);
+    }
+
+    public void bindHandler(IItemHandler handler, int slotIndex, boolean editable, Predicate<ItemStack> validator) {
+        source = Source.handler(handler, slotIndex, validator);
         readOnly = !editable;
         publishPlaceholder();
     }
@@ -245,7 +251,7 @@ public final class InvSeeBoundSlot extends Slot {
             };
         }
 
-        static Source handler(IItemHandler handler, int slot) {
+        static Source handler(IItemHandler handler, int slot, Predicate<ItemStack> validator) {
             return new Source() {
                 @Override
                 public ItemStack get() {
@@ -271,7 +277,7 @@ public final class InvSeeBoundSlot extends Slot {
 
                 @Override
                 public boolean mayPlace(ItemStack stack) {
-                    return handler.isItemValid(slot, stack);
+                    return handler.isItemValid(slot, stack) && validator.test(stack);
                 }
 
                 @Override

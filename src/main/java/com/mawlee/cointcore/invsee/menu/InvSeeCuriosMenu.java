@@ -6,8 +6,10 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.DataSlot;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 import top.theillusivec4.curios.api.CuriosApi;
+import top.theillusivec4.curios.api.SlotContext;
 import top.theillusivec4.curios.api.type.capability.ICuriosItemHandler;
 import top.theillusivec4.curios.api.type.inventory.ICurioStacksHandler;
 
@@ -15,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 /**
  * Fixed chest-like Curios grid (9x5). Pages rebind slots; slot count never changes.
@@ -34,6 +37,9 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
     /** Parallel lists — avoid nested $ class (some deploys strip *$*.class). */
     private final List<IItemHandler> flatHandlers = new ArrayList<>();
     private final List<Integer> flatSlots = new ArrayList<>();
+    private final List<String> flatIds = new ArrayList<>();
+    private final List<Boolean> flatCosmetic = new ArrayList<>();
+    private final List<Boolean> flatVisible = new ArrayList<>();
 
     public static InvSeeCuriosMenu fromNetwork(int containerId, Inventory inventory, RegistryFriendlyByteBuf buf) {
         buf.readBoolean();
@@ -138,7 +144,12 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
         for (int i = 0; i < PANEL_SLOTS; i++) {
             int flatIndex = start + i;
             if (flatIndex < size) {
-                contentSlots[i].bindHandler(flatHandlers.get(flatIndex), flatSlots.get(flatIndex), edit);
+                contentSlots[i].bindHandler(
+                        flatHandlers.get(flatIndex),
+                        flatSlots.get(flatIndex),
+                        edit,
+                        curioValidator(flatIndex)
+                );
                 bound++;
             } else {
                 contentSlots[i].bindEmpty();
@@ -160,25 +171,52 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
     private void rebuildFlattened() {
         flatHandlers.clear();
         flatSlots.clear();
+        flatIds.clear();
+        flatCosmetic.clear();
+        flatVisible.clear();
         Optional<ICuriosItemHandler> curios = CuriosApi.getCuriosInventory(target);
         if (curios.isEmpty()) {
             return;
         }
         for (Map.Entry<String, ICurioStacksHandler> entry : curios.get().getCurios().entrySet()) {
             ICurioStacksHandler handler = entry.getValue();
-            addHandler(handler.getStacks());
-            addHandler(handler.getCosmeticStacks());
+            addHandler(entry.getKey(), handler, handler.getStacks(), false);
+            // Cosmetic stacks always exist in Curios; only show them for slot types that use them.
+            if (handler.hasCosmetic()) {
+                addHandler(entry.getKey(), handler, handler.getCosmeticStacks(), true);
+            }
         }
     }
 
-    private void addHandler(IItemHandler stacks) {
+    private void addHandler(String identifier, ICurioStacksHandler handler, IItemHandler stacks, boolean cosmetic) {
         if (stacks == null) {
             return;
         }
         for (int slot = 0; slot < stacks.getSlots(); slot++) {
             flatHandlers.add(stacks);
             flatSlots.add(slot);
+            flatIds.add(identifier);
+            flatCosmetic.add(cosmetic);
+            flatVisible.add(renders(handler, slot));
         }
+    }
+
+    private static boolean renders(ICurioStacksHandler handler, int slot) {
+        var renders = handler.getRenders();
+        return slot < 0 || slot >= renders.size() || renders.get(slot);
+    }
+
+    /**
+     * Same rule as Curios' own slots: the raw stack handler accepts anything, so edits are
+     * validated with CuriosApi.isStackValid (slot tags, ICurioItem#canEquip) on the server.
+     */
+    private Predicate<ItemStack> curioValidator(int flatIndex) {
+        String identifier = flatIds.get(flatIndex);
+        int slot = flatSlots.get(flatIndex);
+        boolean cosmetic = flatCosmetic.get(flatIndex);
+        boolean visible = flatVisible.get(flatIndex);
+        return stack -> target != null
+                && CuriosApi.isStackValid(new SlotContext(identifier, target, slot, cosmetic, visible), stack);
     }
 
     @Override
