@@ -53,7 +53,7 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
         buf.readBoolean();
         InvSeeCuriosMenu menu = new InvSeeCuriosMenu(containerId, inventory, null, true);
         if (buf.readableBytes() > 0) {
-            menu.applyClientLayout(InvSeeCurioSlotMeta.readList(buf));
+            menu.applyClientLayout(InvSeeCuriosLayoutPayload.readList(buf));
         }
         return menu;
     }
@@ -116,7 +116,7 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
     }
 
     public void writeClientLayout(RegistryFriendlyByteBuf buf) {
-        InvSeeCurioSlotMeta.writeList(buf, snapshotLayout());
+        InvSeeCuriosLayoutPayload.writeList(buf, snapshotLayout());
     }
 
     public void applyClientLayout(List<InvSeeCurioSlotMeta> slots) {

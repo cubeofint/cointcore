@@ -12,7 +12,7 @@ import java.util.function.Predicate;
 /**
  * Rebindable slot. Server reads/writes the live source; client only stores stacks from sync packets.
  */
-public final class InvSeeBoundSlot extends Slot {
+public class InvSeeBoundSlot extends Slot {
     private final boolean clientSide;
     private final InvSeeBaseMenu menu;
     private final int contentIndex;
