@@ -12,7 +12,7 @@ import java.util.function.Predicate;
 /**
  * Rebindable slot. Server reads/writes the live source; client only stores stacks from sync packets.
  */
-public final class InvSeeBoundSlot extends Slot {
+public class InvSeeBoundSlot extends Slot {
     private final boolean clientSide;
     private final InvSeeBaseMenu menu;
     private final int contentIndex;
@@ -255,11 +255,14 @@ public final class InvSeeBoundSlot extends Slot {
             return new Source() {
                 @Override
                 public ItemStack get() {
-                    return handler.getStackInSlot(slot);
+                    return inRange() ? handler.getStackInSlot(slot) : ItemStack.EMPTY;
                 }
 
                 @Override
                 public void set(ItemStack stack) {
+                    if (!inRange()) {
+                        return;
+                    }
                     if (handler instanceof IItemHandlerModifiable modifiable) {
                         modifiable.setStackInSlot(slot, stack);
                         return;
@@ -272,17 +275,22 @@ public final class InvSeeBoundSlot extends Slot {
 
                 @Override
                 public ItemStack remove(int amount) {
-                    return handler.extractItem(slot, amount, false);
+                    return inRange() ? handler.extractItem(slot, amount, false) : ItemStack.EMPTY;
                 }
 
                 @Override
                 public boolean mayPlace(ItemStack stack) {
-                    return handler.isItemValid(slot, stack) && validator.test(stack);
+                    return inRange() && handler.isItemValid(slot, stack) && validator.test(stack);
                 }
 
                 @Override
                 public int getMaxStackSize() {
-                    return handler.getSlotLimit(slot);
+                    return inRange() ? handler.getSlotLimit(slot) : 0;
+                }
+
+                /** Dynamic handlers (Curios) can shrink while a slot is still bound. */
+                private boolean inRange() {
+                    return slot >= 0 && slot < handler.getSlots();
                 }
 
                 @Override

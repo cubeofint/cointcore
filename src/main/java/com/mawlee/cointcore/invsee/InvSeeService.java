@@ -105,11 +105,15 @@ public final class InvSeeService {
     public static boolean openAccessories(ServerPlayer viewer, InvSeeTarget target) {
         if (InvSeeMods.curios()) {
             InvSeeSession session = InvSeeSessions.begin(viewer, target, accessoriesSessionSection(viewer));
+            InvSeeCuriosMenu[] created = new InvSeeCuriosMenu[1];
             boolean opened = open(
                     viewer,
                     title(target, "gui.cointcore.invsee.tab.accessories"),
-                    (id, inv, player) -> new InvSeeCuriosMenu(id, inv, session),
-                    buf -> buf.writeBoolean(true)
+                    (id, inv, player) -> {
+                        created[0] = new InvSeeCuriosMenu(id, inv, session);
+                        return created[0];
+                    },
+                    curiosExtra(created)
             );
             if (opened) {
                 sendChrome(viewer, target, InvSeeSection.ACCESSORIES);
@@ -199,9 +203,13 @@ public final class InvSeeService {
             return false;
         }
         InvSeeSession session = InvSeeSessions.begin(viewer, target, InvSeeSection.CURIOS);
+        InvSeeCuriosMenu[] created = new InvSeeCuriosMenu[1];
         boolean opened = open(viewer, title(target, "gui.cointcore.invsee.tab.curios_all"),
-                (id, inv, player) -> new InvSeeCuriosMenu(id, inv, session),
-                buf -> buf.writeBoolean(true));
+                (id, inv, player) -> {
+                    created[0] = new InvSeeCuriosMenu(id, inv, session);
+                    return created[0];
+                },
+                curiosExtra(created));
         if (opened) {
             sendChrome(viewer, target, InvSeeSection.CURIOS);
         }
@@ -304,6 +312,17 @@ public final class InvSeeService {
     public static String resolveDefaultAttachment(InvSeeTarget target, ServerPlayer viewer) {
         List<String> keys = InvSeeDiscover.attachmentKeys(target.getPlayer(), viewer.registryAccess());
         return keys.isEmpty() ? null : keys.getFirst();
+    }
+
+    private static Consumer<RegistryFriendlyByteBuf> curiosExtra(InvSeeCuriosMenu[] created) {
+        return buf -> {
+            buf.writeBoolean(true);
+            if (created[0] == null) {
+                buf.writeVarInt(0);
+                return;
+            }
+            created[0].writeClientLayout(buf);
+        };
     }
 
     private static boolean open(
