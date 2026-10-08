@@ -10,6 +10,9 @@ import net.minecraft.world.inventory.InventoryMenu;
 
 public final class InvSeeCurioSlot extends InvSeeBoundSlot {
     private InvSeeCurioSlotMeta meta;
+    /** Client icon cache: resolved once per meta instead of reflecting every frame. */
+    private ResourceLocation icon;
+    private boolean iconResolved;
 
     public InvSeeCurioSlot(
             Container placeholder,
@@ -24,11 +27,18 @@ public final class InvSeeCurioSlot extends InvSeeBoundSlot {
     }
 
     public void applyMeta(InvSeeCurioSlotMeta meta) {
-        this.meta = meta != null && meta.present() ? meta : null;
+        InvSeeCurioSlotMeta next = meta != null && meta.present() ? meta : null;
+        if (next == null || !next.equals(this.meta)) {
+            icon = null;
+            iconResolved = false;
+        }
+        this.meta = next;
     }
 
     public void clearMeta() {
         this.meta = null;
+        icon = null;
+        iconResolved = false;
     }
 
     public boolean hasMeta() {
@@ -63,7 +73,10 @@ public final class InvSeeCurioSlot extends InvSeeBoundSlot {
         if (meta == null) {
             return null;
         }
-        ResourceLocation icon = InvSeeClientDispatchers.curiosIcon(meta.identifier());
+        if (!iconResolved) {
+            icon = InvSeeClientDispatchers.curiosIcon(meta.identifier());
+            iconResolved = icon != null;
+        }
         if (icon == null) {
             return null;
         }

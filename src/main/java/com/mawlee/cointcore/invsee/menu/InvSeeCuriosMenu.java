@@ -48,6 +48,8 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
     private final List<Boolean> flatCosmetic = new ArrayList<>();
     private final List<Boolean> flatVisible = new ArrayList<>();
     private List<InvSeeCurioSlotMeta> clientLayout = List.of();
+    private List<InvSeeCurioSlotMeta> lastSentLayout;
+    private int layoutSignature;
 
     public static InvSeeCuriosMenu fromNetwork(int containerId, Inventory inventory, RegistryFriendlyByteBuf buf) {
         buf.readBoolean();
@@ -219,10 +221,39 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
         if (clientSide || !(viewer instanceof ServerPlayer serverPlayer)) {
             return;
         }
-        PacketDistributor.sendToPlayer(
-                serverPlayer,
-                new InvSeeCuriosLayoutPayload(containerId, snapshotLayout())
-        );
+        List<InvSeeCurioSlotMeta> layout = snapshotLayout();
+        if (layout.equals(lastSentLayout)) {
+            return;
+        }
+        lastSentLayout = layout;
+        PacketDistributor.sendToPlayer(serverPlayer, new InvSeeCuriosLayoutPayload(containerId, layout));
+    }
+
+    @Override
+    public void broadcastChanges() {
+        // Curios slot counts can change without a target generation bump (slot attributes,
+        // datapack reload): rebuild before syncing so bound indices never go stale.
+        if (!clientSide && target != null && syncedUnavailable == 0 && curiosSignature() != layoutSignature) {
+            refreshContent();
+        }
+        super.broadcastChanges();
+    }
+
+    private int curiosSignature() {
+        if (target == null) {
+            return 0;
+        }
+        Optional<ICuriosItemHandler> curios = CuriosApi.getCuriosInventory(target);
+        if (curios.isEmpty()) {
+            return 0;
+        }
+        int hash = 1;
+        for (Map.Entry<String, ICurioStacksHandler> entry : curios.get().getCurios().entrySet()) {
+            IItemHandler stacks = entry.getValue().getStacks();
+            int size = stacks == null ? -1 : stacks.getSlots();
+            hash += entry.getKey().hashCode() ^ (size * 31 + (entry.getValue().hasCosmetic() ? 1 : 0));
+        }
+        return hash;
     }
 
     private List<InvSeeCurioSlotMeta> snapshotLayout() {
@@ -239,6 +270,7 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
         flatIds.clear();
         flatCosmetic.clear();
         flatVisible.clear();
+        layoutSignature = curiosSignature();
         Optional<ICuriosItemHandler> curios = CuriosApi.getCuriosInventory(target);
         if (curios.isEmpty()) {
             return;
