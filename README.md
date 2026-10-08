@@ -2,7 +2,7 @@
 
 Серверный coremod для модпака **COINT 1.2\*** на **Minecraft 1.21.1** / **NeoForge**.
 
-Мод объединяет модерацию, чат, автоматизацию сервера, защиту чанков и интеграции с tech-модами в одном JAR. Устанавливается **только на dedicated server** — клиентам он не нужен.
+Мод объединяет модерацию, чат, автоматизацию сервера, защиту чанков, экономику глюонов и интеграции с tech-модами в одном JAR. Ставится **на сервер и на клиенты одной и той же сборкой**: мод регистрирует блок `cointcore:trader` и клиентские экраны (торговый терминал, InvSee), а `displayTest = MATCH_VERSION` требует совпадения версий.
 
 | | |
 |---|---|
@@ -37,14 +37,16 @@
 - Слежка за чатом (`/spy`)
 - Админ-чат (`/a`, `/ac`, `/adminchat`)
 - Телепорт к офлайн-игроку (`/tpl`)
-- Просмотр и правка инвентарей (`/invsee`) — онлайн и офлайн, с журналом действий
+- Просмотр и правка инвентарей (`/invsee`) — единое окно с вкладками, онлайн и офлайн, с журналом действий
 
 ### Серверная автоматизация
 
 - Плановый и ручной рестарт (`/cointcore restart`)
 - Периодические сообщения в чат
 - Очистка предметов на земле (`world-cleanup`)
+- Защита от массового выпадения предметов: при ломании контейнера с огромным содержимым лишнее упаковывается в «кучи предметов» (`item-perf.json`)
 - Очистка мобов по расписанию (`mob-cleanup`)
+- Сброс выбранных измерений по расписанию с рестартом (`dimension-wipe.json`, `/cointcore dimwipe`)
 - Голосования за день и ясную погоду (`/voteday`, `/votesun`)
 - Интеграция со Spark (TPS/MSPT, профилирование)
 - Tick watchdog: координаты дорогих block entity / entity и топ методов при лагах
@@ -64,17 +66,19 @@
 - Keep Inventory с поддержкой Curios и Accessories
 - Лимиты блоков и сущностей на чанк (`/chunklimit`)
 - Лимиты и перехват лута спавнеров (Apothic Spawners)
-- Кредиты на киты FTB Essentials (`/kit balance`, `/cointcore kit ...`)
-- Кошелёк глюонов: `/balance`, `/pay`, админ `/cointcore gluons`, торговый терминал
+- Кредиты на киты FTB Essentials (`/kit balance`, `/cointcore kit ...`) и стартовый кит (`/cointcore starter`)
+- Кошелёк глюонов: `/balance`, `/pay`, админ `/cointcore gluons`, торговый терминал `cointcore:trader`, обмен с сайтом через AzLink
 - Уникальные фильтры ME (AE2)
 - Донорские привилегии (полёт и др.)
 
 ## Установка
 
 1. Скачайте или соберите `cointcore-1.0.0.jar`.
-2. Положите JAR в папку `mods/` **только на сервере**.
+2. Положите **один и тот же** JAR в `mods/` сервера и в `mods/` клиентов. Клиент без мода или с другой версией в список серверов попадёт как несовместимый.
 3. Запустите сервер — конфиги создадутся автоматически в `config/cointcore/`.
 4. Настройте права через LuckPerms или OP-уровень (см. [Права доступа](#права-доступа)).
+
+> **Версия и реестры.** Если меняется набор блоков, меню или сетевых пакетов, поднимайте `mod_version` в `gradle.properties`. Иначе клиент со старым JAR той же версии пройдёт проверку версии, но отвалится при синхронизации реестров.
 
 > **Важно:** мод рассчитан на конкретный состав модпака COINT. На сервере без FTB Chunks, AE2, Create и других зависимых модов часть функций просто не активируется — mixin подключаются условно.
 
@@ -178,9 +182,13 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/cointcore restart [секунды]` | Запланировать рестарт (`cancel` — отменить) |
 | `/cointcore worldcleanup status` | Статус очистки мира |
 | `/cointcore worldcleanup run` | Запустить очистку вручную |
+| `/cointcore dimwipe status\|now` | Сброс измерений: статус расписания / сбросить сейчас |
+| `/cointcore sunkencity status\|force` | Респавн Sunken City |
+| `/cointcore cataclysmspots status\|force` | Респавн структур Cataclysm (`frostedprison` — старый алиас) |
+| `/cointcore starter status\|set_from_inv\|sync_cooldown\|reset_firstjoin` | Стартовый кит |
 | `/cointcore chunklimit ...` | Управление лимитами чанков |
 | `/cointcore claim flag ...` | Флаги чанков FTB (если FTB Chunks установлен) |
-| `/cointcore kit ...` | Управление кредитами на киты (если FTB Essentials установлен) |
+| `/cointcore kit balance\|add\|set\|take` | Управление кредитами на киты (если FTB Essentials установлен) |
 | `/cointcore watchdog ...` | Tick watchdog: отчёт, топ, телепорт к виновнику |
 | `/cointcore gluons get\|set\|add` | Админ-кошелёк глюонов (`cointcore.gluons.admin`) |
 
@@ -189,13 +197,27 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | Подкоманда | Описание |
 |------------|----------|
 | `info <команда\|игрок>` | Показать флаги команды |
-| `no_player_damage <true\|false>` | Запрет урона игрокам в чанке |
-| `no_hostile_mob_spawn <true\|false>` | Запрет спавна враждебных мобов |
-| `protect_mobs <true\|false>` | Защита мобов от игроков |
+| `mob-spawn <цель> <allow\|deny>` | Разрешить/запретить спавн всех мобов |
+| `mob-spawn <цель> <моб> <allow\|deny\|clear>` | Правило для конкретного моба (`clear` — снять) |
+| `mob-damage <цель> <true\|false>` | Урон мобам в привате |
+| `fire-spread <цель> <true\|false>` | Распространение огня |
+| `pvp <цель> <true\|false>` | PvP в привате |
+| `entry <цель> <allow\|deny>` | Вход чужих игроков в приват |
+
+Каждый флаг проверяет свой узел `cointcore.claim_flag.*` (см. [Права доступа](#права-доступа)).
 
 ## InvSee
 
-Просмотр и правка чужих инвентарей. Интерфейс пока прежний (отдельное окно на каждый раздел); вкладки в ванильном стиле будут отдельным обновлением.
+Просмотр и правка чужих инвентарей в едином админ-окне с вкладками сверху:
+
+- **Инвентарь** — основной инвентарь, хотбар, броня, вторая рука.
+- **Эндер-сундук** — 27 слотов.
+- **Accessories** — реальные слоты Curios цели (косметические — только у типов слотов с включённой косметикой), с иконками и подсказками. Без Curios вкладка показывает слоты мода Accessories; без обоих модов скрыта. Правки проверяются на сервере (`CuriosApi.isStackValid`).
+- **FTB** — дома и последняя смерть FTB Essentials, только чтение.
+- **Могилы** — последняя смерть и могилы YIGD / Tombstone / Gravestone, только чтение; без мода могил вкладка скрыта.
+- **Состояние** — здоровье, еда, опыт, эффекты, позиция, режим игры, онлайн/офлайн.
+
+ПКМ по шалкеру, мешку или рюкзаку открывает вложенное содержимое. Логика на сервере, клиент получает оформление вкладок через пакеты.
 
 ### Команды
 
@@ -203,7 +225,11 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 |---------|--------|
 | `/invsee <ник\|uuid>` | Инвентарь, броня, вторая рука |
 | `/invsee <ник> ender` | Эндер-сундук |
-| `/invsee <ник> curios` | Curios |
+| `/invsee <ник> accessories` | Вкладка Accessories (Curios / Accessories) |
+| `/invsee <ник> ftb` | Дома и последняя смерть FTB |
+| `/invsee <ник> graves` | Могилы |
+| `/invsee <ник> state` | Состояние игрока |
+| `/invsee <ник> curios` | Curios (отдельное окно) |
 | `/invsee <ник> cosmetic` | Косметическая броня |
 | `/invsee <ник> backpack [ключ\|номер]` | Sophisticated Backpacks |
 | `/invsee <ник> pocket [uuid]` | Pocket Storage |
@@ -226,8 +252,8 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 
 | Узел | Описание |
 |------|----------|
-| `cointcore.invsee.view.<inventory\|ender\|curios\|cosmetic\|backpack\|pocket\|moddata>` | Просмотр раздела |
-| `cointcore.invsee.edit.<inventory\|ender\|curios\|cosmetic\|backpack\|pocket\|moddata>` | Правка раздела |
+| `cointcore.invsee.view.<inventory\|ender\|curios\|cosmetic\|backpack\|pocket\|moddata\|accessories\|ftb\|graves\|state>` | Просмотр раздела / вкладки |
+| `cointcore.invsee.edit.<inventory\|ender\|curios\|cosmetic\|backpack\|pocket\|moddata\|accessories>` | Правка раздела |
 | `cointcore.invsee.offline` | Офлайн-игроки |
 | `cointcore.invsee.exempt` | Защитить свой инвентарь от младших ролей |
 | `cointcore.invsee.exempt.bypass` | Открывать защищённых игроков |
@@ -285,8 +311,19 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `cointcore.punishments` | OP | История наказаний |
 | `cointcore.turn_pvp` | все | Переключение PvP |
 | `cointcore.keep_inventory` | запрещено | Keep Inventory при смерти |
-| `cointcore.claim_flags` | OP | Управление флагами чанков |
+| `cointcore.claim_flag.mob_spawn` | OP | Флаг `mob-spawn` у приватов FTB |
+| `cointcore.claim_flag.mob_damage` | OP | Флаг `mob-damage` |
+| `cointcore.claim_flag.fire_spread` | OP | Флаг `fire-spread` |
+| `cointcore.claim_flag.pvp` | OP | Флаг `pvp` |
+| `cointcore.claim_flag.entry` | OP | Флаг `entry` |
+| `cointcore.claim_flag.entry.bypass` | OP | Входить в приваты, закрытые для чужих |
+| `cointcore.claim.buffer.bypass` | OP | Захват чанков в буферной зоне между командами |
 | `cointcore.kit_credits` | OP | Управление кредитами на киты |
+| `cointcore.starter` | все | `/kit start` — получить стартовый кит |
+| `cointcore.starter.admin` | OP | Правка стартового кита и флагов первого входа |
+| `cointcore.afk.bypass` | OP | Без предупреждений, метки `[AFK]` и кика |
+| `cointcore.afk.alerts` | OP | Уведомления о подозрительной активности во время AFK |
+| `cointcore.flux.admin` | OP | Flux Networks: правка любых сетей |
 | `cointcore.vote.day` | все | Голосование за день |
 | `cointcore.vote.clear_weather` | все | Голосование за погоду |
 | `cointcore.restart` | OP | Рестарт сервера |
@@ -379,7 +416,10 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/spark-profiler.json` | Автопрофилирование Spark + retention профилей |
 | `config/cointcore/tick-watchdog.json` | Tick watchdog (координаты лагов, семплы методов) |
 | `config/cointcore/trader_offers.json` | Офферы торговца, `commission_percent`, кольцо истории цен |
-| `config/cointcore/currency-movement.json` | Outbox движений валюты: опциональный HTTP и `site_movements_enabled` (AzLink, выключено по умолчанию) |
+| `config/cointcore/currency-movement.json` | Обмен глюонами с сайтом через AzLink (`site_queue_enabled`, `site_movements_enabled`, оба выключены по умолчанию) и опциональный HTTP-хук |
+| `config/cointcore/item-perf.json` | Оптимизация item entity и защита от массового выпадения (`massDropGuard` и лимиты) |
+| `config/cointcore/dimension-wipe.json` | Расписание сброса измерений |
+| `config/cointcore/starter-kit.json` | Стартовый кит |
 | `config/cointcore/afk.json` | AFK: пометка и кик |
 | `config/cointcore/ftbranks-luckperms-bridge.json` | Мост FTB Ranks → LuckPerms (`ftbranksLuckPermsBridge`, по умолчанию `false`) |
 | `config/cointcore/me-unique-filter.json` | Уникальные фильтры ME (AE2) |
@@ -388,21 +428,75 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/lag-fixes.json` | Лаг-фиксы ATM10 8.2 (см. ниже) |
 | `config/relpchatprefix/config.json` | Префиксы relay-чата |
 
+Это основные файлы. Остальные конфиги (perf-настройки отдельных модов, респавн структур, чат-релей и т.д.) создаются там же, в `config/cointcore/`.
+
 Данные игроков (муты, киты, флаги чанков, история наказаний) хранятся в `world/data/` через Minecraft SavedData.
 
 ## Глюоны и торговец
 
 Кошелёк: overworld SavedData `cointcore_gluon_wallets`. `/pay` и `/transfer` атомарны, цель может быть офлайн (тот же resolve, что у mute). `/cointcore gluons` только для админов.
 
-Торговец: блок терминала, офферы из `config/cointcore/trader_offers.json`. Комиссия `Commission.of` с округлением вверх. **Покупатель** платит `цена + комиссия`. **Продавец** получает `цена − комиссия`. GUI: ванильный контейнер, список офферов, кнопки купить/продать (Shift — стопка). Сделки только сервером по custom payload.
+### Торговый терминал `cointcore:trader`
+
+**Как поставить и открыть**
+
+1. Получите блок: `/give @s cointcore:trader` или вкладка «Функциональные блоки» в творческом режиме. Рецепта крафта нет, терминалы ставит администрация.
+2. Поставьте блок — лицевая сторона (клавиатура и слот для карты) повернётся к игроку. Ломается киркой, при разрушении выпадает сам блок.
+3. ПКМ по терминалу открывает окно: баланс игрока, список офферов со страницами и прокруткой колесом, у каждого оффера цена покупки и продажи с иконкой глюона и график цены.
+4. «Купить» / «Продать» — один лот. С Shift — столько лотов, сколько влезает в одну стопку, с учётом баланса, места в инвентаре и наличия предмета.
+
+Клиент только отправляет запрос (`TraderTradePayload`). Все проверки — нехватка глюонов, полный инвентарь, нет предмета, оффер недоступен — выполняет сервер; ответ приходит в окно (`TraderFeedbackPayload`) и в чат.
+
+**Офферы и комиссия** — `config/cointcore/trader_offers.json`, перечитывается `/cointcore reload`:
+
+```json
+{
+  "commission_percent": 2.5,
+  "price_history_capacity": 48,
+  "price_history_sample_interval_ticks": 1200,
+  "price_history_average_band_percent": 5.0,
+  "offers": [
+    { "id": "diamond", "item": "minecraft:diamond", "count": 1, "buy_price": 100, "sell_price": 80, "enabled": true },
+    { "id": "iron_ingot", "item": "minecraft:iron_ingot", "count": 16, "buy_price": 24, "sell_price": 16, "enabled": true }
+  ]
+}
+```
+
+| Поле оффера | Смысл |
+|-------------|-------|
+| `id` | Ключ оффера (по нему же ведётся история цен); по умолчанию — id предмета |
+| `item` | Id предмета; неизвестный id пропускается с предупреждением в логе |
+| `count` | Размер лота, от 1 до максимального стака предмета |
+| `buy_price` | Цена лота для покупателя в целых глюонах; `0` — оффер только на продажу |
+| `sell_price` | Цена лота при продаже игроком; `0` — только на покупку |
+| `enabled` | `false` скрывает оффер |
+| `components` | Необязательно: data components предмета (формат `DataComponentPatch`) |
+
+Комиссия считается от цены лота с округлением вверх (`Commission.of`): **покупатель** платит `buy_price + комиссия`, **продавец** получает `sell_price − комиссия`. По умолчанию `commission_percent` = 2.5. Цены в оффере фиксированные — меняются только правкой конфига.
+
+### История цен
 
 История цен покупки пишется в overworld SavedData `cointcore_trader_price_history`: семпл на каждую сделку и периодически (`price_history_sample_interval_ticks`, по умолчанию 1200 = 60 с). Кольцо до `price_history_capacity` точек (48). Клиент получает историю вместе с офферами и рисует спарклайн 40×14. Цвет относительно среднего: зелёный — дешевле, красный — дороже, серый — в пределах `price_history_average_band_percent` (±5% по умолчанию). Подсказка по наведению: мин / среднее / макс / сейчас и вердикт.
 
-Иконка глюона: `src/main/resources/assets/cointcore/textures/gui/gluon.png` (16×16, в GUI рисуется 8×8). Сейчас там заглушка; финальный файл кладётся **ровно по этому пути** и пересобирается JAR. В интерфейсе иконка стоит рядом с балансом и рядом с ценами оффера вместо слова «глюонов».
+Иконка глюона: `src/main/resources/assets/cointcore/textures/gui/gluon.png` (16×16, в GUI рисуется 8×8) — та же иконка, что на сайте. Чтобы заменить, положите новый файл **ровно по этому пути** и пересоберите JAR. В интерфейсе иконка стоит рядом с балансом и рядом с ценами оффера вместо слова «глюонов».
+
+### Обмен с сайтом через AzLink
 
 Движения валюты пишутся в overworld SavedData `cointcore_currency_movements` (`pay`, `trader_buy`, `trader_sell`, `admin_set`, `admin_add`). Это outbox для раздела сайта «движение валют». Переводы сайт↔сервер (`site_to_server` / `server_to_site` / `site_adjust`) тоже пишутся локально, но на сайт не отправляются. В JSON уходят `deltas` (uuid / signed delta / `balance_after` по каждому игроку) и `site_op_id` (id операции сайта или `null`).
 
-**AzLink / сайт:** у cointcore нет compile-зависимости на AzLink. Доставка идёт рефлексией в `com.azuriom.azlink.common.coins.CoinOperationsBridge.postMovements` (ветка AzLink-mods `feature/gluon-movements-delivery`). Включается флагом `site_movements_enabled` в `currency-movement.json` (по умолчанию `false`). Батчи, идемпотентность по id движения, retry с backoff 5 с…5 мин, курсор `site_sent_up_to` пишется только после `accepted_up_to` от сайта. Это журнал серверного кошелька: баланс сайта не меняется абсолютной перезаписью. Опциональный HTTP POST (`enabled` + `endpoint_url`) остаётся отдельным хуком и тоже не должен вызывать API абсолютного баланса.
+**AzLink / сайт:** у cointcore нет compile-зависимости на AzLink. Обмен идёт рефлексией через `com.azuriom.azlink.common.coins.CoinOperationsBridge` — он есть в `main` репозитория [cubeofint/AzLink-mods](https://github.com/cubeofint/AzLink-mods) (PR #2–#5). На сервере должна стоять сборка AzLink из этой ветки: в релизе `AzLink-NeoForge-1.3.11` моста нет, и обмен с сайтом работать не будет. Токен сайта хранится только в конфиге AzLink, cointcore его не знает.
+
+Настройки в `config/cointcore/currency-movement.json` (всё выключено по умолчанию):
+
+| Ключ | Дефолт | Смысл |
+|------|--------|-------|
+| `site_queue_enabled` | `false` | Опрашивать очередь операций сайта и применять их к кошельку |
+| `site_queue_poll_seconds` | `5` | Интервал опроса очереди (1–300 с) |
+| `site_movements_enabled` | `false` | Отправлять движения кошелька на сайт (`postMovements`) |
+| `site_movements_batch` | `100` | Размер пакета движений (1–200) |
+| `enabled` + `endpoint_url` | `false` | Отдельный HTTP POST-хук для внешнего приёмника |
+
+Отправка движений: пакеты, идемпотентность по id движения, retry с backoff 5 с…5 мин, курсор `site_sent_up_to` пишется только после `accepted_up_to` от сайта. Это журнал серверного кошелька: баланс сайта не меняется абсолютной перезаписью. HTTP-хук тоже не должен вызывать API абсолютного баланса.
 
 ### Авторитет сайта и очередь adjust
 
@@ -513,7 +607,9 @@ ServerEvents.recipes(event => {
 | **FTB Ranks** | Опциональный мост к LuckPerms (см. ниже) |
 | **FTB Chunks / Teams** | Защита чанков, флаги команд |
 | **FTB Essentials** | Киты, офлайн-телепорт, фиксы NBT |
-| **Curios / Accessories** | Keep Inventory, донорский полёт |
+| **Curios / Accessories** | Keep Inventory, донорский полёт, вкладка Accessories в InvSee |
+| **AzLink** (сборка из `cubeofint/AzLink-mods`) | Обмен глюонами с сайтом (см. [Глюоны и торговец](#глюоны-и-торговец)) |
+| **YIGD / Tombstone / Gravestone** | Вкладка «Могилы» в InvSee |
 | **AE2** | Уникальные ME-фильтры, spatial storage guard |
 | **Apothic Spawners** | Лимиты и лут спавнеров |
 | **Spark** | Метрики TPS/MSPT, профилирование |
@@ -552,21 +648,36 @@ CointCore добавляет опциональный mixin-мост: если F
 src/main/java/com/mawlee/cointcore/
 ├── command/          # Brigadier-команды
 ├── config/           # JSON-конфиги (Gson)
-├── claim/            # FTB Chunks: ClaimGuard, флаги
+├── permission/       # Узлы NeoForge Permission API
+├── claim/            # FTB Chunks: ClaimGuard, флаги, буферная зона
 ├── mixin/            # Mixin + CointCoreMixinPlugin (условная загрузка)
+├── shop/             # Глюоны: кошелёк, торговый терминал, обмен с сайтом через AzLink
+│   └── client/       #   экран терминала, спарклайн, иконка глюона
+├── invsee/           # InvSee: меню, вкладки, интеграции, журнал
+│   └── client/       #   экраны и оформление вкладок
+├── item/             # Защита от массового выпадения, кучи предметов
 ├── vanish/           # Невидимость
 ├── mute/, ban/, punishment/  # Модерация
+├── afk/              # AFK: пометка, кик, клиентская активность в GUI
 ├── watchdog/         # Tick watchdog: атрибуция, семплер, retention
-├── server/           # Рестарты, очистка мира, авто-spark
+├── server/           # Рестарты, очистка мира, сброс измерений, авто-spark
 ├── chunklimit/       # Лимиты на чанк
 ├── spawner/          # Спавнеры
 ├── keepinventory/    # Keep Inventory
+├── kit/              # Кредиты на киты, стартовый кит
 ├── ae/               # Applied Energistics 2
-├── ftb/              # FTB Chunks / Teams / Essentials
+├── ftb/, ftbessentials/, ftbranks/  # FTB Chunks / Teams / Essentials / Ranks
 ├── luckperms/        # LuckPerms (reflection)
 ├── placeholder/      # TAB и Placeholder API
-└── ...
+└── ...               # интеграции с отдельными модами (adastra, ars, cataclysm, enderio, relics, ...)
+
+src/main/resources/
+├── assets/cointcore/ # lang, модель/текстура терминала, иконка глюона
+├── data/             # лут терминала, теги блоков
+└── cointcore.mixins.json, cointcore.compat.mixins.json
 ```
+
+Тесты — JUnit 5 в `src/test/java`, проверяют чистую логику (комиссия, сделки, outbox, вкладки InvSee, watchdog и т.д.): `./gradlew test`.
 
 ## Лицензия
 
