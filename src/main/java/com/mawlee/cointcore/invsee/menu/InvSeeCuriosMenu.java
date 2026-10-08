@@ -5,13 +5,16 @@ import com.mawlee.cointcore.invsee.InvSeeSession;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.DataSlot;
 import net.neoforged.neoforge.items.IItemHandler;
 import top.theillusivec4.curios.api.CuriosApi;
+import top.theillusivec4.curios.api.type.capability.ICuriosItemHandler;
 import top.theillusivec4.curios.api.type.inventory.ICurioStacksHandler;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Fixed chest-like Curios grid (9x5). Pages rebind slots; slot count never changes.
@@ -27,6 +30,7 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
     private int page;
     private int syncedPage;
     private int syncedMaxPage;
+    private int syncedUnavailable;
     /** Parallel lists — avoid nested $ class (some deploys strip *$*.class). */
     private final List<IItemHandler> flatHandlers = new ArrayList<>();
     private final List<Integer> flatSlots = new ArrayList<>();
@@ -42,7 +46,7 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
 
     private InvSeeCuriosMenu(int containerId, Inventory inventory, InvSeeSession session, boolean clientSide) {
         super(InvSeeMenus.CURIOS.get(), containerId, inventory, session, PANEL_SLOTS, clientSide);
-        addDataSlot(new net.minecraft.world.inventory.DataSlot() {
+        addDataSlot(new DataSlot() {
             @Override
             public int get() {
                 return syncedPage;
@@ -53,7 +57,7 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
                 syncedPage = value;
             }
         });
-        addDataSlot(new net.minecraft.world.inventory.DataSlot() {
+        addDataSlot(new DataSlot() {
             @Override
             public int get() {
                 return syncedMaxPage;
@@ -62,6 +66,17 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
             @Override
             public void set(int value) {
                 syncedMaxPage = value;
+            }
+        });
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return syncedUnavailable;
+            }
+
+            @Override
+            public void set(int value) {
+                syncedUnavailable = value;
             }
         });
         finishServerInit();
@@ -73,6 +88,10 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
 
     public int maxPage() {
         return syncedMaxPage;
+    }
+
+    public boolean unavailableOffline() {
+        return syncedUnavailable != 0;
     }
 
     @Override
@@ -87,16 +106,26 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
 
     @Override
     public int viewerInventoryY() {
-        // Same formula as ChestMenu for N rows: 84 + (rows - 3) * 18
         return 84 + (ROWS - 3) * 18;
     }
 
     @Override
     protected void refreshContent() {
-        if (clientSide || target == null) {
+        if (clientSide) {
+            return;
+        }
+        if (target == null) {
+            syncedUnavailable = session != null && session.target().isOffline() ? 1 : 0;
+            clearBoundSlots();
             return;
         }
         rebuildFlattened();
+        if (flatHandlers.isEmpty() && session != null && session.target().isOffline()) {
+            syncedUnavailable = 1;
+            clearBoundSlots();
+            return;
+        }
+        syncedUnavailable = 0;
         int size = flatHandlers.size();
         int maxPage = size == 0 ? 0 : Math.max(0, (size - 1) / PANEL_SLOTS);
         page = Math.min(page, maxPage);
@@ -105,28 +134,51 @@ public final class InvSeeCuriosMenu extends InvSeeBaseMenu {
 
         boolean edit = editable();
         int start = page * PANEL_SLOTS;
+        int bound = 0;
         for (int i = 0; i < PANEL_SLOTS; i++) {
             int flatIndex = start + i;
             if (flatIndex < size) {
                 contentSlots[i].bindHandler(flatHandlers.get(flatIndex), flatSlots.get(flatIndex), edit);
+                bound++;
             } else {
                 contentSlots[i].bindEmpty();
             }
         }
+        setBoundSlotCount(bound);
+    }
+
+    private void clearBoundSlots() {
+        page = 0;
+        syncedPage = 0;
+        syncedMaxPage = 0;
+        for (int i = 0; i < PANEL_SLOTS; i++) {
+            contentSlots[i].bindEmpty();
+        }
+        setBoundSlotCount(0);
     }
 
     private void rebuildFlattened() {
         flatHandlers.clear();
         flatSlots.clear();
-        CuriosApi.getCuriosInventory(target).ifPresent(curios -> {
-            for (Map.Entry<String, ICurioStacksHandler> entry : curios.getCurios().entrySet()) {
-                IItemHandler stacks = entry.getValue().getStacks();
-                for (int slot = 0; slot < stacks.getSlots(); slot++) {
-                    flatHandlers.add(stacks);
-                    flatSlots.add(slot);
-                }
-            }
-        });
+        Optional<ICuriosItemHandler> curios = CuriosApi.getCuriosInventory(target);
+        if (curios.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, ICurioStacksHandler> entry : curios.get().getCurios().entrySet()) {
+            ICurioStacksHandler handler = entry.getValue();
+            addHandler(handler.getStacks());
+            addHandler(handler.getCosmeticStacks());
+        }
+    }
+
+    private void addHandler(IItemHandler stacks) {
+        if (stacks == null) {
+            return;
+        }
+        for (int slot = 0; slot < stacks.getSlots(); slot++) {
+            flatHandlers.add(stacks);
+            flatSlots.add(slot);
+        }
     }
 
     @Override

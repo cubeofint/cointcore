@@ -20,8 +20,11 @@ public final class InvSeeTabPolicy {
     private InvSeeTabPolicy() {
     }
 
-    public static boolean showAccessories(boolean accessoriesLoaded) {
-        return accessoriesLoaded;
+    /**
+     * Accessories tab: Curios when present; Accessories mod only if Curios is absent.
+     */
+    public static boolean showAccessories(boolean curiosLoaded, boolean accessoriesLoaded) {
+        return curiosLoaded || accessoriesLoaded;
     }
 
     public static boolean showFtb(boolean ftbEssentialsLoaded) {
@@ -43,6 +46,7 @@ public final class InvSeeTabPolicy {
     public static int mask(
             boolean canViewInventory,
             boolean canViewEnder,
+            boolean curiosLoaded,
             boolean accessoriesLoaded,
             boolean canViewAccessories,
             boolean ftbLoaded,
@@ -58,7 +62,7 @@ public final class InvSeeTabPolicy {
         if (canViewEnder) {
             bits |= InvSeeTab.ENDER.mask();
         }
-        if (showAccessories(accessoriesLoaded) && canViewAccessories) {
+        if (showAccessories(curiosLoaded, accessoriesLoaded) && canViewAccessories) {
             bits |= InvSeeTab.ACCESSORIES.mask();
         }
         if (showFtb(ftbLoaded) && canViewFtb) {

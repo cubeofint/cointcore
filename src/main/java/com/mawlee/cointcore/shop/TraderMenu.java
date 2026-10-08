@@ -20,10 +20,10 @@ import java.util.List;
  * Deals are requested with {@link TraderTradePayload}, not slot clicks.
  */
 public class TraderMenu extends AbstractContainerMenu {
-    public static final int PAGE_SIZE = 5;
+    public static final int PAGE_SIZE = 4;
     public static final int GUI_WIDTH = 256;
     public static final int VANILLA_INV_WIDTH = 176;
-    public static final int ROW_HEIGHT = 40;
+    public static final int ROW_HEIGHT = 54;
     public static final int TITLE_HEIGHT = 30;
     public static final int STATUS_HEIGHT = 12;
     public static final int PAGE_BAR_HEIGHT = 18;

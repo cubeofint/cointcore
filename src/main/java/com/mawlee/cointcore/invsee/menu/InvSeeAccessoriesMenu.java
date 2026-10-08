@@ -100,14 +100,17 @@ public final class InvSeeAccessoriesMenu extends InvSeeBaseMenu {
 
         boolean edit = editable();
         int start = page * PANEL_SLOTS;
+        int bound = 0;
         for (int i = 0; i < PANEL_SLOTS; i++) {
             int flatIndex = start + i;
             if (flatIndex < size) {
                 contentSlots[i].bindContainer(flatContainers.get(flatIndex), flatSlots.get(flatIndex), edit);
+                bound++;
             } else {
                 contentSlots[i].bindEmpty();
             }
         }
+        setBoundSlotCount(bound);
     }
 
     private void rebuildFlattened() {

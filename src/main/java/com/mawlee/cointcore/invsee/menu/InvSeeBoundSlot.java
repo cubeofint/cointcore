@@ -12,13 +12,30 @@ import net.neoforged.neoforge.items.IItemHandlerModifiable;
  */
 public final class InvSeeBoundSlot extends Slot {
     private final boolean clientSide;
+    private final InvSeeBaseMenu menu;
+    private final int contentIndex;
     private Source source = Source.EMPTY;
     private boolean readOnly = true;
     private ItemStack clientStack = ItemStack.EMPTY;
 
-    public InvSeeBoundSlot(Container placeholder, int index, int x, int y, boolean clientSide) {
+    public InvSeeBoundSlot(
+            Container placeholder,
+            int index,
+            int x,
+            int y,
+            boolean clientSide,
+            InvSeeBaseMenu menu,
+            int contentIndex
+    ) {
         super(placeholder, index, x, y);
         this.clientSide = clientSide;
+        this.menu = menu;
+        this.contentIndex = contentIndex;
+    }
+
+    @Override
+    public boolean isActive() {
+        return menu.isContentSlotBound(contentIndex);
     }
 
     public void bindEmpty() {

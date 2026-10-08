@@ -9,6 +9,10 @@ public final class InvSeeMods {
     private InvSeeMods() {
     }
 
+    public static boolean curios() {
+        return loaded("curios");
+    }
+
     public static boolean accessories() {
         return loaded("accessories");
     }

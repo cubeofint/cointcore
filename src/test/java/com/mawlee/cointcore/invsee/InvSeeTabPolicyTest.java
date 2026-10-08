@@ -12,8 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class InvSeeTabPolicyTest {
     @Test
     void accessoriesHiddenWhenModAbsent() {
-        assertFalse(InvSeeTabPolicy.showAccessories(false));
-        assertTrue(InvSeeTabPolicy.showAccessories(true));
+        assertFalse(InvSeeTabPolicy.showAccessories(false, false));
+        assertTrue(InvSeeTabPolicy.showAccessories(true, false));
+        assertTrue(InvSeeTabPolicy.showAccessories(false, true));
     }
 
     @Test
@@ -29,6 +30,7 @@ class InvSeeTabPolicyTest {
         int mask = InvSeeTabPolicy.mask(
                 true,
                 true,
+                false,
                 false,
                 true,
                 false,
@@ -47,15 +49,23 @@ class InvSeeTabPolicyTest {
     @Test
     void maskIncludesOptionalTabsWhenLoadedAndAllowed() {
         int mask = InvSeeTabPolicy.mask(
-                true, true, true, true, true, true, true, true, true
+                true, true, true, true, true, true, true, true, true, true
         );
         assertEquals(InvSeeTab.values().length, InvSeeTabPolicy.visible(mask).size());
     }
 
     @Test
+    void maskShowsAccessoriesWhenOnlyCuriosLoaded() {
+        int mask = InvSeeTabPolicy.mask(
+                true, true, true, false, true, false, false, false, false, true
+        );
+        assertTrue(InvSeeTabPolicy.contains(mask, InvSeeTab.ACCESSORIES));
+    }
+
+    @Test
     void viewDeniedDropsTabEvenIfModLoaded() {
         int mask = InvSeeTabPolicy.mask(
-                true, false, true, false, true, false, true, false, false
+                true, false, true, true, false, true, false, true, false, false
         );
         assertEquals(List.of(InvSeeTab.INVENTORY), InvSeeTabPolicy.visible(mask));
     }

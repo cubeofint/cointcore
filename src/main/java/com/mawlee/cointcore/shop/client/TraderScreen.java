@@ -27,6 +27,8 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
     private static final int BUTTON_PADDING = 16;
     private static final int BUTTON_HEIGHT = 18;
     private static final int BUTTON_GAP = 2;
+    private static final int NAME_OFFSET = 2;
+    private static final int PRICE_BLOCK_TOP = 14;
     private static final int CHART_GAP = 4;
     private static final String ELLIPSIS = "…";
 
@@ -61,7 +63,7 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
                 break;
             }
             TraderOffer offer = menu.offers().get(offerIndex);
-            int y = buttonY0 + row * TraderMenu.ROW_HEIGHT;
+            int y = buttonY0 + row * TraderMenu.ROW_HEIGHT + PRICE_BLOCK_TOP;
             int buyX = leftPos + buttonColumnX;
             Button buy = Button.builder(Component.translatable("gui.cointcore.trader.buy"), button -> trade(offerIndex, false))
                     .bounds(buyX, y, buttonWidth, BUTTON_HEIGHT)
@@ -117,31 +119,34 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
                 break;
             }
             TraderOffer offer = menu.offers().get(offerIndex);
-            int y = TraderMenu.TITLE_HEIGHT + 3 + row * TraderMenu.ROW_HEIGHT;
+            int y = TraderMenu.TITLE_HEIGHT + 2 + row * TraderMenu.ROW_HEIGHT;
             ItemStack stack = offer.display();
             graphics.drawString(
                     font,
                     ellipsize(stack.getHoverName().getString(), textMaxWidth),
                     TEXT_LEFT,
-                    y,
+                    y + NAME_OFFSET,
                     VanillaContainerSkin.LABEL_COLOR,
                     false
             );
-            Component prices = Component.translatable(
-                    "gui.cointcore.trader.prices",
-                    offer.canBuy() ? Long.toString(offer.buyTotal()) : "—",
-                    offer.canSell() ? Long.toString(offer.sellNet()) : "—"
+            int buyY = y + PRICE_BLOCK_TOP + priceTextOffset();
+            int sellY = y + PRICE_BLOCK_TOP + BUTTON_HEIGHT + BUTTON_GAP + priceTextOffset();
+            drawPriceLine(
+                    graphics,
+                    Component.translatable(
+                            "gui.cointcore.trader.buy_price",
+                            offer.canBuy() ? Long.toString(offer.buyTotal()) : "—"
+                    ),
+                    buyY
             );
-            Component priceLine = ellipsize(prices.getString(), textMaxWidth);
-            graphics.drawString(
-                    font,
-                    priceLine,
-                    TEXT_LEFT,
-                    y + 11,
-                    VanillaContainerSkin.LABEL_COLOR,
-                    false
+            drawPriceLine(
+                    graphics,
+                    Component.translatable(
+                            "gui.cointcore.trader.sell_price",
+                            offer.canSell() ? Long.toString(offer.sellNet()) : "—"
+                    ),
+                    sellY
             );
-            GluonGuiIcon.blit(graphics, TEXT_LEFT + font.width(priceLine) + 2, y + 10);
         }
 
         if (menu.offers().isEmpty()) {
@@ -299,8 +304,18 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
     }
 
     private int chartScreenY(int row) {
-        int rowY = topPos + TraderMenu.TITLE_HEIGHT + 2 + row * TraderMenu.ROW_HEIGHT;
-        return rowY + (TraderMenu.ROW_HEIGHT - 2 - OfferPriceSparkline.HEIGHT) / 2;
+        int blockTop = topPos + TraderMenu.TITLE_HEIGHT + 2 + row * TraderMenu.ROW_HEIGHT + PRICE_BLOCK_TOP;
+        int blockHeight = BUTTON_HEIGHT * 2 + BUTTON_GAP;
+        return blockTop + (blockHeight - OfferPriceSparkline.HEIGHT) / 2;
+    }
+
+    private void drawPriceLine(GuiGraphics graphics, Component line, int y) {
+        graphics.drawString(font, line, TEXT_LEFT, y, VanillaContainerSkin.LABEL_COLOR, false);
+        GluonGuiIcon.blit(graphics, TEXT_LEFT + font.width(line) + 2, y - 1);
+    }
+
+    private int priceTextOffset() {
+        return Math.max(0, (BUTTON_HEIGHT - 8) / 2);
     }
 
     private int hoveredChartOffer(int mouseX, int mouseY) {
@@ -395,7 +410,7 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
         int row = offerIndex - page * TraderMenu.PAGE_SIZE;
         int localX = mouseX - leftPos;
         int localY = mouseY - topPos - TraderMenu.TITLE_HEIGHT;
-        int rowTop = 2 + row * TraderMenu.ROW_HEIGHT;
+        int rowTop = 2 + row * TraderMenu.ROW_HEIGHT + NAME_OFFSET;
         return localX >= TEXT_LEFT && localX < TEXT_LEFT + textMaxWidth
                 && localY >= rowTop && localY < rowTop + 10;
     }

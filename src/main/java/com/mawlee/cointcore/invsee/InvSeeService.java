@@ -27,6 +27,12 @@ public final class InvSeeService {
     }
 
     public static boolean openTab(ServerPlayer viewer, InvSeeTarget target, InvSeeTab tab) {
+        if (tab == InvSeeTab.ACCESSORIES) {
+            if (!canViewAccessoriesTab(viewer)) {
+                return false;
+            }
+            return openAccessories(viewer, target);
+        }
         if (!InvSeePermissions.canView(viewer, tab.section())) {
             return false;
         }
@@ -42,14 +48,20 @@ public final class InvSeeService {
         return InvSeeTabPolicy.mask(
                 InvSeePermissions.canView(viewer, InvSeeSection.INVENTORY),
                 InvSeePermissions.canView(viewer, InvSeeSection.ENDER),
+                InvSeeMods.curios(),
                 InvSeeMods.accessories(),
-                InvSeePermissions.canView(viewer, InvSeeSection.ACCESSORIES),
+                canViewAccessoriesTab(viewer),
                 InvSeeMods.ftbEssentials(),
                 InvSeePermissions.canView(viewer, InvSeeSection.FTB),
                 InvSeeMods.graves(),
                 InvSeePermissions.canView(viewer, InvSeeSection.GRAVES),
                 InvSeePermissions.canView(viewer, InvSeeSection.STATE)
         );
+    }
+
+    private static boolean canViewAccessoriesTab(ServerPlayer viewer) {
+        return InvSeePermissions.canView(viewer, InvSeeSection.ACCESSORIES)
+                || InvSeePermissions.canView(viewer, InvSeeSection.CURIOS);
     }
 
     public static void sendChrome(ServerPlayer viewer, InvSeeTarget target, InvSeeSection section) {
@@ -91,6 +103,19 @@ public final class InvSeeService {
     }
 
     public static boolean openAccessories(ServerPlayer viewer, InvSeeTarget target) {
+        if (InvSeeMods.curios()) {
+            InvSeeSession session = InvSeeSessions.begin(viewer, target, accessoriesSessionSection(viewer));
+            boolean opened = open(
+                    viewer,
+                    title(target, "gui.cointcore.invsee.tab.accessories"),
+                    (id, inv, player) -> new InvSeeCuriosMenu(id, inv, session),
+                    buf -> buf.writeBoolean(true)
+            );
+            if (opened) {
+                sendChrome(viewer, target, InvSeeSection.ACCESSORIES);
+            }
+            return opened;
+        }
         if (!InvSeeMods.accessories()) {
             return false;
         }
@@ -107,6 +132,13 @@ public final class InvSeeService {
             sendChrome(viewer, target, InvSeeSection.ACCESSORIES);
         }
         return opened;
+    }
+
+    private static InvSeeSection accessoriesSessionSection(ServerPlayer viewer) {
+        if (InvSeePermissions.canView(viewer, InvSeeSection.CURIOS)) {
+            return InvSeeSection.CURIOS;
+        }
+        return InvSeeSection.ACCESSORIES;
     }
 
     public static boolean openInfo(ServerPlayer viewer, InvSeeTarget target, InvSeeSection section) {
