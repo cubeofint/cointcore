@@ -87,6 +87,55 @@ public final class GluonWalletSavedData extends SavedData {
         return true;
     }
 
+    public synchronized boolean tryPlayerShopBuy(UUID customerId, UUID ownerId, long customerDebit, long ownerCredit) {
+        if (customerId == null || ownerId == null || customerId.equals(ownerId)) {
+            return false;
+        }
+        if (customerDebit <= 0L || ownerCredit < 0L || ownerCredit > customerDebit) {
+            return false;
+        }
+        if (get(customerId) < customerDebit) {
+            return false;
+        }
+        set(customerId, get(customerId) - customerDebit);
+        if (ownerCredit > 0L) {
+            add(ownerId, ownerCredit);
+        }
+        return true;
+    }
+
+    public synchronized boolean tryPlayerShopSell(UUID ownerId, UUID customerId, long ownerDebit, long customerCredit) {
+        if (ownerId == null || customerId == null || ownerId.equals(customerId)) {
+            return false;
+        }
+        if (ownerDebit <= 0L || customerCredit < 0L || customerCredit > ownerDebit) {
+            return false;
+        }
+        if (get(ownerId) < ownerDebit) {
+            return false;
+        }
+        set(ownerId, get(ownerId) - ownerDebit);
+        if (customerCredit > 0L) {
+            add(customerId, customerCredit);
+        }
+        return true;
+    }
+
+    /**
+     * Undoes {@link #tryPlayerShopSell}: debit the customer by the credited net and
+     * restore the listing price to the owner.
+     */
+    public synchronized boolean reversePlayerShopSell(UUID ownerId, UUID customerId, long ownerDebit, long customerCredit) {
+        if (ownerId == null || customerId == null) {
+            return false;
+        }
+        if (!trySubtract(customerId, customerCredit)) {
+            return false;
+        }
+        add(ownerId, ownerDebit);
+        return true;
+    }
+
     private static GluonWalletSavedData load(CompoundTag tag, HolderLookup.Provider provider) {
         GluonWalletSavedData data = new GluonWalletSavedData();
         if (!tag.contains(PLAYERS_KEY, Tag.TAG_LIST)) {

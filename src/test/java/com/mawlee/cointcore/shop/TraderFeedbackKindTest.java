@@ -13,6 +13,10 @@ class TraderFeedbackKindTest {
         assertTrue(TraderFeedbackKind.NOT_ENOUGH_ITEMS.error());
         assertTrue(TraderFeedbackKind.INVENTORY_FULL.error());
         assertTrue(TraderFeedbackKind.OFFER_UNAVAILABLE.error());
+        assertTrue(TraderFeedbackKind.OUT_OF_STOCK.error());
+        assertTrue(TraderFeedbackKind.STOCK_FULL.error());
+        assertTrue(TraderFeedbackKind.OWNER_BROKE.error());
+        assertTrue(TraderFeedbackKind.OWN_SHOP.error());
         assertFalse(TraderFeedbackKind.BOUGHT.error());
         assertFalse(TraderFeedbackKind.SOLD.error());
     }

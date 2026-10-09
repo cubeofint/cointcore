@@ -48,7 +48,10 @@ public final class PermissionRegistration {
                 CointPermissionNodes.WATCHDOG,
                 CointPermissionNodes.GLUONS_ADMIN,
                 CointPermissionNodes.GLUONS_BALANCE,
-                CointPermissionNodes.GLUONS_PAY
+                CointPermissionNodes.GLUONS_PAY,
+                CointPermissionNodes.PLAYER_SHOP_PLACE,
+                CointPermissionNodes.PLAYER_SHOP_USE,
+                CointPermissionNodes.PLAYER_SHOP_ADMIN
         );
         event.addNodes(CointPermissionNodes.invSeeNodes());
     }

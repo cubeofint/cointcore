@@ -41,6 +41,17 @@ public final class TraderOffersConfig {
         return loaded.commissionPercent;
     }
 
+    /**
+     * Player-shop commission; falls back to the system-trader percent when unset.
+     */
+    public static double playerShopCommissionPercent() {
+        return loaded.playerShopCommissionPercent;
+    }
+
+    public static boolean playerShopCraftingEnabled() {
+        return loaded.playerShopCraftingEnabled;
+    }
+
     public static int priceHistoryCapacity() {
         return loaded.priceHistoryCapacity;
     }
@@ -105,6 +116,11 @@ public final class TraderOffersConfig {
         double percent = data.commissionPercent != null && !Double.isNaN(data.commissionPercent)
                 ? Math.max(0.0d, data.commissionPercent)
                 : 2.5d;
+        double playerShopPercent = data.playerShopCommissionPercent != null
+                && !Double.isNaN(data.playerShopCommissionPercent)
+                ? Math.max(0.0d, data.playerShopCommissionPercent)
+                : percent;
+        boolean crafting = data.playerShopCraftingEnabled == null || data.playerShopCraftingEnabled;
         List<TraderOffer> offers = new ArrayList<>();
         if (data.offers != null) {
             for (OfferData entry : data.offers) {
@@ -120,7 +136,15 @@ public final class TraderOffersConfig {
         double band = data.priceHistoryAverageBandPercent != null && !Double.isNaN(data.priceHistoryAverageBandPercent)
                 ? Math.max(0.0d, data.priceHistoryAverageBandPercent)
                 : 5.0d;
-        return new Loaded(percent, historyCapacity, sampleTicks, band, List.copyOf(offers));
+        return new Loaded(
+                percent,
+                playerShopPercent,
+                crafting,
+                historyCapacity,
+                sampleTicks,
+                band,
+                List.copyOf(offers)
+        );
     }
 
     private static Optional<TraderOffer> toOffer(OfferData entry, double commissionPercent) {
@@ -160,19 +184,25 @@ public final class TraderOffersConfig {
 
     record Loaded(
             double commissionPercent,
+            double playerShopCommissionPercent,
+            boolean playerShopCraftingEnabled,
             int priceHistoryCapacity,
             int priceHistorySampleIntervalTicks,
             double priceHistoryAverageBandPercent,
             List<TraderOffer> offers
     ) {
         static Loaded empty() {
-            return new Loaded(2.5d, OfferBuyPriceHistory.DEFAULT_CAPACITY, 1200, 5.0d, List.of());
+            return new Loaded(2.5d, 2.5d, true, OfferBuyPriceHistory.DEFAULT_CAPACITY, 1200, 5.0d, List.of());
         }
     }
 
     static final class FileData {
         @SerializedName("commission_percent")
         Double commissionPercent;
+        @SerializedName("player_shop_commission_percent")
+        Double playerShopCommissionPercent;
+        @SerializedName("player_shop_crafting")
+        Boolean playerShopCraftingEnabled;
         @SerializedName("price_history_capacity")
         Integer priceHistoryCapacity;
         @SerializedName("price_history_sample_interval_ticks")
@@ -184,6 +214,8 @@ public final class TraderOffersConfig {
         static FileData defaults() {
             FileData data = new FileData();
             data.commissionPercent = 2.5d;
+            data.playerShopCommissionPercent = 2.5d;
+            data.playerShopCraftingEnabled = true;
             data.priceHistoryCapacity = OfferBuyPriceHistory.DEFAULT_CAPACITY;
             data.priceHistorySampleIntervalTicks = 1200;
             data.priceHistoryAverageBandPercent = 5.0d;

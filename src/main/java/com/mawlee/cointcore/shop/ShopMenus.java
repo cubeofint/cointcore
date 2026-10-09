@@ -14,6 +14,15 @@ public final class ShopMenus {
     public static final DeferredHolder<MenuType<?>, MenuType<TraderMenu>> TRADER =
             REGISTER.register("trader", () -> IMenuTypeExtension.create(TraderMenu::fromNetwork));
 
+    public static final DeferredHolder<MenuType<?>, MenuType<PlayerTraderMenu>> PLAYER_TRADER =
+            REGISTER.register("player_trader", () -> IMenuTypeExtension.create(PlayerTraderMenu::fromNetwork));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<PlayerTraderManageMenu>> PLAYER_TRADER_MANAGE =
+            REGISTER.register(
+                    "player_trader_manage",
+                    () -> IMenuTypeExtension.create(PlayerTraderManageMenu::fromNetwork)
+            );
+
     private ShopMenus() {
     }
 

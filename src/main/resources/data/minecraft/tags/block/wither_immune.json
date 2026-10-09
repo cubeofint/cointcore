@@ -1,7 +1,6 @@
 {
   "replace": false,
   "values": [
-    "cointcore:trader",
     "cointcore:player_trader"
   ]
 }

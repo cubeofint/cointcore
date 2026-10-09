@@ -17,7 +17,9 @@ import com.mawlee.cointcore.permission.PermissionRegistration;
 import com.mawlee.cointcore.seeinvisible.SeeInvisibleNetwork;
 import com.mawlee.cointcore.invsee.InvSeeMenus;
 import com.mawlee.cointcore.invsee.InvSeeNetwork;
+import com.mawlee.cointcore.shop.PlayerShopEvents;
 import com.mawlee.cointcore.shop.ShopBlocks;
+import com.mawlee.cointcore.shop.ShopConditions;
 import com.mawlee.cointcore.shop.ShopMenus;
 import com.mawlee.cointcore.shop.TraderNetwork;
 import net.neoforged.bus.api.EventPriority;
@@ -40,6 +42,7 @@ public class CointCore {
         InvSeeMenus.REGISTER.register(modEventBus);
         ShopBlocks.register(modEventBus);
         ShopMenus.register(modEventBus);
+        ShopConditions.register(modEventBus);
 
         FtbTeamPropertyRegistration.register();
         ClaimBufferService.register();
@@ -52,6 +55,7 @@ public class CointCore {
         NeoForge.EVENT_BUS.addListener(IgnoreCommand::register);
         NeoForge.EVENT_BUS.addListener(CointCoreCommand::register);
         NeoForge.EVENT_BUS.addListener(PermissionRegistration::registerNodes);
+        PlayerShopEvents.register();
         NeoForge.EVENT_BUS.addListener(CointCoreEvents::onServerStarting);
         NeoForge.EVENT_BUS.addListener(CointCoreEvents::onServerStarted);
         NeoForge.EVENT_BUS.addListener(CointCoreEvents::onPlayerLoggedIn);

@@ -355,6 +355,27 @@ public final class CointPermissionNodes {
             Component.translatable("permission.desc.cointcore.gluons.pay")
     );
 
+    public static final PermissionNode<Boolean> PLAYER_SHOP_PLACE = new PermissionNode<>(
+            CointCore.MOD_ID, "playershop.place", PermissionTypes.BOOLEAN, EVERYONE
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.playershop.place"),
+            Component.translatable("permission.desc.cointcore.playershop.place")
+    );
+
+    public static final PermissionNode<Boolean> PLAYER_SHOP_USE = new PermissionNode<>(
+            CointCore.MOD_ID, "playershop.use", PermissionTypes.BOOLEAN, EVERYONE
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.playershop.use"),
+            Component.translatable("permission.desc.cointcore.playershop.use")
+    );
+
+    public static final PermissionNode<Boolean> PLAYER_SHOP_ADMIN = new PermissionNode<>(
+            CointCore.MOD_ID, "playershop.admin", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.playershop.admin"),
+            Component.translatable("permission.desc.cointcore.playershop.admin")
+    );
+
     public static PermissionNode<?>[] invSeeNodes() {
         return new PermissionNode<?>[] {
                 INVSEE,
