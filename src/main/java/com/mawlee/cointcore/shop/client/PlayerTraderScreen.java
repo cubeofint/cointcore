@@ -2,6 +2,7 @@ package com.mawlee.cointcore.shop.client;
 
 import com.mawlee.cointcore.client.VanillaContainerSkin;
 import com.mawlee.cointcore.shop.PlayerTraderListing;
+import com.mawlee.cointcore.shop.PlayerTraderManageLayout;
 import com.mawlee.cointcore.shop.PlayerTraderMenu;
 import com.mawlee.cointcore.shop.PlayerTraderTabPayload;
 import com.mawlee.cointcore.shop.TraderFeedbackLines;
@@ -59,15 +60,16 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
         textMaxWidth = Math.max(16, buttonColumnX - TEXT_LEFT - 8);
         int listLeft = leftPos + 8;
         if (menu.canManage()) {
+            Component shopTab = Component.translatable("gui.cointcore.player_trader.tab.shop");
+            Component manageTab = Component.translatable("gui.cointcore.player_trader.tab.manage");
+            int shopTabW = PlayerTraderManageLayout.tabWidth(font.width(shopTab));
+            int manageTabW = PlayerTraderManageLayout.tabWidth(font.width(manageTab));
+            addRenderableWidget(Button.builder(shopTab, button -> {
+            }).bounds(listLeft, topPos + 4, shopTabW, 16).build()).active = false;
             addRenderableWidget(Button.builder(
-                    Component.translatable("gui.cointcore.player_trader.tab.shop"),
-                    button -> {
-                    }
-            ).bounds(listLeft, topPos + 4, 70, 16).build()).active = false;
-            addRenderableWidget(Button.builder(
-                    Component.translatable("gui.cointcore.player_trader.tab.manage"),
+                    manageTab,
                     button -> PacketDistributor.sendToServer(new PlayerTraderTabPayload(menu.containerId, true))
-            ).bounds(listLeft + 74, topPos + 4, 90, 16).build());
+            ).bounds(listLeft + shopTabW + 4, topPos + 4, manageTabW, 16).build());
         }
 
         int buttonY0 = topPos + PlayerTraderMenu.TITLE_HEIGHT + 2;
