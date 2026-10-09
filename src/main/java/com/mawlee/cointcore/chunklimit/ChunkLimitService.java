@@ -52,54 +52,44 @@ public final class ChunkLimitService {
     }
 
     /**
-     * Post-placement check: the new block is already in the world / index.
-     * True when the chunk or team count is strictly above the configured limit.
-     */
-    public static boolean wouldExceedBlockLimit(ServerLevel level, ChunkPos chunkPos, Block block) {
-        return wouldExceedBlockLimit(level, chunkPos, block, 0);
-    }
-
-    /**
-     * Whether placing {@code additionalBlocks} more of this type would exceed chunk/team limits.
-     * Use {@code additionalBlocks = 1} before placement; {@code 0} when the block is already counted.
+     * Whether {@code placer} putting this block into {@code chunkPos} breaks a chunk, team or personal limit.
+     * {@code additionalBlocks} is 1 before placement and 0 once the block is already in the chunk/team index.
+     * Personal counts never include the block being placed (ownership is recorded after the event).
      */
     public static boolean wouldExceedBlockLimit(
+            ServerPlayer placer,
+            ServerLevel level,
+            ChunkPos chunkPos,
+            Block block,
+            int additionalBlocks
+    ) {
+        return blockExceedReason(placer, level, chunkPos, block, additionalBlocks) != ExceedReason.NONE;
+    }
+
+    public static ExceedReason blockExceedReason(
+            ServerPlayer placer,
             ServerLevel level,
             ChunkPos chunkPos,
             Block block,
             int additionalBlocks
     ) {
         if (!ChunkLimitConfig.isEnabled() || additionalBlocks < 0) {
-            return false;
+            return ExceedReason.NONE;
         }
         ChunkLimitKey chunkKey = ChunkLimitConfig.resolveBlockKey(block);
         if (chunkKey != null
                 && ChunkLimitIndex.count(level, chunkPos, chunkKey) + additionalBlocks > chunkKey.limit()) {
-            return true;
-        }
-        ChunkLimitKey teamKey = ChunkLimitConfig.resolveTeamBlockKey(block);
-        if (teamKey == null) {
-            return false;
-        }
-        return FtbIntegration.getTeamIdAt(level, chunkPos)
-                .map(teamId -> TeamLimitIndex.count(teamId, teamKey) + additionalBlocks > teamKey.limit())
-                .orElse(false);
-    }
-
-    public static ExceedReason blockExceedReason(ServerLevel level, ChunkPos chunkPos, Block block) {
-        if (!ChunkLimitConfig.isEnabled()) {
-            return ExceedReason.NONE;
-        }
-        ChunkLimitKey chunkKey = ChunkLimitConfig.resolveBlockKey(block);
-        if (chunkKey != null && ChunkLimitIndex.count(level, chunkPos, chunkKey) > chunkKey.limit()) {
             return ExceedReason.CHUNK;
         }
         ChunkLimitKey teamKey = ChunkLimitConfig.resolveTeamBlockKey(block);
         if (teamKey != null) {
             UUID teamId = FtbIntegration.getTeamIdAt(level, chunkPos).orElse(null);
-            if (teamId != null && TeamLimitIndex.count(teamId, teamKey) > teamKey.limit()) {
+            if (teamId != null && TeamLimitIndex.count(teamId, teamKey) + additionalBlocks > teamKey.limit()) {
                 return ExceedReason.TEAM;
             }
+        }
+        if (PlayerBlockLimitService.wouldExceed(placer, block)) {
+            return ExceedReason.PLAYER;
         }
         return ExceedReason.NONE;
     }
@@ -123,34 +113,46 @@ public final class ChunkLimitService {
         return entities.size();
     }
 
+    /** Post-placement deny: the block is in the world and will be rolled back by the cancelled event. */
     public static void denyBlockPlacement(ServerPlayer player, BlockState placedState, ChunkPos chunkPos) {
-        ItemStack returnStack = placedState.getBlock().getCloneItemStack(
-                player.serverLevel(),
-                player.blockPosition(),
-                placedState
-        );
-        // Always restore into the placer inventory (including FakePlayer used by machines).
-        returnStackToPlayer(player, returnStack);
-        if (!(player instanceof FakePlayer)) {
-            notifyBlockPlacementDenied(player, placedState, chunkPos);
+        // NeoForge onPlaceItemIntoWorld restores the used stack on cancel; only other callers lose the item.
+        if (!ItemPlacementGuard.isPlacingFromItem()) {
+            ItemStack returnStack = placedState.getBlock().getCloneItemStack(
+                    player.serverLevel(),
+                    player.blockPosition(),
+                    placedState
+            );
+            returnStackToPlayer(player, returnStack);
         }
+        notifyBlockPlacementDenied(player, placedState, chunkPos, 0);
     }
 
     /** Message only — use when the item was not consumed (preemptive cancel). */
-    public static void notifyBlockPlacementDenied(ServerPlayer player, BlockState placedState, ChunkPos chunkPos) {
+    public static void notifyBlockPlacementDenied(
+            ServerPlayer player,
+            BlockState placedState,
+            ChunkPos chunkPos,
+            int additionalBlocks
+    ) {
         if (player instanceof FakePlayer) {
             return;
         }
         Block block = placedState.getBlock();
-        ExceedReason reason = blockExceedReason(player.serverLevel(), chunkPos, block);
+        ExceedReason reason = blockExceedReason(player, player.serverLevel(), chunkPos, block, additionalBlocks);
         ChunkLimitKey chunkKey = ChunkLimitConfig.resolveBlockKey(block);
         ChunkLimitKey teamKey = ChunkLimitConfig.resolveTeamBlockKey(block);
+        ChunkLimitKey playerKey = ChunkLimitConfig.resolveBlockKey(ChunkLimitConfig.LimitScope.PLAYER, block);
 
         String messageKey;
         String targetId;
         int current;
         int limit;
-        if (reason == ExceedReason.TEAM && teamKey != null) {
+        if (reason == ExceedReason.PLAYER && playerKey != null) {
+            messageKey = CointCoreMessages.CHUNK_LIMIT_PLAYER_BLOCK_DENIED;
+            targetId = playerKey.id();
+            current = PlayerBlockLimitService.count(player.getServer(), player.getUUID(), playerKey);
+            limit = playerKey.limit();
+        } else if (reason == ExceedReason.TEAM && teamKey != null) {
             UUID teamId = FtbIntegration.getTeamIdAt(player.serverLevel(), chunkPos).orElse(null);
             messageKey = CointCoreMessages.CHUNK_LIMIT_TEAM_BLOCK_DENIED;
             targetId = teamKey.id();
@@ -363,7 +365,8 @@ public final class ChunkLimitService {
     public enum ExceedReason {
         NONE,
         CHUNK,
-        TEAM
+        TEAM,
+        PLAYER
     }
 
     public static void returnStackToPlayer(ServerPlayer player, ItemStack stack) {

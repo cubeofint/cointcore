@@ -38,8 +38,15 @@ ordering="AFTER"
 side="SERVER"
 
 [[dependencies.${mod_id}]]
+modId="ftblibrary"
+type="required"
+versionRange="[2101.1.0,)"
+ordering="AFTER"
+side="SERVER"
+
+[[dependencies.${mod_id}]]
 modId="ftbranks"
-type="optional"
+type="required"
 versionRange="[2101.1.0,)"
 ordering="AFTER"
 side="SERVER"
@@ -88,14 +95,14 @@ side="SERVER"
 
 [[dependencies.${mod_id}]]
 modId="ftbteams"
-type="optional"
+type="required"
 versionRange="[2101.1.0,)"
 ordering="AFTER"
 side="SERVER"
 
 [[dependencies.${mod_id}]]
 modId="ftbchunks"
-type="optional"
+type="required"
 versionRange="[2101.1.0,)"
 ordering="AFTER"
 side="SERVER"

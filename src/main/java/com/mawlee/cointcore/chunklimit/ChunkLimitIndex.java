@@ -87,6 +87,7 @@ public final class ChunkLimitIndex {
         if (oldState.getBlock() == newState.getBlock()) {
             return;
         }
+        PlayerBlockLimitService.onBlockChange(level, pos, oldState, newState);
 
         ChunkLimitKey oldChunkKey = ChunkLimitConfig.resolveBlockKey(oldState.getBlock());
         ChunkLimitKey newChunkKey = ChunkLimitConfig.resolveBlockKey(newState.getBlock());
@@ -177,11 +178,15 @@ public final class ChunkLimitIndex {
         if (existing != null) {
             return existing;
         }
-        if (!create) {
-            if (level.hasChunk(chunkPos.x, chunkPos.z)) {
-                rebuildChunk(level, level.getChunk(chunkPos.x, chunkPos.z));
-                return dim.get(chunkPos.toLong());
+        if (level.hasChunk(chunkPos.x, chunkPos.z)) {
+            // A partial bucket would undercount until the next reload; always start from a full scan.
+            rebuildChunk(level, level.getChunk(chunkPos.x, chunkPos.z));
+            ChunkBucket rebuilt = dim.get(chunkPos.toLong());
+            if (rebuilt != null || !create) {
+                return rebuilt;
             }
+        }
+        if (!create) {
             return null;
         }
         return dim.computeIfAbsent(chunkPos.toLong(), ignored -> new ChunkBucket());

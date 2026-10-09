@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CointCore · InvSee</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0e1114;
+      --bg-elev: #161b20;
+      --bg-panel: #1a2027;
+      --bg-slot: #12161b;
+      --bg-slot-hover: #1e262e;
+      --line: #2a333c;
+      --line-soft: #222930;
+      --text: #e8ecef;
+      --muted: #8b969f;
+      --faint: #5c6770;
+      --accent: #c8894a;
+      --accent-soft: rgba(200, 137, 74, 0.16);
+      --accent-strong: #e0a86a;
+      --ok: #7a9e7e;
+      --ok-bg: rgba(122, 158, 126, 0.15);
+      --danger: #c47a6a;
+      --radius: 6px;
+      --font: "Manrope", system-ui, sans-serif;
+      --display: "Syne", "Manrope", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse 70% 50% at 0% 0%, rgba(200, 137, 74, 0.09), transparent 55%),
+        radial-gradient(ellipse 50% 40% at 100% 100%, rgba(90, 120, 130, 0.06), transparent 50%),
+        var(--bg);
+    }
+
+    .shell {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 20px 24px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 100vh;
+    }
+
+    /* Top bar */
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 16px;
+      background: var(--bg-elev);
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      min-width: 180px;
+    }
+    .brand-mark {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.03em;
+    }
+    .brand-sep { color: var(--faint); }
+    .brand-sub {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .target {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background:
+        linear-gradient(145deg, #3d4a55, #1c242c);
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--accent-strong);
+    }
+    .target-meta { display: flex; flex-direction: column; gap: 2px; }
+    .target-name { font-weight: 700; font-size: 0.95rem; }
+    .target-id { font-size: 0.72rem; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .pill-ok { background: var(--ok-bg); color: var(--ok); }
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .actions { display: flex; align-items: center; gap: 8px; }
+
+    .mode {
+      display: flex;
+      padding: 3px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .mode button {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .mode button.active {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+    .mode.edit-on button.active {
+      background: rgba(196, 122, 106, 0.18);
+      color: #e09a8c;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: var(--bg-panel);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 7px 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .btn:hover { border-color: var(--muted); }
+    .btn-ghost { background: transparent; color: var(--muted); }
+    .btn-accent {
+      background: var(--accent-soft);
+      border-color: rgba(200, 137, 74, 0.45);
+      color: var(--accent-strong);
+    }
+    .btn-danger {
+      color: var(--danger);
+      border-color: rgba(196, 122, 106, 0.4);
+      background: transparent;
+    }
+
+    /* Body */
+    .body {
+      display: grid;
+      grid-template-columns: 200px minmax(0, 1fr) 280px;
+      gap: 14px;
+      flex: 1;
+      align-items: stretch;
+    }
+
+    @media (max-width: 980px) {
+      .body { grid-template-columns: 1fr; }
+      .side, .inspector { display: none; }
+      .side.mobile-open, .inspector.mobile-open { display: block; }
+    }
+
+    .panel {
+      background: var(--bg-elev);
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+    }
+
+    .side { padding: 10px; }
+    .side-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--faint);
+      padding: 8px 10px 10px;
+    }
+    .nav { display: flex; flex-direction: column; gap: 2px; }
+    .nav button {
+      text-align: left;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.86rem;
+      font-weight: 500;
+      padding: 9px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      border-left: 2px solid transparent;
+    }
+    .nav button:hover { background: rgba(255,255,255,0.03); color: var(--text); }
+    .nav button.active {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      border-left-color: var(--accent);
+      font-weight: 600;
+    }
+    .nav button .count {
+      float: right;
+      color: var(--faint);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .nav button.active .count { color: var(--accent); }
+
+    .main {
+      padding: 16px 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .main-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .main-title {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+    .main-hint { font-size: 0.78rem; color: var(--muted); }
+
+    .inv-layout {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .armor {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-top: 2px;
+    }
+
+    .grid-block { display: flex; flex-direction: column; gap: 10px; }
+
+    .slots {
+      display: grid;
+      gap: 4px;
+    }
+    .slots.cols-9 { grid-template-columns: repeat(9, 44px); }
+    .slots.cols-1 { grid-template-columns: 44px; }
+
+    .slot {
+      width: 44px;
+      height: 44px;
+      background: var(--bg-slot);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .slot:hover { background: var(--bg-slot-hover); border-color: #3a4550; }
+    .slot.selected {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+    .slot.empty { opacity: 0.85; }
+    .slot .icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 3px;
+      display: block;
+    }
+    .slot .qty {
+      position: absolute;
+      right: 3px;
+      bottom: 1px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 1px 2px #000;
+      pointer-events: none;
+    }
+
+    .hotbar-wrap {
+      margin-top: 4px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line-soft);
+    }
+    .section-cap {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--faint);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .offhand-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .offhand-row span { font-size: 0.75rem; color: var(--faint); }
+
+    /* Curios / paged grids */
+    .paged-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .page-ind { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+
+    .slots.cols-9.tall { grid-template-rows: repeat(6, 44px); }
+
+    .inspector { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .insp-empty {
+      color: var(--faint);
+      font-size: 0.85rem;
+      padding: 24px 8px;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .insp-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+    }
+    .insp-name {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+    .insp-meta { font-size: 0.75rem; color: var(--muted); }
+    .insp-block {
+      border-top: 1px solid var(--line-soft);
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .insp-block h4 {
+      margin: 0 0 4px;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--faint);
+    }
+    .lore { font-size: 0.8rem; color: var(--muted); line-height: 1.45; margin: 0; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 3px 7px;
+      border-radius: 4px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .insp-actions { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
+    .insp-actions .btn { width: 100%; text-align: center; }
+    .insp-actions .btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px;
+      font-size: 0.72rem;
+      color: var(--faint);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--bg-panel);
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 20;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .banner {
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(200, 137, 74, 0.35);
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div class="brand">
+        <span class="brand-mark">CointCore</span>
+        <span class="brand-sep">/</span>
+        <span class="brand-sub">InvSee</span>
+      </div>
+
+      <div class="target">
+        <div class="avatar" aria-hidden="true">SB</div>
+        <div class="target-meta">
+          <div class="target-name">Steve_Builder</div>
+          <div class="target-id">a1b2c3d4-…-9f0e</div>
+        </div>
+        <span class="pill pill-ok"><span class="pill-dot"></span>Online</span>
+      </div>
+
+      <div class="actions">
+        <div class="mode" id="modeToggle" title="Требует cointcore.invsee.edit">
+          <button type="button" class="active" data-mode="view">View</button>
+          <button type="button" data-mode="edit">Edit</button>
+        </div>
+        <button type="button" class="btn btn-ghost" id="btnClose">Close</button>
+      </div>
+    </header>
+
+    <div class="banner">
+      UI-референс (не Minecraft-стиль). В игре это можно реализовать кастомным <code>AbstractContainerScreen</code> без vanilla-текстур, либо отдельной веб-панелью для стаффа.
+    </div>
+
+    <div class="body">
+      <aside class="side panel">
+        <div class="side-label">Sections</div>
+        <nav class="nav" id="nav">
+          <button type="button" class="active" data-section="player">Inventory <span class="count">41</span></button>
+          <button type="button" data-section="ender">Ender Chest <span class="count">27</span></button>
+          <button type="button" data-section="curios">Curios <span class="count">18</span></button>
+          <button type="button" data-section="cosmetic">Cosmetic <span class="count">4</span></button>
+          <button type="button" data-section="pocket">Pocket Storage <span class="count">54</span></button>
+          <button type="button" data-section="backpack">Backpacks <span class="count">2</span></button>
+          <button type="button" data-section="attachment">Attachments <span class="count">6</span></button>
+        </nav>
+      </aside>
+
+      <main class="main panel" id="main">
+        <!-- filled by JS -->
+      </main>
+
+      <aside class="inspector panel" id="inspector">
+        <div class="insp-empty">Выберите слот,<br />чтобы увидеть предмет</div>
+      </aside>
+    </div>
+
+    <footer class="foot">
+      <span id="footSession">Session · Steve_Builder · view-only</span>
+      <span>CointCore InvSee UI mock · v1</span>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const COLORS = {
+      netherite: "linear-gradient(145deg,#3a3a42,#1a1a1e)",
+      diamond: "linear-gradient(145deg,#6ec4d4,#2a7a8a)",
+      gold: "linear-gradient(145deg,#e0c060,#a07820)",
+      food: "linear-gradient(145deg,#c07050,#7a3020)",
+      block: "linear-gradient(145deg,#6a7a5a,#3a4a30)",
+      book: "linear-gradient(145deg,#8a6070,#4a2838)",
+      crystal: "linear-gradient(145deg,#b090d0,#503070)",
+      scrap: "linear-gradient(145deg,#8a9098,#404850)",
+      empty: "transparent",
+    };
+
+    const ITEMS = {
+      pick: { name: "Netherite Pickaxe", color: "netherite", lore: "Efficiency V · Unbreaking III\nMending", tags: ["tool", "netherite"], qty: 1 },
+      sword: { name: "Diamond Sword", color: "diamond", lore: "Sharpness V\nLooting III", tags: ["weapon"], qty: 1 },
+      steak: { name: "Cooked Beef", color: "food", lore: "Restores hunger", tags: ["food"], qty: 32 },
+      cobble: { name: "Cobblestone", color: "block", lore: null, tags: ["block"], qty: 64 },
+      helm: { name: "Netherite Helmet", color: "netherite", lore: "Protection IV", tags: ["armor"], qty: 1 },
+      chest: { name: "Netherite Chestplate", color: "netherite", lore: "Protection IV", tags: ["armor"], qty: 1 },
+      legs: { name: "Netherite Leggings", color: "netherite", lore: "Protection IV", tags: ["armor"], qty: 1 },
+      boots: { name: "Netherite Boots", color: "netherite", lore: "Feather Falling IV", tags: ["armor"], qty: 1 },
+      totem: { name: "Totem of Undying", color: "gold", lore: null, tags: ["combat"], qty: 1 },
+      book: { name: "Enchanted Book", color: "book", lore: "Fortune III", tags: ["enchant"], qty: 1 },
+      ring: { name: "Ring of the Seven Curses", color: "crystal", lore: "Curios · ring", tags: ["curios"], qty: 1 },
+      pouch: { name: "Sophisticated Backpack", color: "scrap", lore: "Iron tier · 54 slots", tags: ["backpack"], qty: 1 },
+    };
+
+    const SECTIONS = {
+      player: {
+        title: "Main inventory",
+        hint: "Armor · storage · hotbar · offhand",
+        type: "player",
+        armor: ["helm", "chest", "legs", "boots"],
+        main: [
+          "cobble", "cobble", "steak", null, null, "book", null, null, null,
+          null, "sword", null, null, null, null, null, null, null,
+          null, null, null, "pick", null, null, null, null, null,
+          null, null, null, null, null, null, null, null, null,
+        ],
+        hotbar: ["pick", "sword", "steak", "cobble", null, null, null, null, "totem"],
+        offhand: "totem",
+      },
+      ender: {
+        title: "Ender chest",
+        hint: "27 slots · shared with target ender inventory",
+        type: "grid",
+        cols: 9,
+        rows: 3,
+        items: ["book", "steak", null, "cobble", null, null, "crystal", null, null,
+                null, null, "pick", null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, "totem"],
+      },
+      curios: {
+        title: "Curios",
+        hint: "Stable 9×5 panel · page rebind",
+        type: "paged",
+        page: 1,
+        pages: 2,
+        items: Array.from({ length: 45 }, (_, i) => (i === 2 ? "ring" : i === 11 ? "crystal" : null)),
+      },
+      cosmetic: {
+        title: "Cosmetic armor",
+        hint: "4 cosmetic pieces",
+        type: "grid",
+        cols: 4,
+        rows: 1,
+        items: ["helm", null, "chest", null],
+      },
+      pocket: {
+        title: "Pocket storage",
+        hint: "Global storage UUID · page 1/3",
+        type: "paged",
+        page: 1,
+        pages: 3,
+        items: Array.from({ length: 54 }, (_, i) => (i % 11 === 0 ? "cobble" : i === 5 ? "steak" : null)),
+      },
+      backpack: {
+        title: "Backpack",
+        hint: "Location key from target inventory",
+        type: "paged",
+        page: 1,
+        pages: 1,
+        items: Array.from({ length: 54 }, (_, i) => (i === 0 ? "pouch" : i === 8 ? "scrap" : null)),
+      },
+      attachment: {
+        title: "Attachments",
+        hint: "Read-only NBT snapshot",
+        type: "grid",
+        cols: 9,
+        rows: 2,
+        readonly: true,
+        items: ["book", null, null, "crystal", null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null],
+      },
+    };
+
+    // fix curios crystal key
+    ITEMS.crystal = { name: "Mana Gem", color: "crystal", lore: "Ars Nouveau", tags: ["curios"], qty: 1 };
+    ITEMS.scrap = { name: "Upgrade Base", color: "scrap", lore: null, tags: ["upgrade"], qty: 3 };
+
+    let section = "player";
+    let editMode = false;
+    let selected = null;
+
+    const mainEl = document.getElementById("main");
+    const inspEl = document.getElementById("inspector");
+    const footEl = document.getElementById("footSession");
+    const toastEl = document.getElementById("toast");
+
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add("show");
+      clearTimeout(toastEl._t);
+      toastEl._t = setTimeout(() => toastEl.classList.remove("show"), 1800);
+    }
+
+    function slotHtml(itemKey, selId) {
+      const item = itemKey ? ITEMS[itemKey] : null;
+      const selectedCls = selected && selected.id === selId ? " selected" : "";
+      const emptyCls = item ? "" : " empty";
+      const icon = item
+        ? `<span class="icon" style="background:${COLORS[item.color]}"></span>`
+        : "";
+      const qty = item && item.qty > 1 ? `<span class="qty">${item.qty}</span>` : "";
+      return `<button type="button" class="slot${selectedCls}${emptyCls}" data-sel="${selId}" data-item="${itemKey || ""}" aria-label="${item ? item.name : "Empty"}">${icon}${qty}</button>`;
+    }
+
+    function renderMain() {
+      const s = SECTIONS[section];
+      let body = "";
+
+      if (s.type === "player") {
+        body = `
+          <div class="inv-layout">
+            <div class="armor">
+              <div class="section-cap">Armor</div>
+              <div class="slots cols-1">
+                ${s.armor.map((k, i) => slotHtml(k, `armor-${i}`)).join("")}
+              </div>
+            </div>
+            <div class="grid-block">
+              <div class="section-cap">Storage</div>
+              <div class="slots cols-9">
+                ${s.main.map((k, i) => slotHtml(k, `main-${i}`)).join("")}
+              </div>
+              <div class="hotbar-wrap">
+                <div class="section-cap">Hotbar</div>
+                <div class="slots cols-9">
+                  ${s.hotbar.map((k, i) => slotHtml(k, `hot-${i}`)).join("")}
+                </div>
+                <div class="offhand-row">
+                  <span>Offhand</span>
+                  ${slotHtml(s.offhand, "offhand")}
+                </div>
+              </div>
+            </div>
+          </div>`;
+      } else if (s.type === "paged") {
+        const cols = s.items.length === 45 ? 9 : 9;
+        const rows = s.items.length === 45 ? 5 : 6;
+        body = `
+          <div class="paged-toolbar">
+            <span class="page-ind">Page ${s.page} / ${s.pages}</span>
+            <div class="actions">
+              <button type="button" class="btn" data-page="-1">‹</button>
+              <button type="button" class="btn" data-page="1">›</button>
+            </div>
+          </div>
+          <div class="slots cols-9" style="grid-template-rows: repeat(${rows}, 44px)">
+            ${s.items.map((k, i) => slotHtml(k, `p-${i}`)).join("")}
+          </div>`;
+      } else {
+        body = `
+          <div class="slots cols-9" style="grid-template-columns: repeat(${s.cols}, 44px)">
+            ${s.items.map((k, i) => slotHtml(k, `g-${i}`)).join("")}
+          </div>`;
+      }
+
+      const ro = s.readonly ? `<span class="pill" style="background:rgba(139,150,159,.12);color:var(--muted)">Read-only</span>` : "";
+
+      mainEl.innerHTML = `
+        <div class="main-head">
+          <h1 class="main-title">${s.title}</h1>
+          <div style="display:flex;align-items:center;gap:10px">
+            ${ro}
+            <span class="main-hint">${s.hint}</span>
+          </div>
+        </div>
+        ${body}`;
+
+      mainEl.querySelectorAll(".slot").forEach((el) => {
+        el.addEventListener("click", () => {
+          const key = el.dataset.item || null;
+          selected = { id: el.dataset.sel, key };
+          renderMain();
+          renderInspector();
+        });
+      });
+
+      mainEl.querySelectorAll("[data-page]").forEach((btn) => {
+        btn.addEventListener("click", () => toast("Смена страницы · rebind слотов на сервере"));
+      });
+    }
+
+    function renderInspector() {
+      const s = SECTIONS[section];
+      const key = selected && selected.key;
+      const item = key ? ITEMS[key] : null;
+      if (!item) {
+        inspEl.innerHTML = `<div class="insp-empty">Выберите слот,<br />чтобы увидеть предмет</div>`;
+        return;
+      }
+      const canEdit = editMode && !s.readonly;
+      inspEl.innerHTML = `
+        <div class="insp-icon" style="background:${COLORS[item.color]}"></div>
+        <h2 class="insp-name">${item.name}</h2>
+        <div class="insp-meta">Slot ${selected.id} · qty ${item.qty}</div>
+        <div class="insp-block">
+          <h4>Lore</h4>
+          <p class="lore">${item.lore ? item.lore.replace(/\n/g, "<br>") : "—"}</p>
+        </div>
+        <div class="insp-block">
+          <h4>Tags</h4>
+          <div class="tag-row">${item.tags.map((t) => `<span class="tag">${t}</span>`).join("")}</div>
+        </div>
+        <div class="insp-actions">
+          <button type="button" class="btn btn-accent" ${canEdit ? "" : "disabled"} data-act="take">Take to cursor</button>
+          <button type="button" class="btn" ${canEdit ? "" : "disabled"} data-act="clone">Clone stack</button>
+          <button type="button" class="btn btn-danger" ${canEdit ? "" : "disabled"} data-act="clear">Clear slot</button>
+        </div>`;
+      inspEl.querySelectorAll("[data-act]").forEach((b) => {
+        b.addEventListener("click", () => toast(`Edit · ${b.dataset.act} · ${item.name}`));
+      });
+    }
+
+    function updateFoot() {
+      footEl.textContent = `Session · Steve_Builder · ${editMode ? "read/write" : "view-only"}`;
+    }
+
+    document.getElementById("nav").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-section]");
+      if (!btn) return;
+      section = btn.dataset.section;
+      selected = null;
+      document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("active", b === btn));
+      renderMain();
+      renderInspector();
+    });
+
+    document.getElementById("modeToggle").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-mode]");
+      if (!btn) return;
+      editMode = btn.dataset.mode === "edit";
+      document.querySelectorAll("#modeToggle button").forEach((b) => b.classList.toggle("active", b === btn));
+      document.getElementById("modeToggle").classList.toggle("edit-on", editMode);
+      updateFoot();
+      renderInspector();
+      toast(editMode ? "Edit mode · требуется invsee.edit" : "View mode");
+    });
+
+    document.getElementById("btnClose").addEventListener("click", () => toast("Close session"));
+
+    renderMain();
+    renderInspector();
+    updateFoot();
+  </script>
+</body>
+</html>

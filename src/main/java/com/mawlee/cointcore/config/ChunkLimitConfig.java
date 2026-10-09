@@ -8,6 +8,7 @@ import com.mawlee.cointcore.CointCore;
 import com.mawlee.cointcore.chunklimit.ChunkLimitIndex;
 import com.mawlee.cointcore.chunklimit.ChunkLimitKey;
 import com.mawlee.cointcore.chunklimit.TeamLimitIndex;
+import com.mawlee.cointcore.chunklimit.TeamMobLimitIndex;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -42,11 +43,14 @@ public final class ChunkLimitConfig {
     private static boolean enabled = true;
     private static LimitRules chunkRules = LimitRules.empty();
     private static LimitRules teamRules = LimitRules.empty();
+    private static LimitRules playerRules = LimitRules.empty();
     private static EntityRules chunkEntityRules = EntityRules.empty();
     private static EntityRules teamEntityRules = EntityRules.empty();
+    private static volatile int rulesVersion;
 
     private static final ConcurrentHashMap<Block, ChunkLimitKey> chunkKeyCache = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Block, ChunkLimitKey> teamKeyCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Block, ChunkLimitKey> playerKeyCache = new ConcurrentHashMap<>();
 
     /** JSON key / command token for the general mob cap (all {@link net.minecraft.world.entity.Mob}). */
     public static final String ENTITY_CAP_KEY = "*";
@@ -57,15 +61,42 @@ public final class ChunkLimitConfig {
 
     public enum LimitScope {
         CHUNK,
-        TEAM
+        TEAM,
+        /** Blocks owned (placed) by one player, summed across all dimensions. */
+        PLAYER
     }
 
     public static boolean isEnabled() {
         return enabled;
     }
 
+    /** Bumped on every reload / runtime edit so derived counts can rebuild lazily. */
+    public static int rulesVersion() {
+        return rulesVersion;
+    }
+
     public static boolean hasAnyBlockLimits() {
-        return chunkRules.hasAny() || teamRules.hasAny();
+        return chunkRules.hasAny() || teamRules.hasAny() || playerRules.hasAny();
+    }
+
+    public static boolean hasPlayerBlockLimits() {
+        return playerRules.hasAny();
+    }
+
+    public static Map<ResourceLocation, Integer> getBlockLimits(LimitScope scope) {
+        return rules(scope).exactLimits();
+    }
+
+    public static Map<String, GroupLimit> getGroups(LimitScope scope) {
+        return rules(scope).groups();
+    }
+
+    public static List<TagLimitBinding> getTagBindings(LimitScope scope) {
+        return rules(scope).tagBindings();
+    }
+
+    public static List<ModLimitBinding> getModBindings(LimitScope scope) {
+        return rules(scope).modBindings();
     }
 
     public static boolean hasChunkBlockLimits() {
@@ -236,7 +267,11 @@ public final class ChunkLimitConfig {
         if (!rules.hasAny()) {
             return null;
         }
-        ConcurrentHashMap<Block, ChunkLimitKey> cache = scope == LimitScope.CHUNK ? chunkKeyCache : teamKeyCache;
+        ConcurrentHashMap<Block, ChunkLimitKey> cache = switch (scope) {
+            case CHUNK -> chunkKeyCache;
+            case TEAM -> teamKeyCache;
+            case PLAYER -> playerKeyCache;
+        };
         ChunkLimitKey cached = cache.get(block);
         if (cached != null) {
             return cached == UNLIMITED ? null : cached;
@@ -270,7 +305,9 @@ public final class ChunkLimitConfig {
     }
 
     public static boolean isLimitedBlock(Block block) {
-        return resolveBlockKey(block) != null || resolveTeamBlockKey(block) != null;
+        return resolveBlockKey(block) != null
+                || resolveTeamBlockKey(block) != null
+                || resolveBlockKey(LimitScope.PLAYER, block) != null;
     }
 
     public static boolean isChunkLimitedBlock(Block block) {
@@ -280,6 +317,7 @@ public final class ChunkLimitConfig {
     public static void clearResolveCache() {
         chunkKeyCache.clear();
         teamKeyCache.clear();
+        playerKeyCache.clear();
     }
 
     public static void load() {
@@ -541,32 +579,41 @@ public final class ChunkLimitConfig {
 
     private static void afterMutation() {
         clearResolveCache();
+        rulesVersion++;
         ChunkLimitIndex.invalidateAll();
         TeamLimitIndex.invalidateAll();
-        com.mawlee.cointcore.chunklimit.TeamMobLimitIndex.invalidateAll();
+        TeamMobLimitIndex.invalidateAll();
     }
 
     private static LimitRules rules(LimitScope scope) {
-        return scope == LimitScope.TEAM ? teamRules : chunkRules;
+        return switch (scope) {
+            case CHUNK -> chunkRules;
+            case TEAM -> teamRules;
+            case PLAYER -> playerRules;
+        };
     }
 
     private static EntityRules entityRules(LimitScope scope) {
-        return scope == LimitScope.TEAM ? teamEntityRules : chunkEntityRules;
+        return switch (scope) {
+            case CHUNK -> chunkEntityRules;
+            case TEAM -> teamEntityRules;
+            case PLAYER -> EntityRules.empty();
+        };
     }
 
     private static void setRules(LimitScope scope, LimitRules rules) {
-        if (scope == LimitScope.TEAM) {
-            teamRules = rules;
-        } else {
-            chunkRules = rules;
+        switch (scope) {
+            case CHUNK -> chunkRules = rules;
+            case TEAM -> teamRules = rules;
+            case PLAYER -> playerRules = rules;
         }
     }
 
     private static void setEntityRules(LimitScope scope, EntityRules rules) {
-        if (scope == LimitScope.TEAM) {
-            teamEntityRules = rules;
-        } else {
-            chunkEntityRules = rules;
+        switch (scope) {
+            case CHUNK -> chunkEntityRules = rules;
+            case TEAM -> teamEntityRules = rules;
+            case PLAYER -> throw new IllegalArgumentException("Per-player entity limits are not supported yet");
         }
     }
 
@@ -632,7 +679,7 @@ public final class ChunkLimitConfig {
                 LoadedConfig loaded = parse(data != null ? data : defaultFileData());
                 LOGGER.info(
                         "Loaded chunk limit config (enabled: {}, chunk exact={}, tags={}, mods={}, groups={}; "
-                                + "team exact={}, tags={}, mods={}, groups={}; "
+                                + "team exact={}, tags={}, mods={}, groups={}; player exact={}, tags={}, mods={}, groups={}; "
                                 + "entity chunk exact={}, mods={}, cap={}; team entity exact={}, mods={}, cap={})",
                         loaded.enabled,
                         loaded.chunkRules.exactLimits().size(),
@@ -643,6 +690,10 @@ public final class ChunkLimitConfig {
                         loaded.teamRules.tagBindings().size(),
                         loaded.teamRules.modBindings().size(),
                         loaded.teamRules.groups().size(),
+                        loaded.playerRules.exactLimits().size(),
+                        loaded.playerRules.tagBindings().size(),
+                        loaded.playerRules.modBindings().size(),
+                        loaded.playerRules.groups().size(),
                         loaded.chunkEntityRules.exactLimits().size(),
                         loaded.chunkEntityRules.modBindings().size(),
                         loaded.chunkEntityRules.generalCap(),
@@ -668,6 +719,7 @@ public final class ChunkLimitConfig {
         enabled = loaded.enabled;
         chunkRules = loaded.chunkRules;
         teamRules = loaded.teamRules;
+        playerRules = loaded.playerRules;
         chunkEntityRules = loaded.chunkEntityRules;
         teamEntityRules = loaded.teamEntityRules;
         afterMutation();
@@ -682,6 +734,8 @@ public final class ChunkLimitConfig {
         data.teamBlockLimits = toBlockLimitsFileMap(teamRules);
         data.teamGroups = toGroupFileMap(teamRules.groups());
         data.teamEntityLimits = toEntityLimitsFileMap(teamEntityRules);
+        data.playerBlockLimits = toBlockLimitsFileMap(playerRules);
+        data.playerGroups = toGroupFileMap(playerRules.groups());
         return data;
     }
 
@@ -689,9 +743,10 @@ public final class ChunkLimitConfig {
         boolean active = data.enabled != null ? data.enabled : true;
         LimitRules chunk = parseRules(data.blockLimits, data.groups, "chunk");
         LimitRules team = parseRules(data.teamBlockLimits, data.teamGroups, "team");
+        LimitRules player = parseRules(data.playerBlockLimits, data.playerGroups, "player");
         EntityRules chunkEntities = parseEntityRules(data.entityLimits, "chunk");
         EntityRules teamEntities = parseEntityRules(data.teamEntityLimits, "team");
-        return new LoadedConfig(active, chunk, team, chunkEntities, teamEntities);
+        return new LoadedConfig(active, chunk, team, player, chunkEntities, teamEntities);
     }
 
     private static LimitRules parseRules(
@@ -953,6 +1008,8 @@ public final class ChunkLimitConfig {
         data.teamBlockLimits = new LinkedHashMap<>();
         data.teamGroups = new LinkedHashMap<>();
         data.teamEntityLimits = new LinkedHashMap<>();
+        data.playerBlockLimits = new LinkedHashMap<>();
+        data.playerGroups = new LinkedHashMap<>();
         return data;
     }
 
@@ -1020,6 +1077,7 @@ public final class ChunkLimitConfig {
             boolean enabled,
             LimitRules chunkRules,
             LimitRules teamRules,
+            LimitRules playerRules,
             EntityRules chunkEntityRules,
             EntityRules teamEntityRules
     ) {
@@ -1046,6 +1104,12 @@ public final class ChunkLimitConfig {
 
         @SerializedName("teamEntityLimits")
         private Map<String, Integer> teamEntityLimits = new HashMap<>();
+
+        @SerializedName("playerBlockLimits")
+        private Map<String, Integer> playerBlockLimits = new HashMap<>();
+
+        @SerializedName("playerGroups")
+        private Map<String, GroupFileData> playerGroups = new HashMap<>();
     }
 
     private static final class GroupFileData {

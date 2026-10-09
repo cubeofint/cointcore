@@ -3,6 +3,7 @@ package com.mawlee.cointcore.command;
 import com.mawlee.cointcore.chunklimit.ChunkLimitService;
 import com.mawlee.cointcore.chunklimit.EntityWorldDumpService;
 import com.mawlee.cointcore.chunklimit.MobLimitService;
+import com.mawlee.cointcore.chunklimit.PlayerBlockLimitService;
 import com.mawlee.cointcore.config.ChunkLimitConfig;
 import com.mawlee.cointcore.config.ChunkLimitConfig.LimitScope;
 import com.mawlee.cointcore.lang.CointCoreMessages;
@@ -18,12 +19,15 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
@@ -34,11 +38,9 @@ import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 public final class ChunkLimitCommand {
-    private static final SimpleCommandExceptionType INVALID_ID = new SimpleCommandExceptionType(
-            Component.literal("Invalid resource id")
-    );
     private static final SimpleCommandExceptionType UNKNOWN_BLOCK = new SimpleCommandExceptionType(
             Component.literal("Unknown block id")
     );
@@ -81,6 +83,16 @@ public final class ChunkLimitCommand {
                         .then(entityBranch(LimitScope.TEAM))
                         .then(Commands.literal("check")
                                 .executes(ChunkLimitCommand::checkCurrentTeam)))
+                .then(Commands.literal("player")
+                        .then(blockBranch(LimitScope.PLAYER))
+                        .then(groupBranch(LimitScope.PLAYER))
+                        .then(Commands.literal("check")
+                                .executes(context -> checkPlayer(context, requirePlayer(context)))
+                                .then(Commands.argument("target", EntityArgument.player())
+                                        .executes(context -> checkPlayer(
+                                                context,
+                                                EntityArgument.getPlayer(context, "target")
+                                        )))))
                 .then(Commands.literal("dump")
                         .then(Commands.literal("entities")
                                 .executes(context -> dumpEntities(context, false))
@@ -102,7 +114,7 @@ public final class ChunkLimitCommand {
                                         ))
                                         .then(Commands.argument("limit", IntegerArgumentType.integer(0))
                                                 .executes(ctx -> setEntityModLimit(ctx, scope)))))
-                        .then(Commands.argument("id", StringArgumentType.string())
+                        .then(Commands.argument("id", ResourceLocationArgument.id())
                                 .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(
                                         BuiltInRegistries.ENTITY_TYPE.keySet().stream(),
                                         builder
@@ -119,7 +131,7 @@ public final class ChunkLimitCommand {
                                                 builder
                                         ))
                                         .executes(ctx -> removeEntityModLimit(ctx, scope))))
-                        .then(Commands.argument("id", StringArgumentType.string())
+                        .then(Commands.argument("id", ResourceLocationArgument.id())
                                 .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(
                                         exactEntityIds(scope).keySet().stream(),
                                         builder
@@ -144,10 +156,14 @@ public final class ChunkLimitCommand {
                                         .then(Commands.argument("limit", IntegerArgumentType.integer(0))
                                                 .executes(ctx -> setModLimit(ctx, scope)))))
                         .then(Commands.literal("tag")
-                                .then(Commands.argument("tagId", StringArgumentType.string())
+                                .then(Commands.argument("tagId", ResourceLocationArgument.id())
+                                        .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(
+                                                BuiltInRegistries.BLOCK.getTagNames().map(TagKey::location),
+                                                builder
+                                        ))
                                         .then(Commands.argument("limit", IntegerArgumentType.integer(0))
                                                 .executes(ctx -> setTagLimit(ctx, scope)))))
-                        .then(Commands.argument("id", StringArgumentType.string())
+                        .then(Commands.argument("id", ResourceLocationArgument.id())
                                 .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(
                                         BuiltInRegistries.BLOCK.keySet().stream(),
                                         builder
@@ -165,13 +181,13 @@ public final class ChunkLimitCommand {
                                         ))
                                         .executes(ctx -> removeModLimit(ctx, scope))))
                         .then(Commands.literal("tag")
-                                .then(Commands.argument("tagId", StringArgumentType.string())
+                                .then(Commands.argument("tagId", ResourceLocationArgument.id())
                                         .suggests((context, builder) -> SharedSuggestionProvider.suggest(
                                                 configuredTagIds(scope),
                                                 builder
                                         ))
                                         .executes(ctx -> removeTagLimit(ctx, scope))))
-                        .then(Commands.argument("id", StringArgumentType.string())
+                        .then(Commands.argument("id", ResourceLocationArgument.id())
                                 .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(
                                         exactBlockIds(scope).keySet().stream(),
                                         builder
@@ -195,7 +211,7 @@ public final class ChunkLimitCommand {
                                 ))
                                 .then(Commands.literal("held")
                                         .executes(ctx -> addHeldToGroup(ctx, scope)))
-                                .then(Commands.argument("blockId", StringArgumentType.string())
+                                .then(Commands.argument("blockId", ResourceLocationArgument.id())
                                         .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(
                                                 BuiltInRegistries.BLOCK.keySet().stream(),
                                                 builder
@@ -209,7 +225,11 @@ public final class ChunkLimitCommand {
                                 ))
                                 .then(Commands.literal("held")
                                         .executes(ctx -> removeHeldFromGroup(ctx, scope)))
-                                .then(Commands.argument("blockId", StringArgumentType.string())
+                                .then(Commands.argument("blockId", ResourceLocationArgument.id())
+                                        .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(
+                                                groupBlockIds(scope, StringArgumentType.getString(context, "name")),
+                                                builder
+                                        ))
                                         .executes(ctx -> removeBlockFromGroup(ctx, scope)))))
                 .then(Commands.literal("delete")
                         .then(Commands.argument("name", StringArgumentType.string())
@@ -335,26 +355,17 @@ public final class ChunkLimitCommand {
     }
 
     private static int listBlockLimits(CommandContext<CommandSourceStack> context, LimitScope scope) {
-        Map<ResourceLocation, Integer> limits = scope == LimitScope.TEAM
-                ? ChunkLimitConfig.getTeamBlockLimits()
-                : ChunkLimitConfig.getBlockLimits();
-        var tags = scope == LimitScope.TEAM
-                ? ChunkLimitConfig.getTeamTagBindings()
-                : ChunkLimitConfig.getTagBindings();
-        var mods = scope == LimitScope.TEAM
-                ? ChunkLimitConfig.getTeamModBindings()
-                : ChunkLimitConfig.getModBindings();
-        var groups = scope == LimitScope.TEAM
-                ? ChunkLimitConfig.getTeamGroups()
-                : ChunkLimitConfig.getGroups();
+        Map<ResourceLocation, Integer> limits = ChunkLimitConfig.getBlockLimits(scope);
+        var tags = ChunkLimitConfig.getTagBindings(scope);
+        var mods = ChunkLimitConfig.getModBindings(scope);
+        var groups = ChunkLimitConfig.getGroups(scope);
 
         if (limits.isEmpty() && tags.isEmpty() && mods.isEmpty() && groups.isEmpty()) {
-            sendSuccess(
-                    context,
-                    scope == LimitScope.TEAM
-                            ? CointCoreMessages.CHUNK_LIMIT_TEAM_LIST_EMPTY
-                            : CointCoreMessages.CHUNK_LIMIT_BLOCK_LIST_EMPTY
-            );
+            sendSuccess(context, switch (scope) {
+                case CHUNK -> CointCoreMessages.CHUNK_LIMIT_BLOCK_LIST_EMPTY;
+                case TEAM -> CointCoreMessages.CHUNK_LIMIT_TEAM_LIST_EMPTY;
+                case PLAYER -> CointCoreMessages.CHUNK_LIMIT_PLAYER_LIST_EMPTY;
+            });
             return 1;
         }
         int count = 0;
@@ -447,9 +458,7 @@ public final class ChunkLimitCommand {
     }
 
     private static int listGroups(CommandContext<CommandSourceStack> context, LimitScope scope) {
-        Map<String, ChunkLimitConfig.GroupLimit> groups = scope == LimitScope.TEAM
-                ? ChunkLimitConfig.getTeamGroups()
-                : ChunkLimitConfig.getGroups();
+        Map<String, ChunkLimitConfig.GroupLimit> groups = ChunkLimitConfig.getGroups(scope);
         if (groups.isEmpty()) {
             sendSuccess(context, CointCoreMessages.CHUNK_LIMIT_GROUP_LIST_EMPTY);
             return 1;
@@ -616,6 +625,25 @@ public final class ChunkLimitCommand {
         return 1;
     }
 
+    private static int checkPlayer(CommandContext<CommandSourceStack> context, ServerPlayer target) {
+        var entries = PlayerBlockLimitService.collectStatus(context.getSource().getServer(), target.getUUID());
+        if (entries.isEmpty()) {
+            sendSuccess(context, CointCoreMessages.CHUNK_LIMIT_PLAYER_CHECK_EMPTY);
+            return 1;
+        }
+        sendSuccess(context, CointCoreMessages.CHUNK_LIMIT_PLAYER_CHECK_HEADER, target.getGameProfile().getName());
+        for (ChunkLimitService.ChunkLimitStatusEntry entry : entries) {
+            sendSuccess(
+                    context,
+                    CointCoreMessages.CHUNK_LIMIT_CHECK_ENTITY_ENTRY,
+                    entry.id(),
+                    entry.current(),
+                    entry.limit()
+            );
+        }
+        return 1;
+    }
+
     private static int dumpEntities(CommandContext<CommandSourceStack> context, boolean includeAllEntities)
             throws CommandSyntaxException {
         MinecraftServer server = context.getSource().getServer();
@@ -636,13 +664,15 @@ public final class ChunkLimitCommand {
     }
 
     private static String scopeLabel(LimitScope scope) {
-        return scope == LimitScope.TEAM ? "team/" : "";
+        return switch (scope) {
+            case CHUNK -> "";
+            case TEAM -> "team/";
+            case PLAYER -> "player/";
+        };
     }
 
     private static Map<ResourceLocation, Integer> exactBlockIds(LimitScope scope) {
-        return scope == LimitScope.TEAM
-                ? ChunkLimitConfig.getTeamBlockLimits()
-                : ChunkLimitConfig.getBlockLimits();
+        return ChunkLimitConfig.getBlockLimits(scope);
     }
 
     private static Map<ResourceLocation, Integer> exactEntityIds(LimitScope scope) {
@@ -671,13 +701,16 @@ public final class ChunkLimitCommand {
     }
 
     private static Iterable<String> groupNames(LimitScope scope) {
-        return (scope == LimitScope.TEAM ? ChunkLimitConfig.getTeamGroups() : ChunkLimitConfig.getGroups()).keySet();
+        return ChunkLimitConfig.getGroups(scope).keySet();
+    }
+
+    private static Stream<ResourceLocation> groupBlockIds(LimitScope scope, String name) {
+        ChunkLimitConfig.GroupLimit group = ChunkLimitConfig.getGroups(scope).get(name);
+        return group == null ? Stream.empty() : group.blocks().stream();
     }
 
     private static Iterable<String> configuredModNamespaces(LimitScope scope) {
-        var bindings = scope == LimitScope.TEAM
-                ? ChunkLimitConfig.getTeamModBindings()
-                : ChunkLimitConfig.getModBindings();
+        var bindings = ChunkLimitConfig.getModBindings(scope);
         Set<String> names = new LinkedHashSet<>();
         for (var binding : bindings) {
             names.add(binding.namespace());
@@ -686,9 +719,7 @@ public final class ChunkLimitCommand {
     }
 
     private static Iterable<String> configuredTagIds(LimitScope scope) {
-        var bindings = scope == LimitScope.TEAM
-                ? ChunkLimitConfig.getTeamTagBindings()
-                : ChunkLimitConfig.getTagBindings();
+        var bindings = ChunkLimitConfig.getTagBindings(scope);
         Set<String> names = new LinkedHashSet<>();
         for (var binding : bindings) {
             names.add(binding.tag().location().toString());
@@ -722,13 +753,8 @@ public final class ChunkLimitCommand {
         return id;
     }
 
-    private static ResourceLocation parseId(CommandContext<CommandSourceStack> context, String argument)
-            throws CommandSyntaxException {
-        ResourceLocation id = ResourceLocation.tryParse(StringArgumentType.getString(context, argument).trim());
-        if (id == null) {
-            throw INVALID_ID.create();
-        }
-        return id;
+    private static ResourceLocation parseId(CommandContext<CommandSourceStack> context, String argument) {
+        return ResourceLocationArgument.getId(context, argument);
     }
 
     private static ServerPlayer requirePlayer(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {

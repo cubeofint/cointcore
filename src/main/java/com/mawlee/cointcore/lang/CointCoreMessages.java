@@ -88,6 +88,10 @@ public final class CointCoreMessages {
     public static final String CHUNK_LIMIT_TEAM_CHECK_HEADER = "message.cointcore.chunklimit.team.check_header";
     public static final String CHUNK_LIMIT_TEAM_CHECK_EMPTY = "message.cointcore.chunklimit.team.check_empty";
     public static final String CHUNK_LIMIT_TEAM_LIST_EMPTY = "message.cointcore.chunklimit.team.list_empty";
+    public static final String CHUNK_LIMIT_PLAYER_BLOCK_DENIED = "message.cointcore.chunklimit.player.block_denied";
+    public static final String CHUNK_LIMIT_PLAYER_CHECK_HEADER = "message.cointcore.chunklimit.player.check_header";
+    public static final String CHUNK_LIMIT_PLAYER_CHECK_EMPTY = "message.cointcore.chunklimit.player.check_empty";
+    public static final String CHUNK_LIMIT_PLAYER_LIST_EMPTY = "message.cointcore.chunklimit.player.list_empty";
     /** @deprecated Use {@link #WORLD_CLEANUP_CLEARED} */
     @Deprecated
     public static final String CRASH_UTILITIES_CLEAR_RESULT = WORLD_CLEANUP_CLEARED;

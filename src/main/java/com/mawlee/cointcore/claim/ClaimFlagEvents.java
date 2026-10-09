@@ -31,6 +31,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 @EventBusSubscriber(modid = CointCore.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.DEDICATED_SERVER)
 public final class ClaimFlagEvents {
@@ -176,6 +177,11 @@ public final class ClaimFlagEvents {
         if (event.getEntity() instanceof ServerPlayer player) {
             ClaimEntryGuard.onTick(player);
         }
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(ServerTickEvent.Post event) {
+        ClaimEntryGuard.flushPendingEjects(event.getServer());
     }
 
     @SubscribeEvent

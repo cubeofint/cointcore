@@ -64,7 +64,7 @@
 
 - Персональный PvP-режим (`/turn-pvp`)
 - Keep Inventory с поддержкой Curios и Accessories
-- Лимиты блоков и сущностей на чанк (`/chunklimit`)
+- Лимиты блоков на чанк, команду и игрока; лимиты сущностей на чанк и команду (`/cointcore chunklimit`)
 - Лимиты и перехват лута спавнеров (Apothic Spawners)
 - Кредиты на киты FTB Essentials (`/kit balance`, `/cointcore kit ...`) и стартовый кит (`/cointcore starter`)
 - Кошелёк глюонов: `/balance`, `/pay`, админ `/cointcore gluons`, торговый терминал `cointcore:trader`, обмен с сайтом через AzLink
@@ -205,6 +205,27 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `entry <цель> <allow\|deny>` | Вход чужих игроков в приват |
 
 Каждый флаг проверяет свой узел `cointcore.claim_flag.*` (см. [Права доступа](#права-доступа)).
+
+#### Лимиты блоков и сущностей (`/cointcore chunklimit`)
+
+Три области блоковых лимитов проверяются вместе — постановка запрещается, если превышена любая:
+
+| Область | Префикс команды | Секции JSON | Что считается |
+|---------|-----------------|-------------|---------------|
+| Чанк | — | `blockLimits`, `groups` | Блоки в чанке |
+| Команда | `team` | `teamBlockLimits`, `teamGroups` | Блоки во всех приватах FTB-команды (общий пул участников) |
+| Игрок | `player` | `playerBlockLimits`, `playerGroups` | Блоки, поставленные самим игроком, во всех измерениях |
+
+Ключи: точный id (`minecraft:hopper`), тег (`tag c:chests` в команде, `#c:chests` в JSON), маска мода (`mod ae2` / `ae2:*`), группа. Каждый блок считается по одному, самому точному ключу. Лимиты сущностей (`entity ...`) есть для чанка и команды.
+
+```
+/cointcore chunklimit player block set minecraft:hopper 4
+/cointcore chunklimit team block set minecraft:hopper 6
+/cointcore chunklimit player check [игрок]
+/cointcore chunklimit entity set alexsmobs:crow 5
+```
+
+Личный счётчик ведёт владелец блока (`<world>/data/cointcore_block_owners.dat`). Владелец снимается, когда блок ломают или меняют, а при загрузке чанка записи сверяются с миром. В личный лимит попадают блоки, поставленные после того, как лимит задан. Постановки машинами (FakePlayer) проверяются только лимитами чанка и команды.
 
 ## InvSee
 
@@ -410,7 +431,7 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/world-cleanup.json` | Очистка предметов на земле |
 | `config/cointcore/mob-cleanup.json` | Очистка мобов |
 | `config/cointcore/votes.json` | Голосования (день, погода, сон) |
-| `config/cointcore/chunk-limits.json` | Лимиты блоков и сущностей на чанк |
+| `config/cointcore/chunk-limits.json` | Лимиты блоков (чанк / команда / игрок) и сущностей (чанк / команда) |
 | `config/cointcore/join-messages.json` | Сообщения при входе/выходе |
 | `config/cointcore/admin-chat.json` | Формат админ-чата |
 | `config/cointcore/spark-profiler.json` | Автопрофилирование Spark + retention профилей |
@@ -599,13 +620,24 @@ ServerEvents.recipes(event => {
 
 ## Интеграции
 
-Мод использует опциональные зависимости — при отсутствии мода соответствующая функция не активируется.
+### Обязательные моды на сервере
+
+Без них CointCore не загрузится; NeoForge сообщит о недостающих зависимостях при старте.
+
+| Мод | Что даёт |
+|-----|----------|
+| **FTB Library** | Общая база FTB-модов |
+| **FTB Teams** | Команды, флаги команд, командные лимиты |
+| **FTB Chunks** | Защита чанков, claim-лимиты |
+| **FTB Ranks** | Мост к LuckPerms (см. ниже) |
+
+### Опциональные интеграции
+
+При отсутствии мода соответствующая функция не активируется.
 
 | Мод | Что даёт |
 |-----|----------|
 | **LuckPerms** | Расширенное управление правами |
-| **FTB Ranks** | Опциональный мост к LuckPerms (см. ниже) |
-| **FTB Chunks / Teams** | Защита чанков, флаги команд |
 | **FTB Essentials** | Киты, офлайн-телепорт, фиксы NBT |
 | **Curios / Accessories** | Keep Inventory, донорский полёт, вкладка Accessories в InvSee |
 | **AzLink** (сборка из `cubeofint/AzLink-mods`) | Обмен глюонами с сайтом (см. [Глюоны и торговец](#глюоны-и-торговец)) |
@@ -621,7 +653,7 @@ ServerEvents.recipes(event => {
 
 Когда установлены и FTB Ranks, и LuckPerms, FTB Ranks перехватывает проверки команд (`command.*`) и отдаёт meta для FTB Essentials / Ultimine из своих рангов. Если в рангах узла нет, по умолчанию используется vanilla OP / дефолт конфига мода — **без запроса к LuckPerms**. Из‑за этого группы LuckPerms с `command.*` и meta вроде `ftbessentials.home.max` / `ftbultimine.max_blocks` не работают, пока FTB Ranks установлен.
 
-CointCore добавляет опциональный mixin-мост: если FTB Ranks не нашёл явное значение узла у игрока, запрос уходит в LuckPerms (permission node или meta). Явные значения в рангах FTB Ranks остаются приоритетнее. Если LuckPerms тоже молчит, сохраняется исходный fallback FTB Ranks.
+CointCore добавляет mixin-мост (включается в конфиге, работает при установленном LuckPerms): если FTB Ranks не нашёл явное значение узла у игрока, запрос уходит в LuckPerms (permission node или meta). Явные значения в рангах FTB Ranks остаются приоритетнее. Если LuckPerms тоже молчит, сохраняется исходный fallback FTB Ranks.
 
 **Как включить**
 

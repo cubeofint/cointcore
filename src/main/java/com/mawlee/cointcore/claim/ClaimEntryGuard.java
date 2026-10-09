@@ -2,13 +2,16 @@ package com.mawlee.cointcore.claim;
 
 import com.mawlee.cointcore.ftb.FtbIntegration;
 import com.mawlee.cointcore.lang.CointCoreMessages;
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.event.entity.EntityTeleportEvent;
+import org.slf4j.Logger;
 
 import java.util.EnumSet;
 import java.util.Map;
@@ -17,7 +20,11 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class ClaimEntryGuard {
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Set<RelativeMovement> KEEP_ROTATION = EnumSet.of(RelativeMovement.X_ROT, RelativeMovement.Y_ROT);
+
     private static final Set<UUID> EJECTING = ConcurrentHashMap.newKeySet();
+    private static final Set<UUID> PENDING_EJECT = ConcurrentHashMap.newKeySet();
     private static final Map<UUID, SafePos> LAST_SAFE = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_MESSAGE_TICK = new ConcurrentHashMap<>();
 
@@ -28,8 +35,14 @@ public final class ClaimEntryGuard {
         LAST_SAFE.remove(playerId);
         LAST_MESSAGE_TICK.remove(playerId);
         EJECTING.remove(playerId);
+        PENDING_EJECT.remove(playerId);
     }
 
+    /**
+     * Runs inside {@code ServerPlayer.doTick()}. Vanilla moves the player back to the position it had at the start
+     * of the connection tick right after {@code doTick()}, so a teleport issued here is undone on the server while
+     * the client keeps waiting for it. The eject is therefore deferred to {@link #flushPendingEjects}.
+     */
     public static void onTick(ServerPlayer player) {
         if (!FtbIntegration.isAvailable() || EJECTING.contains(player.getUUID()) || !player.isAlive() || player.isSpectator()) {
             return;
@@ -40,7 +53,24 @@ public final class ClaimEntryGuard {
             return;
         }
 
-        eject(player);
+        PENDING_EJECT.add(player.getUUID());
+    }
+
+    public static void flushPendingEjects(MinecraftServer server) {
+        if (PENDING_EJECT.isEmpty()) {
+            return;
+        }
+        for (UUID playerId : Set.copyOf(PENDING_EJECT)) {
+            PENDING_EJECT.remove(playerId);
+            ServerPlayer player = server.getPlayerList().getPlayer(playerId);
+            if (player == null || !player.isAlive() || player.isSpectator()) {
+                continue;
+            }
+            if (isAllowed(player, player.serverLevel(), player.blockPosition())) {
+                continue;
+            }
+            eject(player);
+        }
     }
 
     public static void onTeleport(EntityTeleportEvent event) {
@@ -72,34 +102,48 @@ public final class ClaimEntryGuard {
             return;
         }
         try {
-            SafePos safe = LAST_SAFE.get(player.getUUID());
             if (player.isPassenger()) {
                 player.stopRiding();
             }
+
+            SafePos safe = LAST_SAFE.get(player.getUUID());
             if (safe != null) {
                 ServerLevel level = player.getServer().getLevel(safe.dimension());
                 if (level != null && isAllowed(player, level, BlockPos.containing(safe.x(), safe.y(), safe.z()))) {
-                    player.teleportTo(level, safe.x(), safe.y(), safe.z(), EnumSet.noneOf(RelativeMovement.class), safe.yRot(), safe.xRot());
+                    teleportKeepingRotation(player, level, safe.x(), safe.y(), safe.z());
                     notifyDenied(player);
                     return;
                 }
             }
 
-            ServerLevel level = player.serverLevel();
-            BlockPos spawn = level.getSharedSpawnPos();
-            player.teleportTo(
-                    level,
-                    spawn.getX() + 0.5,
-                    spawn.getY(),
-                    spawn.getZ() + 0.5,
-                    EnumSet.noneOf(RelativeMovement.class),
-                    level.getSharedSpawnAngle(),
-                    0.0F
+            if (teleportToSpawnIfAllowed(player, player.serverLevel())
+                    || teleportToSpawnIfAllowed(player, player.getServer().overworld())) {
+                notifyDenied(player);
+                return;
+            }
+
+            LOGGER.warn(
+                    "Claim entry guard: no allowed position to eject {} from {} at {}; world spawn is inside a members-only claim",
+                    player.getGameProfile().getName(),
+                    player.level().dimension().location(),
+                    player.blockPosition().toShortString()
             );
-            notifyDenied(player);
         } finally {
             EJECTING.remove(player.getUUID());
         }
+    }
+
+    private static boolean teleportToSpawnIfAllowed(ServerPlayer player, ServerLevel level) {
+        BlockPos spawn = level.getSharedSpawnPos();
+        if (!isAllowed(player, level, spawn)) {
+            return false;
+        }
+        teleportKeepingRotation(player, level, spawn.getX() + 0.5, spawn.getY(), spawn.getZ() + 0.5);
+        return true;
+    }
+
+    private static void teleportKeepingRotation(ServerPlayer player, ServerLevel level, double x, double y, double z) {
+        player.teleportTo(level, x, y, z, KEEP_ROTATION, player.getYRot(), player.getXRot());
     }
 
     private static void notifyDenied(ServerPlayer player) {
@@ -112,16 +156,9 @@ public final class ClaimEntryGuard {
         player.displayClientMessage(CointCoreMessages.forPlayer(player, CointCoreMessages.CLAIM_ENTRY_DENIED), true);
     }
 
-    private record SafePos(ResourceKey<Level> dimension, double x, double y, double z, float yRot, float xRot) {
+    private record SafePos(ResourceKey<Level> dimension, double x, double y, double z) {
         private static SafePos from(ServerPlayer player) {
-            return new SafePos(
-                    player.level().dimension(),
-                    player.getX(),
-                    player.getY(),
-                    player.getZ(),
-                    player.getYRot(),
-                    player.getXRot()
-            );
+            return new SafePos(player.level().dimension(), player.getX(), player.getY(), player.getZ());
         }
     }
 }

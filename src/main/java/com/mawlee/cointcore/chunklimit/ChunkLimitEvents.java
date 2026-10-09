@@ -26,6 +26,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.common.util.BlockSnapshot;
 import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
@@ -54,6 +55,7 @@ public final class ChunkLimitEvents {
         if (ChunkLimitConfig.hasAnyBlockLimits()) {
             ChunkLimitIndex.rebuildChunk(level, chunk);
         }
+        PlayerBlockLimitService.validateChunk(level, chunk);
         if (ChunkLimitConfig.hasAnyEntityLimits()) {
             // Defer until entities in the chunk are available after load.
             level.getServer().execute(() -> {
@@ -94,12 +96,32 @@ public final class ChunkLimitEvents {
 
         // Block is already in the world/index when this fires.
         ChunkPos chunkPos = new ChunkPos(event.getPos());
-        if (!ChunkLimitService.wouldExceedBlockLimit(level, chunkPos, block)) {
+        if (!ChunkLimitService.wouldExceedBlockLimit(player, level, chunkPos, block, 0)) {
             return;
         }
 
         event.setCanceled(true);
         ChunkLimitService.denyBlockPlacement(player, placedState, chunkPos);
+    }
+
+    /** Runs last so only placements that actually stay in the world get an owner. */
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onBlockPlacedRecordOwner(BlockEvent.EntityPlaceEvent event) {
+        if (event.isCanceled()
+                || !ChunkLimitConfig.isEnabled()
+                || !ChunkLimitConfig.hasPlayerBlockLimits()
+                || !(event.getLevel() instanceof ServerLevel level)
+                || !(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+        if (event instanceof BlockEvent.EntityMultiPlaceEvent multi) {
+            for (BlockSnapshot snapshot : multi.getReplacedBlockSnapshots()) {
+                BlockPos pos = snapshot.getPos();
+                PlayerBlockLimitService.recordPlacement(player, level, pos, level.getBlockState(pos));
+            }
+            return;
+        }
+        PlayerBlockLimitService.recordPlacement(player, level, event.getPos(), event.getPlacedBlock());
     }
 
     /**
@@ -132,13 +154,13 @@ public final class ChunkLimitEvents {
         BlockPos placePos = level.getBlockState(clicked).canBeReplaced() ? clicked : clicked.relative(face);
         ChunkPos chunkPos = new ChunkPos(placePos);
 
-        if (!ChunkLimitService.wouldExceedBlockLimit(level, chunkPos, block, 1)) {
+        if (!ChunkLimitService.wouldExceedBlockLimit(player, level, chunkPos, block, 1)) {
             return;
         }
 
         event.setCanceled(true);
         event.setCancellationResult(InteractionResult.FAIL);
-        ChunkLimitService.notifyBlockPlacementDenied(player, block.defaultBlockState(), chunkPos);
+        ChunkLimitService.notifyBlockPlacementDenied(player, block.defaultBlockState(), chunkPos, 1);
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
