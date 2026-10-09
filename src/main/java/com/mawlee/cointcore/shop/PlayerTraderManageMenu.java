@@ -11,7 +11,6 @@ import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -19,13 +18,13 @@ import java.util.List;
  */
 public class PlayerTraderManageMenu extends AbstractContainerMenu {
     public static final int STOCK_SIZE = PlayerTraderBlockEntity.STOCK_SIZE;
-    public static final int GUI_WIDTH = 176;
-    public static final int TITLE_HEIGHT = 28;
-    public static final int STOCK_Y = 36;
-    public static final int EDITOR_Y = STOCK_Y + 54 + 6;
+    public static final int GUI_WIDTH = PlayerTraderManageLayout.GUI_WIDTH;
+    public static final int TITLE_HEIGHT = PlayerTraderManageLayout.TITLE_Y;
+    public static final int STOCK_Y = PlayerTraderManageLayout.STOCK_Y;
+    public static final int EDITOR_Y = PlayerTraderManageLayout.EDITOR_Y;
     public static final int GHOST_SLOT_INDEX = STOCK_SIZE;
-    public static final int PLAYER_INV_Y = EDITOR_Y + 48;
-    public static final int GUI_HEIGHT = PLAYER_INV_Y + 82;
+    public static final int PLAYER_INV_Y = PlayerTraderManageLayout.PLAYER_INV_Y;
+    public static final int GUI_HEIGHT = PlayerTraderManageLayout.GUI_HEIGHT;
 
     private final ContainerLevelAccess access;
     private final Container stock;
@@ -51,12 +50,17 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
         this.lifetimeRevenue = Math.max(0L, lifetimeRevenue);
         this.offers = List.copyOf(offers);
 
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(stock, col + row * 9, 8 + col * 18, STOCK_Y + row * 18));
+        for (int row = 0; row < PlayerTraderManageLayout.STOCK_ROWS; row++) {
+            for (int col = 0; col < PlayerTraderManageLayout.STOCK_COLS; col++) {
+                addSlot(new Slot(
+                        stock,
+                        col + row * 9,
+                        PlayerTraderManageLayout.stockSlotX(col),
+                        PlayerTraderManageLayout.stockSlotY(row)
+                ));
             }
         }
-        addSlot(new Slot(ghost, 0, 8, EDITOR_Y + 14) {
+        addSlot(new Slot(ghost, 0, PlayerTraderManageLayout.GHOST_X, PlayerTraderManageLayout.GHOST_Y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return !stack.isEmpty();
@@ -72,13 +76,18 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
                 addSlot(new Slot(
                         playerInventory,
                         col + row * 9 + 9,
-                        8 + col * 18,
-                        PLAYER_INV_Y + row * 18
+                        PlayerTraderManageLayout.playerSlotX(col),
+                        PlayerTraderManageLayout.playerInvRowY(row)
                 ));
             }
         }
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(playerInventory, col, 8 + col * 18, PLAYER_INV_Y + 58));
+            addSlot(new Slot(
+                    playerInventory,
+                    col,
+                    PlayerTraderManageLayout.playerSlotX(col),
+                    PlayerTraderManageLayout.PLAYER_HOTBAR_Y
+            ));
         }
     }
 
