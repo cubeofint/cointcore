@@ -6,6 +6,8 @@ public enum CurrencyMovementType {
     TRADER_SELL("trader_sell"),
     ADMIN_SET("admin_set"),
     ADMIN_ADD("admin_add"),
+    PLAYER_SHOP_BUY("player_shop_buy"),
+    PLAYER_SHOP_SELL("player_shop_sell"),
     SITE_TO_SERVER("site_to_server"),
     SERVER_TO_SITE("server_to_site"),
     SITE_ADJUST("site_adjust");
@@ -38,7 +40,7 @@ public enum CurrencyMovementType {
      */
     public boolean isServerWalletLog() {
         return switch (this) {
-            case PAY, TRADER_BUY, TRADER_SELL, ADMIN_SET, ADMIN_ADD -> true;
+            case PAY, TRADER_BUY, TRADER_SELL, ADMIN_SET, ADMIN_ADD, PLAYER_SHOP_BUY, PLAYER_SHOP_SELL -> true;
             case SITE_TO_SERVER, SERVER_TO_SITE, SITE_ADJUST -> false;
         };
     }

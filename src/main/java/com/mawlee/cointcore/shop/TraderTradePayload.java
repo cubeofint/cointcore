@@ -42,17 +42,34 @@ public record TraderTradePayload(int containerId, int offerIndex, boolean sell, 
             if (!(context.player() instanceof ServerPlayer player)) {
                 return;
             }
-            if (!(player.containerMenu instanceof TraderMenu menu)) {
+            if (player.containerMenu instanceof TraderMenu menu) {
+                if (menu.containerId != payload.containerId() || !menu.stillValid(player)) {
+                    return;
+                }
+                if (payload.sell()) {
+                    TraderTrades.sell(player, menu, payload.offerIndex(), payload.stack());
+                } else {
+                    TraderTrades.buy(player, menu, payload.offerIndex(), payload.stack());
+                }
+                return;
+            }
+            if (!(player.containerMenu instanceof PlayerTraderMenu menu)) {
                 return;
             }
             if (menu.containerId != payload.containerId() || !menu.stillValid(player)) {
                 return;
             }
-            if (payload.sell()) {
-                TraderTrades.sell(player, menu, payload.offerIndex(), payload.stack());
-            } else {
-                TraderTrades.buy(player, menu, payload.offerIndex(), payload.stack());
-            }
+            menu.access().evaluate((level, pos) -> {
+                if (!(level.getBlockEntity(pos) instanceof PlayerTraderBlockEntity shop)) {
+                    return false;
+                }
+                if (payload.sell()) {
+                    PlayerTraderDeals.sell(player, menu, shop, payload.offerIndex(), payload.stack());
+                } else {
+                    PlayerTraderDeals.buy(player, menu, shop, payload.offerIndex(), payload.stack());
+                }
+                return true;
+            }, false);
         });
     }
 }

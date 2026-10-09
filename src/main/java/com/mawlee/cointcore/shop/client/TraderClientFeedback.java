@@ -21,6 +21,8 @@ public final class TraderClientFeedback {
         }
         if (minecraft.screen instanceof TraderScreen screen) {
             screen.setFeedback(payload);
+        } else if (minecraft.screen instanceof PlayerTraderScreen screen) {
+            screen.setFeedback(payload);
         }
     }
 }

@@ -28,18 +28,32 @@ public final class ShopBlocks {
 
     public static final DeferredItem<BlockItem> TRADER_ITEM = ITEMS.registerSimpleBlockItem(TRADER);
 
+    public static final DeferredBlock<PlayerTraderBlock> PLAYER_TRADER = BLOCKS.register(
+            "player_trader",
+            () -> new PlayerTraderBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(3.5F, 3600000.0F)
+                    .sound(SoundType.METAL)
+                    .requiresCorrectToolForDrops()
+                    .noOcclusion())
+    );
+
+    public static final DeferredItem<BlockItem> PLAYER_TRADER_ITEM = ITEMS.registerSimpleBlockItem(PLAYER_TRADER);
+
     private ShopBlocks() {
     }
 
     public static void register(IEventBus modEventBus) {
         BLOCKS.register(modEventBus);
         ITEMS.register(modEventBus);
+        ShopBlockEntities.register(modEventBus);
         modEventBus.addListener(ShopBlocks::addToCreativeTabs);
     }
 
     private static void addToCreativeTabs(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
             event.accept(TRADER_ITEM);
+            event.accept(PLAYER_TRADER_ITEM);
         }
     }
 }

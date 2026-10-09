@@ -20,5 +20,25 @@ public final class TraderNetwork {
                 TraderFeedbackPayload.STREAM_CODEC,
                 TraderFeedbackPayload::handleClient
         );
+        registrar.playToServer(
+                PlayerTraderTabPayload.TYPE,
+                PlayerTraderTabPayload.STREAM_CODEC,
+                PlayerTraderTabPayload::handleServer
+        );
+        registrar.playToServer(
+                PlayerTraderManagePayload.TYPE,
+                PlayerTraderManagePayload.STREAM_CODEC,
+                PlayerTraderManagePayload::handleServer
+        );
+        registrar.playToClient(
+                PlayerTraderCatalogPayload.TYPE,
+                PlayerTraderCatalogPayload.STREAM_CODEC,
+                PlayerTraderCatalogPayload::handleClient
+        );
+        registrar.playToClient(
+                PlayerTraderManageSyncPayload.TYPE,
+                PlayerTraderManageSyncPayload.STREAM_CODEC,
+                PlayerTraderManageSyncPayload::handleClient
+        );
     }
 }

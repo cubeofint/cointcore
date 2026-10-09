@@ -15,5 +15,7 @@ public final class TraderClientSetup {
     @SubscribeEvent
     public static void registerScreens(RegisterMenuScreensEvent event) {
         event.register(ShopMenus.TRADER.get(), TraderScreen::new);
+        event.register(ShopMenus.PLAYER_TRADER.get(), PlayerTraderScreen::new);
+        event.register(ShopMenus.PLAYER_TRADER_MANAGE.get(), PlayerTraderManageScreen::new);
     }
 }
