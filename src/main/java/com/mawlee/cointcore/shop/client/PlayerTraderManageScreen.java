@@ -16,6 +16,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.lwjgl.glfw.GLFW;
 
 public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTraderManageMenu> {
     private EditBox countBox;
@@ -47,6 +48,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         if (selected >= menu.offers().size()) {
             selected = -1;
         }
+        offerPage = Math.min(offerPage, PlayerTraderManageLayout.maxOfferPage(menu.offers().size()));
         deleteArmed = false;
         rebuildWidgets();
     }
@@ -135,7 +137,15 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, title, titleLabelX, titleLabelY, VanillaContainerSkin.LABEL_COLOR, false);
+        int titleMax = PlayerTraderManageLayout.RIGHT_INNER_X - PlayerTraderManageLayout.PAD - titleLabelX;
+        graphics.drawString(
+                font,
+                font.width(title) <= titleMax ? title : Component.literal(font.plainSubstrByWidth(title.getString(), titleMax)),
+                titleLabelX,
+                titleLabelY,
+                VanillaContainerSkin.LABEL_COLOR,
+                false
+        );
         Component revenue = Component.translatable(
                 "gui.cointcore.player_trader.revenue",
                 menu.lifetimeRevenue()
@@ -231,7 +241,24 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
     }
 
     @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        // Keep digits / E / Q / hotbar keys inside a focused price field instead of
+        // closing the screen or swapping/dropping the hovered slot (same as the anvil).
+        if (keyCode != GLFW.GLFW_KEY_ESCAPE
+                && keyCode != GLFW.GLFW_KEY_TAB
+                && getFocused() instanceof EditBox box
+                && box.canConsumeInput()) {
+            box.keyPressed(keyCode, scanCode, modifiers);
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (getFocused() instanceof EditBox && !(getChildAt(mouseX, mouseY).orElse(null) instanceof EditBox)) {
+            setFocused(null);
+        }
         int hit = hoveredOffer(mouseX, mouseY);
         if (hit >= 0) {
             select(hit);
@@ -373,7 +400,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         }
         if (!deleteArmed) {
             deleteArmed = true;
-            rebuildWidgets();
+            rebuildKeepingInput();
             return;
         }
         PacketDistributor.sendToServer(new PlayerTraderManagePayload(
@@ -387,11 +414,23 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         ));
         selected = -1;
         deleteArmed = false;
+        rebuildWidgets();
     }
 
     private void changeOfferPage(int delta) {
         offerPage = Math.max(0, Math.min(PlayerTraderManageLayout.maxOfferPage(menu.offers().size()), offerPage + delta));
+        rebuildKeepingInput();
+    }
+
+    /** Page switches and the delete-confirm relabel must not discard what the owner typed. */
+    private void rebuildKeepingInput() {
+        String count = countBox.getValue();
+        String buy = buyBox.getValue();
+        String sell = sellBox.getValue();
         rebuildWidgets();
+        countBox.setValue(count);
+        buyBox.setValue(buy);
+        sellBox.setValue(sell);
     }
 
     private static int parseInt(String text, int fallback) {
