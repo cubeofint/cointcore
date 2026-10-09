@@ -4,6 +4,7 @@ import com.mawlee.cointcore.config.TraderOffersConfig;
 import com.mawlee.cointcore.lang.CointCoreMessages;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.List;
@@ -15,7 +16,7 @@ public final class PlayerTraderDeals {
 
     public static void buy(ServerPlayer player, PlayerTraderMenu menu, PlayerTraderBlockEntity shop, int offerIndex, boolean stack) {
         PlayerShopOffer stored = validOffer(shop, offerIndex);
-        if (stored == null) {
+        if (stored == null || !matchesShownListing(menu, offerIndex, stored)) {
             fail(player, menu, shop, TraderFeedbackKind.OFFER_UNAVAILABLE, 0, "", 0L, 0L, CointCoreMessages.TRADER_OFFER_UNAVAILABLE);
             return;
         }
@@ -85,7 +86,9 @@ public final class PlayerTraderDeals {
                 return;
             }
             if (!GluonWallet.tryPlayerShopBuy(player.server, player.getUUID(), ownerId, totalCost, totalPrice)) {
-                shop.storePurchase(goods);
+                if (!shop.storePurchase(goods.copy()) && shop.getLevel() != null) {
+                    Block.popResource(shop.getLevel(), shop.getBlockPos(), goods);
+                }
                 fail(
                         player,
                         menu,
@@ -141,7 +144,7 @@ public final class PlayerTraderDeals {
 
     public static void sell(ServerPlayer player, PlayerTraderMenu menu, PlayerTraderBlockEntity shop, int offerIndex, boolean stack) {
         PlayerShopOffer stored = validOffer(shop, offerIndex);
-        if (stored == null) {
+        if (stored == null || !matchesShownListing(menu, offerIndex, stored)) {
             fail(player, menu, shop, TraderFeedbackKind.OFFER_UNAVAILABLE, 0, "", 0L, 0L, CointCoreMessages.TRADER_OFFER_UNAVAILABLE);
             return;
         }
@@ -252,6 +255,27 @@ public final class PlayerTraderDeals {
         }
     }
 
+    /**
+     * The client picks an offer by row index. Reject the deal when the owner changed that
+     * row (item, lot size or prices) after this customer's catalog was last sent, so a
+     * price edit can never be charged against a stale row.
+     */
+    private static boolean matchesShownListing(PlayerTraderMenu menu, int index, PlayerShopOffer current) {
+        List<PlayerTraderListing> shown = menu.listings();
+        if (index < 0 || index >= shown.size()) {
+            return false;
+        }
+        TraderOffer seen = shown.get(index).offer();
+        TraderOffer now = current.toTraderOffer(TraderOffersConfig.playerShopCommissionPercent());
+        return seen.id().equals(now.id())
+                && seen.buyPrice() == now.buyPrice()
+                && seen.sellPrice() == now.sellPrice()
+                && seen.buyTotal() == now.buyTotal()
+                && seen.sellNet() == now.sellNet()
+                && seen.count() == now.count()
+                && ItemStack.isSameItemSameComponents(seen.display(), now.display());
+    }
+
     private static PlayerShopOffer validOffer(PlayerTraderBlockEntity shop, int index) {
         List<PlayerShopOffer> valid = shop.validOffers();
         if (index < 0 || index >= valid.size()) {
@@ -310,14 +334,12 @@ public final class PlayerTraderDeals {
                 player,
                 new TraderFeedbackPayload(menu.containerId, kind, count, itemName, gluons, fee)
         );
+        List<PlayerTraderListing> listings = PlayerTraderMenus.listingsOf(shop);
+        long balance = GluonWallet.get(player);
+        menu.refresh(balance, shop.ownerName(), listings);
         PacketDistributor.sendToPlayer(
                 player,
-                new PlayerTraderCatalogPayload(
-                        menu.containerId,
-                        GluonWallet.get(player),
-                        shop.ownerName(),
-                        PlayerTraderMenus.listingsOf(shop)
-                )
+                new PlayerTraderCatalogPayload(menu.containerId, balance, shop.ownerName(), listings)
         );
         if (chatArgs.length == 0) {
             player.sendSystemMessage(CointCoreMessages.forPlayer(player, chatKey));
