@@ -394,7 +394,7 @@
   "gui.cointcore.player_trader.manage.offers": "Мои лоты",
   "gui.cointcore.player_trader.manage.editor": "Выставить",
   "gui.cointcore.player_trader.manage.sample": "Товар",
-  "gui.cointcore.player_trader.manage.sample.tooltip": "Образец из инвентаря. Предметы заберутся в эскроу.",
+  "gui.cointcore.player_trader.manage.sample.tooltip": "Фантомный образец: клик копирует предмет, ПКМ или пустой клик снимает. В эскроу уйдёт только выбранное количество из инвентаря.",
   "gui.cointcore.player_trader.manage.new_item": "— новый лот —",
   "gui.cointcore.player_trader.manage.count": "Кол-во за сделку",
   "gui.cointcore.player_trader.manage.count.tooltip": "Сколько предметов уходит покупателю за одну сделку.",

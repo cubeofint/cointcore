@@ -98,9 +98,10 @@ public record PlayerTraderManagePayload(
                     }
                 }
                 case SAVE -> {
-                    ItemStack template = payload.template == null || payload.template.isEmpty()
+                    ItemStack incoming = payload.template == null || payload.template.isEmpty()
                             ? menu.ghostItem()
                             : payload.template;
+                    ItemStack template = GhostTemplate.sanitize(incoming);
                     int price = payload.buyPrice > Integer.MAX_VALUE
                             ? Integer.MAX_VALUE
                             : (int) Math.max(0L, payload.buyPrice);

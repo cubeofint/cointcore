@@ -84,10 +84,8 @@ public final class GlobalMarketService {
         int count = PlayerShopValidation.clampCount(countPerDeal);
         int safeDeals = GlobalMarketMath.clampDeals(deals);
         int safePrice = GlobalMarketMath.clampPrice(price);
-        if (template == null || template.isEmpty() || safeDeals < 1 || safePrice < 1) {
-            return false;
-        }
-        if (GlobalMarketBlacklist.forbidden(template, TraderOffersConfig.playerShopItemBlacklist())) {
+        ItemStack sample = GhostTemplate.sanitize(template);
+        if (sample.isEmpty() || safeDeals < 1 || safePrice < 1) {
             return false;
         }
         GlobalMarketSavedData data = GlobalMarketSavedData.get(player.server);
@@ -100,7 +98,7 @@ public final class GlobalMarketService {
             return false;
         }
         int items = GlobalMarketMath.itemsForDeals(count, safeDeals);
-        ItemStack unit = template.copy();
+        ItemStack unit = sample.copy();
         unit.setCount(count);
         if (TraderInventory.countMatching(player.getInventory(), unit) < items) {
             return false;

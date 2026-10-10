@@ -1,14 +1,17 @@
 package com.mawlee.cointcore.shop.client;
 
 import com.mawlee.cointcore.client.VanillaContainerSkin;
+import com.mawlee.cointcore.shop.GhostTemplate;
 import com.mawlee.cointcore.shop.GlobalMarketPriceMath;
 import com.mawlee.cointcore.shop.PlayerShopOfferSnapshot;
+import com.mawlee.cointcore.shop.PlayerTraderGhostPayload;
 import com.mawlee.cointcore.shop.PlayerTraderManageLayout;
 import com.mawlee.cointcore.shop.PlayerTraderManageMenu;
 import com.mawlee.cointcore.shop.PlayerTraderManagePayload;
 import com.mawlee.cointcore.shop.PlayerTraderTabPayload;
 import com.mawlee.cointcore.ui.ScaledGuiLayout;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
@@ -279,6 +282,11 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
     @Override
     protected void renderTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
         if (hoveredGhost(mouseX, mouseY)) {
+            ItemStack ghost = menu.ghostItem();
+            if (!ghost.isEmpty()) {
+                graphics.renderTooltip(font, ghost, mouseX, mouseY);
+                return;
+            }
             graphics.renderTooltip(
                     font,
                     Component.translatable("gui.cointcore.player_trader.manage.sample.tooltip"),
@@ -392,6 +400,24 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         return -1;
     }
 
+    public Rect2i ghostDropArea() {
+        return new Rect2i(leftPos + geom.ghostX, topPos + geom.ghostY, 18, 18);
+    }
+
+    public void acceptGhostIngredient(ItemStack stack) {
+        applyGhostTemplate(stack);
+        rebuildKeepingInput();
+    }
+
+    private void applyGhostTemplate(ItemStack stack) {
+        ItemStack unit = stack == null || stack.isEmpty() ? ItemStack.EMPTY : GhostTemplate.sanitize(stack);
+        if (stack != null && !stack.isEmpty() && unit.isEmpty()) {
+            return;
+        }
+        menu.setGhost(unit);
+        PacketDistributor.sendToServer(new PlayerTraderGhostPayload(menu.containerId, unit));
+    }
+
     private boolean hoveredGhost(int mouseX, int mouseY) {
         int x = leftPos + geom.ghostX;
         int y = topPos + geom.ghostY;
@@ -402,7 +428,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         selected = index;
         deleteArmed = false;
         PlayerShopOfferSnapshot offer = menu.offers().get(index);
-        menu.setGhost(offer.template());
+        applyGhostTemplate(offer.template());
         countBox.setValue(Integer.toString(offer.count()));
         dealsBox.setValue(Integer.toString(offer.stockItems()));
         priceBox.setValue(Long.toString(offer.buyPrice()));
@@ -431,7 +457,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         int count = parseInt(countBox.getValue(), 1);
         int deals = parseInt(dealsBox.getValue(), 1);
         long price = parseLong(priceBox.getValue());
-        ItemStack template = menu.ghostItem();
+        ItemStack template = GhostTemplate.sanitize(menu.ghostItem());
         PacketDistributor.sendToServer(new PlayerTraderManagePayload(
                 menu.containerId,
                 PlayerTraderManagePayload.Action.SAVE,

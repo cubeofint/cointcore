@@ -2,6 +2,7 @@ package com.mawlee.cointcore.shop;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -14,7 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import java.util.List;
 
 /**
- * Seller «Мои лоты»: ghost sample slot plus the player's inventory. No machine stock.
+ * Seller «Мои лоты»: phantom sample slot plus the player's inventory. No machine stock.
  */
 public class PlayerTraderManageMenu extends AbstractContainerMenu {
     public static final int GHOST_SLOT_INDEX = 0;
@@ -51,17 +52,7 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
         this.returnCount = Math.max(0, returnCount);
         this.priceHints = priceHints == null ? List.of() : List.copyOf(priceHints);
 
-        addSlot(new Slot(ghost, 0, PlayerTraderManageLayout.GHOST_X, PlayerTraderManageLayout.GHOST_Y) {
-            @Override
-            public boolean mayPlace(ItemStack stack) {
-                return !stack.isEmpty();
-            }
-
-            @Override
-            public int getMaxStackSize() {
-                return 1;
-            }
-        });
+        addSlot(new GhostSlot(ghost, PlayerTraderManageLayout.GHOST_X, PlayerTraderManageLayout.GHOST_Y));
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 addSlot(new Slot(
@@ -153,6 +144,7 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
 
     public void setGhost(ItemStack stack) {
         ghost.setItem(0, stack.isEmpty() ? ItemStack.EMPTY : stack.copyWithCount(1));
+        broadcastChanges();
     }
 
     public void refresh(
@@ -186,7 +178,26 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
         if (!stillValid(player)) {
             return;
         }
+        if (slotId == GHOST_SLOT_INDEX) {
+            handleGhostClick(button, clickType);
+            return;
+        }
         super.clicked(slotId, button, clickType, player);
+    }
+
+    private void handleGhostClick(int button, ClickType clickType) {
+        if (clickType != ClickType.PICKUP && clickType != ClickType.QUICK_MOVE) {
+            return;
+        }
+        ItemStack carried = getCarried();
+        if (GhostTemplate.isClearClick(button, carried)) {
+            setGhost(ItemStack.EMPTY);
+            return;
+        }
+        ItemStack unit = GhostTemplate.sanitize(carried);
+        if (!unit.isEmpty()) {
+            setGhost(unit);
+        }
     }
 
     @Override
@@ -199,9 +210,40 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
     @Override
     public void removed(Player player) {
         super.removed(player);
-        if (!player.level().isClientSide && !ghost.getItem(0).isEmpty()) {
-            player.getInventory().placeItemBackInInventory(ghost.getItem(0));
-            ghost.setItem(0, ItemStack.EMPTY);
+        ghost.setItem(0, ItemStack.EMPTY);
+    }
+
+    /**
+     * Display-only sample. Clicks never move a real item in or out.
+     */
+    private static final class GhostSlot extends Slot {
+        private GhostSlot(Container container, int x, int y) {
+            super(container, 0, x, y);
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack stack) {
+            return false;
+        }
+
+        @Override
+        public boolean mayPickup(Player player) {
+            return false;
+        }
+
+        @Override
+        public boolean allowModification(Player player) {
+            return false;
+        }
+
+        @Override
+        public ItemStack remove(int amount) {
+            return ItemStack.EMPTY;
+        }
+
+        @Override
+        public int getMaxStackSize() {
+            return 1;
         }
     }
 }

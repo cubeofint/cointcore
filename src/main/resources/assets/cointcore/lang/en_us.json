@@ -394,7 +394,7 @@
   "gui.cointcore.player_trader.manage.offers": "My listings",
   "gui.cointcore.player_trader.manage.editor": "List item",
   "gui.cointcore.player_trader.manage.sample": "Item",
-  "gui.cointcore.player_trader.manage.sample.tooltip": "Sample from your inventory. Items move into escrow immediately.",
+  "gui.cointcore.player_trader.manage.sample.tooltip": "Phantom template: click copies the item, right-click or empty click clears it. Only the listed quantity is taken from your inventory.",
   "gui.cointcore.player_trader.manage.new_item": "— new listing —",
   "gui.cointcore.player_trader.manage.count": "Items per deal",
   "gui.cointcore.player_trader.manage.count.tooltip": "How many items the buyer receives per deal.",
