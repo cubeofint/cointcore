@@ -8,6 +8,8 @@ import net.minecraft.world.entity.item.PrimedTnt;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.vehicle.MinecartTNT;
 import net.minecraft.world.level.Explosion;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.SpawnerBlock;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -27,7 +29,12 @@ public final class ExplosionTerrainEvents {
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onExplosionDetonate(ExplosionEvent.Detonate event) {
         if (ExplosionTerrainConfig.isEnabled()) {
-            event.getAffectedBlocks().clear();
+            if (ExplosionTerrainConfig.isSpawnerDetonationAllowed()) {
+                Level level = event.getLevel();
+                event.getAffectedBlocks().removeIf(pos -> !(level.getBlockState(pos).getBlock() instanceof SpawnerBlock));
+            } else {
+                event.getAffectedBlocks().clear();
+            }
         }
         if (!ExplosionTerrainConfig.isTntPlayerDamageEnabled() && isTntExplosion(event.getExplosion())) {
             event.getAffectedEntities().removeIf(entity -> entity instanceof Player);

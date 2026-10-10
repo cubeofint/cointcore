@@ -746,3 +746,11 @@ All Rights Reserved — см. `gradle.properties`.
 ## Автор
 
 mawlee
+
+## Взрывы без разрушения рельефа
+
+Файл `config/cointcore/explosion-terrain.json`, перечитывается через `/cointcore reload`.
+
+- `enabled` (по умолчанию `true`): взрывы не ломают блоки.
+- `tnt_player_damage` (по умолчанию `false`): урон игрокам от ТНТ.
+- `allow_spawner_detonation` (по умолчанию `true`): при включённом `enabled` спавнеры (`SpawnerBlock`) всё равно остаются в списке разрушаемых блоков, поэтому их можно взорвать (нужно для цепочки Apothic Spawners: нестабильный спавнер, мобы, цепи). Остальной рельеф не трогается. Защиту приватов FTB Chunks это не обходит.
