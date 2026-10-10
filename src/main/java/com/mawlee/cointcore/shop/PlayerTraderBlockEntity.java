@@ -116,22 +116,41 @@ public class PlayerTraderBlockEntity extends BlockEntity {
     }
 
     public synchronized boolean saveOffer(int index, ItemStack template, int count, long buyPrice, long sellPrice) {
+        return saveOffer(index, template, count, buyPrice, sellPrice, ownerId, ownerName);
+    }
+
+    /**
+     * Persist a listing. {@code sellerId} must come from the server-side acting player,
+     * never from a client-supplied owner field.
+     */
+    public synchronized boolean saveOffer(
+            int index,
+            ItemStack template,
+            int count,
+            long buyPrice,
+            long sellPrice,
+            UUID sellerId,
+            String sellerName
+    ) {
         if (!PlayerShopValidation.offerValid(template == null || template.isEmpty(), count, buyPrice, sellPrice)) {
             return false;
         }
+        String sellerKey = PlayerShopManagementPolicy.sellerId(sellerId == null ? null : sellerId.toString());
+        UUID storedSeller = sellerKey == null ? null : UUID.fromString(sellerKey);
         if (index >= 0 && index < offers.size()) {
             PlayerShopOffer offer = offers.get(index);
             offer.setTemplate(template);
             offer.setCount(count);
             offer.setBuyPrice(buyPrice);
             offer.setSellPrice(sellPrice);
+            offer.setSeller(storedSeller, sellerName);
             setChanged();
             return true;
         }
         if (offers.size() >= MAX_OFFERS) {
             return false;
         }
-        offers.add(new PlayerShopOffer(null, template, count, buyPrice, sellPrice));
+        offers.add(new PlayerShopOffer(null, storedSeller, sellerName, template, count, buyPrice, sellPrice));
         setChanged();
         return true;
     }

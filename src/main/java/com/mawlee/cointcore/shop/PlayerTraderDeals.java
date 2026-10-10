@@ -20,7 +20,8 @@ public final class PlayerTraderDeals {
             fail(player, menu, shop, TraderFeedbackKind.OFFER_UNAVAILABLE, 0, "", 0L, 0L, CointCoreMessages.TRADER_OFFER_UNAVAILABLE);
             return;
         }
-        if (player.getUUID().equals(shop.ownerId())) {
+        if (player.getUUID().equals(shop.ownerId())
+                || (stored.sellerId() != null && player.getUUID().equals(stored.sellerId()))) {
             fail(player, menu, shop, TraderFeedbackKind.OWN_SHOP, 0, "", 0L, 0L, CointCoreMessages.PLAYER_SHOP_OWN);
             return;
         }
@@ -67,10 +68,13 @@ public final class PlayerTraderDeals {
             long totalFee = TraderDealMath.cost(offer.buyFee(), units);
             ItemStack goods = stored.sample();
             goods.setCount(stored.count() * units);
-            UUID ownerId = shop.ownerId();
-            if (ownerId == null
+            UUID sellerId = stored.sellerId() != null ? stored.sellerId() : shop.ownerId();
+            String sellerName = stored.sellerId() != null && !stored.sellerName().isBlank()
+                    ? stored.sellerName()
+                    : shop.ownerName();
+            if (sellerId == null
                     || !PlayerShopValidation.settleBuyLegal(
-                    new PlayerShopValidation.UUIDPair(player.getUUID().toString(), ownerId.toString()),
+                    new PlayerShopValidation.UUIDPair(player.getUUID().toString(), sellerId.toString()),
                     totalPrice,
                     totalCost
             )) {
@@ -85,7 +89,7 @@ public final class PlayerTraderDeals {
                 fail(player, menu, shop, TraderFeedbackKind.OUT_OF_STOCK, 0, itemName(offer), 0L, 0L, CointCoreMessages.PLAYER_SHOP_OUT_OF_STOCK);
                 return;
             }
-            if (!GluonWallet.tryPlayerShopBuy(player.server, player.getUUID(), ownerId, totalCost, totalPrice)) {
+            if (!GluonWallet.tryPlayerShopBuy(player.server, player.getUUID(), sellerId, totalCost, totalPrice)) {
                 if (!shop.storePurchase(goods.copy()) && shop.getLevel() != null) {
                     Block.popResource(shop.getLevel(), shop.getBlockPos(), goods);
                 }
@@ -106,19 +110,19 @@ public final class PlayerTraderDeals {
             TraderInventory.giveOrFail(player.getInventory(), goods);
             shop.recordSaleRevenue(totalPrice);
             long buyerAfter = GluonWallet.get(player.server, player.getUUID());
-            long ownerAfter = GluonWallet.get(player.server, ownerId);
+            long sellerAfter = GluonWallet.get(player.server, sellerId);
             CurrencyMovementService.record(
                     player.server,
                     player.getUUID(),
                     player.getGameProfile().getName(),
-                    ownerId,
-                    shop.ownerName(),
+                    sellerId,
+                    sellerName,
                     totalPrice,
                     CurrencyMovementType.PLAYER_SHOP_BUY,
                     stored.id(),
                     List.of(
                             new CurrencyMovement.Delta(player.getUUID(), -totalCost, buyerAfter),
-                            new CurrencyMovement.Delta(ownerId, totalPrice, ownerAfter)
+                            new CurrencyMovement.Delta(sellerId, totalPrice, sellerAfter)
                     ),
                     null
             );

@@ -24,12 +24,15 @@ public final class PlayerShopAccess {
     }
 
     public static boolean canManage(Player player, UUID ownerId) {
-        if (player == null || ownerId == null) {
+        if (player == null) {
             return false;
         }
-        if (ownerId.equals(player.getUUID())) {
-            return true;
-        }
-        return player instanceof ServerPlayer serverPlayer && canAdmin(serverPlayer);
+        boolean admin = player instanceof ServerPlayer serverPlayer && canAdmin(serverPlayer);
+        String owner = ownerId == null ? null : ownerId.toString();
+        return PlayerShopManagementPolicy.canManage(player.getUUID().toString(), owner, admin);
+    }
+
+    public static boolean allowOpenManage(boolean requestedManage, Player player, UUID ownerId) {
+        return PlayerShopManagementPolicy.allowOpenManage(requestedManage, canManage(player, ownerId));
     }
 }

@@ -17,12 +17,13 @@
 - Комиссия: `player_shop_commission_percent` (дефолт = системной).
 - **Выручка не копится в блоке.** На сделке сразу: debit/credit кошельков (владелец может быть офлайн), типы `player_shop_buy` / `player_shop_sell` с deltas как у `/pay` (покупатель и владелец). Комиссия сжигается (разница totals). Кнопка «забрать выручку» не нужна.
 - Владелец: вкладка «Управление» — склад, создание/правка/удаление офферов (ghost-слот, кол-во, цена продажи игроку и опционально скупки). Покупатель: то же GUI, что терминал, без спарклайна, «нет в наличии», имя владельца в заголовке.
-- Защита: ломать/управление только владелец или `cointcore.playershop.admin`; blast resistance 3600000; hoppers/pipes не видят склад. Права `cointcore.playershop.place` / `use` (всем по умолчанию).
-- Сделки только сервер, match включая components, synchronized на BE.
+- Защита: ломать/управление только владелец (UUID BlockEntity) или `cointcore.playershop.admin`. Каждый manage-пакет (вкладка, save/delete оффера, клики по складу) проверяется на сервере; клиентский флаг вкладки и «owner» не доверяются. Меню управления — отдельный `MenuType` `player_trader_manage`; покупатель получает только `player_trader` без слотов склада. Оффер хранит `seller_id` действующего игрока с сервера, не UUID владельца блока, если действует не владелец.
+- Blast resistance 3600000; hoppers/pipes не видят склад. Права `cointcore.playershop.place` / `use` (всем по умолчанию).
+- Сделки только сервер, match включая components, synchronized на BE. Выручка покупки идёт на `seller_id` оффера (fallback — владелец блока).
 
 ## Сайт / AzLink
 - Outbox: pay, trader_buy, trader_sell, admin_set, admin_add, **player_shop_buy, player_shop_sell**, site_*.
 - `player_shop_*` — `isServerWalletLog() == true` (сайт логирует, баланс сайта меняет deltas как у pay).
 
 ## Тесты
-PlayerShopValidationTest (+ прежние shop-тесты). `./gradlew build`.
+PlayerShopValidationTest, PlayerShopManagementPolicyTest (+ прежние shop-тесты). `./gradlew build`.

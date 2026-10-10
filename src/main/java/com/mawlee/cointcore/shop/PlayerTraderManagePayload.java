@@ -71,7 +71,11 @@ public record PlayerTraderManagePayload(
                 return;
             }
             menu.access().evaluate((level, pos) -> {
-                if (!(level.getBlockEntity(pos) instanceof PlayerTraderBlockEntity shop) || !shop.canManage(player)) {
+                if (!(level.getBlockEntity(pos) instanceof PlayerTraderBlockEntity shop)) {
+                    return false;
+                }
+                if (!shop.canManage(player)) {
+                    player.closeContainer();
                     return false;
                 }
                 boolean ok;
@@ -86,7 +90,9 @@ public record PlayerTraderManagePayload(
                             template,
                             payload.count,
                             payload.buyPrice,
-                            payload.sellPrice
+                            payload.sellPrice,
+                            player.getUUID(),
+                            player.getGameProfile().getName()
                     );
                 }
                 menu.refresh(shop.ownerName(), shop.lifetimeRevenue(), PlayerShopOfferSnapshot.of(shop));

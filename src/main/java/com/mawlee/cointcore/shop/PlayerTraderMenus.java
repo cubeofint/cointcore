@@ -13,7 +13,7 @@ public final class PlayerTraderMenus {
     }
 
     public static void open(ServerPlayer player, PlayerTraderBlockEntity shop, boolean manage) {
-        if (manage && shop.canManage(player)) {
+        if (PlayerShopAccess.allowOpenManage(manage, player, shop.ownerId())) {
             openManage(player, shop);
         } else {
             openShop(player, shop);
