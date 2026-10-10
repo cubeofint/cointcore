@@ -9,6 +9,7 @@ import com.mawlee.cointcore.shop.PlayerTraderManageLayout;
 import com.mawlee.cointcore.shop.PlayerTraderManageMenu;
 import com.mawlee.cointcore.shop.PlayerTraderManagePayload;
 import com.mawlee.cointcore.shop.PlayerTraderTabPayload;
+import com.mawlee.cointcore.ui.PagerChrome;
 import com.mawlee.cointcore.ui.ScaledGuiLayout;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.Rect2i;
@@ -84,7 +85,10 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         );
         addRenderableWidget(Button.builder(
                 Component.translatable("gui.cointcore.player_trader.tab.shop"),
-                button -> PacketDistributor.sendToServer(new PlayerTraderTabPayload(menu.containerId, false))
+                button -> {
+                    GuiCursor.remember();
+                    PacketDistributor.sendToServer(new PlayerTraderTabPayload(menu.containerId, false));
+                }
         ).bounds(leftPos + PlayerTraderManageLayout.PAD, topPos + geom.tabY, shopTabW, geom.tabH).build());
         addRenderableWidget(Button.builder(
                 Component.translatable("gui.cointcore.player_trader.tab.mine"),
@@ -99,8 +103,9 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
 
         countBox = field(geom.fieldBox(0), selected >= 0 ? String.valueOf(menu.offers().get(selected).count()) : "1",
                 "gui.cointcore.player_trader.manage.count.tooltip");
-        dealsBox = field(geom.fieldBox(1), selected >= 0 ? String.valueOf(menu.offers().get(selected).stockItems()) : "1",
+        dealsBox = field(geom.fieldBox(1), selected >= 0 ? String.valueOf(menu.offers().get(selected).dealsLeft()) : "1",
                 "gui.cointcore.player_trader.manage.deals.tooltip");
+        dealsBox.setMaxLength(18);
         long recommended = recommendedUnitPrice();
         PlayerTraderManageLayout.Rect priceRect = geom.fieldBox(2);
         Component fill = Component.translatable("gui.cointcore.player_trader.manage.recommend.fill");
@@ -128,35 +133,59 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                     .build());
         }
 
-        Component listLabel = Component.translatable("gui.cointcore.player_trader.manage.list");
+        Component listLabel = Component.translatable(
+                selected >= 0 ? "gui.cointcore.player_trader.manage.save" : "gui.cointcore.player_trader.manage.list"
+        );
+        Component newLabel = Component.translatable("gui.cointcore.player_trader.manage.new");
         Component cancelLabel = deleteArmed
                 ? Component.translatable("gui.cointcore.player_trader.manage.delete_confirm")
                 : Component.translatable("gui.cointcore.player_trader.manage.cancel");
         Component claimLabel = Component.translatable("gui.cointcore.player_trader.manage.claim", menu.returnCount());
-        PlayerTraderManageLayout.Rect[] actions = geom.actionButtons(
-                font.width(listLabel),
-                font.width(cancelLabel),
-                font.width(claimLabel)
-        );
+        PlayerTraderManageLayout.Rect[] actions = selected >= 0
+                ? geom.actionButtons(
+                        font.width(listLabel),
+                        font.width(newLabel),
+                        font.width(cancelLabel),
+                        font.width(claimLabel)
+                )
+                : geom.actionButtons(
+                        font.width(listLabel),
+                        font.width(cancelLabel),
+                        font.width(claimLabel)
+                );
         addRenderableWidget(Button.builder(listLabel, button -> save())
                 .bounds(leftPos + actions[0].x(), topPos + actions[0].y(), actions[0].w(), actions[0].h())
                 .build());
+        int actionIndex = 1;
+        if (selected >= 0) {
+            addRenderableWidget(Button.builder(newLabel, button -> clearSelection())
+                    .bounds(leftPos + actions[actionIndex].x(), topPos + actions[actionIndex].y(), actions[actionIndex].w(), actions[actionIndex].h())
+                    .build());
+            actionIndex++;
+        }
         deleteButton = addRenderableWidget(Button.builder(cancelLabel, button -> delete())
-                .bounds(leftPos + actions[1].x(), topPos + actions[1].y(), actions[1].w(), actions[1].h())
+                .bounds(leftPos + actions[actionIndex].x(), topPos + actions[actionIndex].y(), actions[actionIndex].w(), actions[actionIndex].h())
                 .build());
         deleteButton.active = selected >= 0;
+        actionIndex++;
         addRenderableWidget(Button.builder(claimLabel, button -> claim())
-                .bounds(leftPos + actions[2].x(), topPos + actions[2].y(), actions[2].w(), actions[2].h())
+                .bounds(leftPos + actions[actionIndex].x(), topPos + actions[actionIndex].y(), actions[actionIndex].w(), actions[actionIndex].h())
                 .build()).active = menu.returnCount() > 0;
 
+        int maxOfferPage = PlayerTraderManageLayout.maxOfferPage(menu.offers().size(), geom.listPageSize);
         PlayerTraderManageLayout.Rect prev = geom.pagerPrev();
         PlayerTraderManageLayout.Rect next = geom.pagerNext();
-        addRenderableWidget(Button.builder(Component.literal("<"), button -> changeOfferPage(-1))
-                .bounds(leftPos + prev.x(), topPos + prev.y(), prev.w(), prev.h())
-                .build()).active = offerPage > 0;
-        addRenderableWidget(Button.builder(Component.literal(">"), button -> changeOfferPage(1))
-                .bounds(leftPos + next.x(), topPos + next.y(), next.w(), next.h())
-                .build()).active = offerPage < PlayerTraderManageLayout.maxOfferPage(menu.offers().size(), geom.listPageSize);
+        if (PagerChrome.showPrev(offerPage, maxOfferPage)) {
+            addRenderableWidget(Button.builder(Component.literal("<"), button -> changeOfferPage(-1))
+                    .bounds(leftPos + prev.x(), topPos + prev.y(), prev.w(), prev.h())
+                    .build());
+        }
+        if (PagerChrome.showNext(offerPage, maxOfferPage)) {
+            addRenderableWidget(Button.builder(Component.literal(">"), button -> changeOfferPage(1))
+                    .bounds(leftPos + next.x(), topPos + next.y(), next.w(), next.h())
+                    .build());
+        }
+        GuiCursor.restoreIfNeeded();
     }
 
     private EditBox field(PlayerTraderManageLayout.Rect rect, String value, String tooltipKey) {
@@ -365,7 +394,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
             Component prices = Component.translatable(
                     "gui.cointcore.player_trader.manage.list_prices",
                     Long.toString(offer.buyPrice()),
-                    Integer.toString(offer.stockItems())
+                    Long.toString(offer.dealsLeft())
             );
             int maxText = x + w - textX - GluonGuiIcon.SIZE - 2;
             graphics.drawString(
@@ -430,7 +459,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         PlayerShopOfferSnapshot offer = menu.offers().get(index);
         applyGhostTemplate(offer.template());
         countBox.setValue(Integer.toString(offer.count()));
-        dealsBox.setValue(Integer.toString(offer.stockItems()));
+        dealsBox.setValue(Long.toString(offer.dealsLeft()));
         priceBox.setValue(Long.toString(offer.buyPrice()));
         rebuildWidgets();
     }
@@ -455,7 +484,10 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
     private void save() {
         deleteArmed = false;
         int count = parseInt(countBox.getValue(), 1);
-        int deals = parseInt(dealsBox.getValue(), 1);
+        long deals = parseLong(dealsBox.getValue());
+        if (deals < 1L) {
+            deals = 1L;
+        }
         long price = parseLong(priceBox.getValue());
         ItemStack template = GhostTemplate.sanitize(menu.ghostItem());
         PacketDistributor.sendToServer(new PlayerTraderManagePayload(
@@ -505,6 +537,16 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                 0L,
                 0L
         ));
+    }
+
+    private void clearSelection() {
+        selected = -1;
+        deleteArmed = false;
+        applyGhostTemplate(ItemStack.EMPTY);
+        rebuildWidgets();
+        countBox.setValue("1");
+        dealsBox.setValue("1");
+        priceBox.setValue("1");
     }
 
     private void changeOfferPage(int delta) {

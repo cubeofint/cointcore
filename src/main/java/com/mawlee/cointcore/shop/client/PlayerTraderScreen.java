@@ -4,6 +4,8 @@ import com.mawlee.cointcore.client.VanillaContainerSkin;
 import com.mawlee.cointcore.config.TraderOffersConfig;
 import com.mawlee.cointcore.shop.GlobalMarketMath;
 import com.mawlee.cointcore.shop.GlobalMarketRows;
+import com.mawlee.cointcore.shop.MarketBuyQuote;
+import com.mawlee.cointcore.shop.MarketLotLineLayout;
 import com.mawlee.cointcore.shop.OfferPriceVerdict;
 import com.mawlee.cointcore.shop.PlayerTraderListing;
 import com.mawlee.cointcore.shop.PlayerTraderManageLayout;
@@ -15,6 +17,7 @@ import com.mawlee.cointcore.shop.TraderOffer;
 import com.mawlee.cointcore.shop.TraderShopLayout;
 import com.mawlee.cointcore.shop.TraderTradePayload;
 import com.mawlee.cointcore.shop.jei.JeiSearchBridge;
+import com.mawlee.cointcore.ui.PagerChrome;
 import com.mawlee.cointcore.ui.ScaledGuiLayout;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -53,6 +56,10 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
     private boolean syncingJei;
     private boolean searchDirty;
     private List<GlobalMarketRows.Row> view = List.of();
+    private GlobalMarketRows.Row buyRow;
+    private int buyCatalogIndex = -1;
+    private String buyDealsText = "1";
+    private EditBox buyDealsBox;
 
     public PlayerTraderScreen(PlayerTraderMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -64,9 +71,20 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
 
     void setFeedback(TraderFeedbackPayload payload) {
         this.feedback = payload;
+        if (payload != null && !payload.kind().error()) {
+            closeBuy();
+        }
     }
 
     void onCatalogUpdated() {
+        if (buyRow != null) {
+            GlobalMarketRows.Row next = rowOf(buyRow.listingId());
+            buyRow = next;
+            buyCatalogIndex = next == null ? -1 : catalogIndexOf(next.listingId());
+            if (next == null) {
+                buyDealsText = "1";
+            }
+        }
         rebuildWidgets();
     }
 
@@ -97,7 +115,10 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
             }).bounds(listLeft, topPos + layout.tabY(), shopTabW, 16).build()).active = false;
             addRenderableWidget(Button.builder(
                     manageTab,
-                    button -> PacketDistributor.sendToServer(new PlayerTraderTabPayload(menu.containerId, true))
+                    button -> {
+                        GuiCursor.remember();
+                        PacketDistributor.sendToServer(new PlayerTraderTabPayload(menu.containerId, true));
+                    }
             ).bounds(listLeft + shopTabW + 4, topPos + layout.tabY(), manageTabW, 16).build());
         }
 
@@ -137,25 +158,29 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
             int y = buttonY0 + row * layout.rowHeight() + PRICE_BLOCK_TOP;
             int buyX = leftPos + buttonColumnX;
             int catalogIndex = catalogIndexOf(listing.listingId());
-            Button buy = Button.builder(Component.translatable("gui.cointcore.trader.buy"), button -> trade(catalogIndex))
+            Button buy = Button.builder(Component.translatable("gui.cointcore.trader.buy"), button -> openBuy(listing))
                     .bounds(buyX, y, buttonWidth, BUTTON_HEIGHT)
-                    .tooltip(Tooltip.create(Component.translatable("gui.cointcore.player_trader.shift_hint")))
+                    .tooltip(Tooltip.create(Component.translatable("gui.cointcore.player_trader.buy.hint")))
                     .build();
-            buy.active = listing.dealsLeft() > 0 && listing.price() > 0L && catalogIndex >= 0;
+            buy.active = listing.dealsLeft() > 0L && listing.price() > 0L && catalogIndex >= 0;
             addRenderableWidget(buy);
         }
 
         int pagerY = topPos + layout.pagerY();
-        Button prev = Button.builder(Component.literal("<"), button -> changePage(-1))
-                .bounds(listLeft, pagerY, 16, 16)
-                .build();
-        prev.active = page > 0;
-        addRenderableWidget(prev);
-        Button next = Button.builder(Component.literal(">"), button -> changePage(1))
-                .bounds(leftPos + imageWidth - 24, pagerY, 16, 16)
-                .build();
-        next.active = page < maxPage();
-        addRenderableWidget(next);
+        if (PagerChrome.showPrev(page, maxPage())) {
+            addRenderableWidget(Button.builder(Component.literal("<"), button -> changePage(-1))
+                    .bounds(listLeft, pagerY, 16, 16)
+                    .build());
+        }
+        if (PagerChrome.showNext(page, maxPage())) {
+            addRenderableWidget(Button.builder(Component.literal(">"), button -> changePage(1))
+                    .bounds(leftPos + imageWidth - 24, pagerY, 16, 16)
+                    .build());
+        }
+        if (buyRow != null) {
+            addBuyDialog();
+        }
+        GuiCursor.restoreIfNeeded();
     }
 
     @Override
@@ -193,8 +218,8 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
                     VanillaContainerSkin.LABEL_COLOR,
                     false
             );
-            int buyY = y + PRICE_BLOCK_TOP + Math.max(0, (BUTTON_HEIGHT - 8) / 2);
-            if (listing.dealsLeft() < 1) {
+            int buyY = y + PRICE_BLOCK_TOP;
+            if (listing.dealsLeft() < 1L) {
                 graphics.drawString(
                         font,
                         Component.translatable("gui.cointcore.player_trader.out_of_stock"),
@@ -204,32 +229,7 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
                         false
                 );
             } else {
-                Component price = Component.translatable(
-                        "gui.cointcore.player_trader.lot_price",
-                        Integer.toString(listing.count()),
-                        Long.toString(listing.price())
-                );
-                graphics.drawString(font, price, TEXT_LEFT, buyY, VanillaContainerSkin.LABEL_COLOR, false);
-                int cursor = TEXT_LEFT + font.width(price) + 2;
-                GluonGuiIcon.blit(graphics, cursor, buyY - 1);
-                cursor += GluonGuiIcon.SIZE + 6;
-                Component lots = Component.translatable(
-                        "gui.cointcore.player_trader.lot_count",
-                        Integer.toString(listing.dealsLeft())
-                );
-                graphics.drawString(font, lots, cursor, buyY, VanillaContainerSkin.LABEL_COLOR, false);
-                cursor += font.width(lots) + 6;
-                Component seller = listing.multiSeller()
-                        ? Component.translatable("gui.cointcore.player_trader.sellers", listing.sellers().size())
-                        : Component.translatable("gui.cointcore.player_trader.seller", listing.cheapestSeller());
-                graphics.drawString(
-                        font,
-                        ellipsize(seller.getString(), Math.max(16, buttonColumnX - cursor - 36)),
-                        cursor,
-                        buyY,
-                        VanillaContainerSkin.LABEL_COLOR,
-                        false
-                );
+                drawLotLines(graphics, listing, buyY);
                 drawVerdict(graphics, listing, y + NAME_OFFSET);
             }
         }
@@ -246,15 +246,21 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
             );
         }
 
-        Component pageLabel = Component.translatable("gui.cointcore.trader.page", page + 1, maxPage() + 1);
-        graphics.drawString(
-                font,
-                pageLabel,
-                (imageWidth - font.width(pageLabel)) / 2,
-                layout.offerPanelHeight() - 13,
-                VanillaContainerSkin.LABEL_COLOR,
-                false
-        );
+        if (PagerChrome.showLabel(maxPage())) {
+            Component pageLabel = Component.translatable("gui.cointcore.trader.page", page + 1, maxPage() + 1);
+            graphics.drawString(
+                    font,
+                    pageLabel,
+                    (imageWidth - font.width(pageLabel)) / 2,
+                    layout.offerPanelHeight() - 13,
+                    VanillaContainerSkin.LABEL_COLOR,
+                    false
+            );
+        }
+
+        if (buyRow != null) {
+            drawBuyQuote(graphics);
+        }
 
         if (feedback != null) {
             Component line = TraderFeedbackLines.of(feedback);
@@ -297,6 +303,37 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
                 VanillaContainerSkin.LABEL_COLOR,
                 false
         );
+    }
+
+    private void drawLotLines(GuiGraphics graphics, GlobalMarketRows.Row listing, int buyY) {
+        String available = Component.translatable(
+                "gui.cointcore.player_trader.lot_available",
+                Long.toString(listing.stockItems())
+        ).getString();
+        String unit = Component.translatable(
+                "gui.cointcore.player_trader.lot_unit",
+                Long.toString(listing.unitPrice())
+        ).getString();
+        String deal = Component.translatable(
+                "gui.cointcore.player_trader.lot_deal",
+                Integer.toString(listing.count())
+        ).getString();
+        String seller = listing.multiSeller()
+                ? Component.translatable("gui.cointcore.player_trader.sellers", listing.sellers().size()).getString()
+                : Component.translatable("gui.cointcore.player_trader.seller", listing.cheapestSeller()).getString();
+        List<String> lines = MarketLotLineLayout.wrap(List.of(available, unit, deal, seller), textMaxWidth, font::width);
+        if (lines.size() == 2 && font.width(lines.get(1)) > textMaxWidth) {
+            lines = List.of(lines.getFirst(), ellipsize(lines.get(1), textMaxWidth).getString());
+        }
+        for (int index = 0; index < lines.size(); index++) {
+            String line = lines.get(index);
+            int ly = buyY + index * 9;
+            graphics.drawString(font, line, TEXT_LEFT, ly, VanillaContainerSkin.LABEL_COLOR, false);
+            int unitAt = line.indexOf(unit);
+            if (unitAt >= 0) {
+                GluonGuiIcon.blit(graphics, TEXT_LEFT + font.width(line.substring(0, unitAt + unit.length())) + 1, ly - 1);
+            }
+        }
     }
 
     private void drawVerdict(GuiGraphics graphics, GlobalMarketRows.Row listing, int y) {
@@ -344,6 +381,10 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE && buyRow != null) {
+            closeBuy();
+            return true;
+        }
         if (keyCode != GLFW.GLFW_KEY_ESCAPE
                 && keyCode != GLFW.GLFW_KEY_TAB
                 && getFocused() instanceof EditBox box
@@ -356,6 +397,9 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
 
     @Override
     protected void renderTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (buyRow != null && insideBuyDialog(mouseX, mouseY)) {
+            return;
+        }
         int offerIndex = hoveredOffer(mouseX, mouseY);
         if (offerIndex >= 0) {
             GlobalMarketRows.Row row = view.get(offerIndex);
@@ -384,6 +428,11 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
             VanillaContainerSkin.blitSlot(graphics, x + 7, rowY);
         }
         VanillaContainerSkin.blitMenuSlots(graphics, x, y, menu.slots);
+        if (buyRow != null) {
+            int[] box = buyDialogBox();
+            graphics.fill(box[0], box[1], box[0] + box[2], box[1] + box[3], 0xC0101010);
+            graphics.fill(box[0] + 1, box[1] + 1, box[0] + box[2] - 1, box[1] + box[3] - 1, 0xE0C6C6C6);
+        }
     }
 
     @Override
@@ -521,11 +570,162 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
         return index < 0 ? null : menu.listings().get(index);
     }
 
-    private void trade(int offerIndex) {
-        if (offerIndex < 0) {
+    private GlobalMarketRows.Row rowOf(String listingId) {
+        for (GlobalMarketRows.Row row : view) {
+            if (row.listingId().equals(listingId)) {
+                return row;
+            }
+        }
+        return null;
+    }
+
+    private void openBuy(GlobalMarketRows.Row row) {
+        buyRow = row;
+        buyCatalogIndex = catalogIndexOf(row.listingId());
+        buyDealsText = "1";
+        rebuildWidgets();
+        if (buyDealsBox != null) {
+            setFocused(buyDealsBox);
+            buyDealsBox.setFocused(true);
+        }
+    }
+
+    private void closeBuy() {
+        buyRow = null;
+        buyCatalogIndex = -1;
+        buyDealsText = "1";
+        rebuildWidgets();
+    }
+
+    private void addBuyDialog() {
+        int[] box = buyDialogBox();
+        int x = box[0] + 6;
+        int y = box[1] + 6;
+        int fieldW = 48;
+        buyDealsBox = new EditBox(
+                font,
+                x + font.width(Component.translatable("gui.cointcore.player_trader.buy.deals")) + 4,
+                y,
+                fieldW,
+                12,
+                Component.translatable("gui.cointcore.player_trader.buy.deals")
+        );
+        buyDealsBox.setMaxLength(18);
+        buyDealsBox.setFilter(text -> text.chars().allMatch(Character::isDigit) || text.isEmpty());
+        buyDealsBox.setValue(buyDealsText);
+        buyDealsBox.setResponder(text -> buyDealsText = text == null ? "" : text);
+        addRenderableWidget(buyDealsBox);
+        int quickX = buyDealsBox.getX() + fieldW + 4;
+        int quickW = 28;
+        addRenderableWidget(Button.builder(
+                Component.translatable("gui.cointcore.player_trader.buy.one"),
+                button -> setBuyDeals(1L)
+        ).bounds(quickX, y, quickW, 12).build());
+        addRenderableWidget(Button.builder(
+                Component.translatable("gui.cointcore.player_trader.buy.ten"),
+                button -> setBuyDeals(Math.min(maxBuyDeals(), 10L))
+        ).bounds(quickX + quickW + 2, y, quickW, 12).build());
+        addRenderableWidget(Button.builder(
+                Component.translatable("gui.cointcore.player_trader.buy.max"),
+                button -> setBuyDeals(maxBuyDeals())
+        ).bounds(quickX + (quickW + 2) * 2, y, quickW, 12).build());
+        int actionY = box[1] + box[3] - 20;
+        Component confirm = Component.translatable("gui.cointcore.player_trader.buy.confirm");
+        Component cancel = Component.translatable("gui.cointcore.player_trader.buy.cancel");
+        int confirmW = Math.max(40, font.width(confirm) + 10);
+        int cancelW = Math.max(40, font.width(cancel) + 10);
+        addRenderableWidget(Button.builder(confirm, button -> confirmBuy())
+                .bounds(box[0] + 6, actionY, confirmW, 14)
+                .build());
+        addRenderableWidget(Button.builder(cancel, button -> closeBuy())
+                .bounds(box[0] + 10 + confirmW, actionY, cancelW, 14)
+                .build());
+    }
+
+    private void drawBuyQuote(GuiGraphics graphics) {
+        int[] box = buyDialogBox();
+        long deals = parseDeals(buyDealsText);
+        PlayerTraderListing catalog = buyCatalogIndex < 0 ? null : menu.listings().get(buyCatalogIndex);
+        long unitDebit = catalog == null ? buyRow.price() : catalog.offer().buyTotal();
+        long units = MarketBuyQuote.units(deals, buyRow.count());
+        long debit = MarketBuyQuote.debit(deals, buyRow.price(), 0.0d);
+        if (catalog != null) {
+            debit = GlobalMarketMath.sellerCredit(unitDebit, deals);
+        }
+        Component dealsLabel = Component.translatable("gui.cointcore.player_trader.buy.deals");
+        graphics.drawString(font, dealsLabel, box[0] - leftPos + 6, box[1] - topPos + 8, VanillaContainerSkin.LABEL_COLOR, false);
+        Component quote = Component.translatable(
+                "gui.cointcore.player_trader.buy.quote",
+                Long.toString(units),
+                Long.toString(debit)
+        );
+        graphics.drawString(
+                font,
+                quote,
+                box[0] - leftPos + 6,
+                box[1] - topPos + 22,
+                VanillaContainerSkin.LABEL_COLOR,
+                false
+        );
+        GluonGuiIcon.blit(graphics, box[0] - leftPos + 8 + font.width(quote), box[1] - topPos + 21);
+    }
+
+    private void setBuyDeals(long deals) {
+        long value = Math.max(1L, deals);
+        buyDealsText = Long.toString(value);
+        if (buyDealsBox != null) {
+            buyDealsBox.setValue(buyDealsText);
+        }
+    }
+
+    private void confirmBuy() {
+        if (buyCatalogIndex < 0 || buyRow == null) {
             return;
         }
-        PacketDistributor.sendToServer(new TraderTradePayload(menu.containerId, offerIndex, false, hasShiftDown()));
+        long deals = parseDeals(buyDealsText);
+        if (deals < 1L) {
+            return;
+        }
+        PacketDistributor.sendToServer(new TraderTradePayload(menu.containerId, buyCatalogIndex, false, false, deals));
+    }
+
+    private long maxBuyDeals() {
+        if (buyRow == null) {
+            return 1L;
+        }
+        PlayerTraderListing catalog = buyCatalogIndex < 0 ? null : menu.listings().get(buyCatalogIndex);
+        long price = catalog == null ? buyRow.price() : catalog.offer().buyTotal();
+        return Math.max(1L, MarketBuyQuote.maxDeals(
+                buyRow.stockItems(),
+                buyRow.count(),
+                price,
+                menu.gluonBalance(),
+                0.0d
+        ));
+    }
+
+    private int[] buyDialogBox() {
+        int boxW = Math.min(imageWidth - 12, 230);
+        int boxH = 56;
+        int boxX = leftPos + (imageWidth - boxW) / 2;
+        int boxY = topPos + layout.listTop() + 4;
+        return new int[] {boxX, boxY, boxW, boxH};
+    }
+
+    private boolean insideBuyDialog(int mouseX, int mouseY) {
+        int[] box = buyDialogBox();
+        return mouseX >= box[0] && mouseX < box[0] + box[2] && mouseY >= box[1] && mouseY < box[1] + box[3];
+    }
+
+    private static long parseDeals(String text) {
+        if (text == null || text.isBlank()) {
+            return 0L;
+        }
+        try {
+            return Long.parseLong(text);
+        } catch (NumberFormatException ignored) {
+            return 0L;
+        }
     }
 
     private void changePage(int delta) {
@@ -590,6 +790,10 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
         lines.add(Component.translatable(
                 "gui.cointcore.player_trader.tooltip.unit",
                 Long.toString(row.unitPrice())
+        ));
+        lines.add(Component.translatable(
+                "gui.cointcore.player_trader.tooltip.deal",
+                Long.toString(row.price())
         ));
         if (row.marketUnitPrice() > 0L) {
             lines.add(Component.translatable(

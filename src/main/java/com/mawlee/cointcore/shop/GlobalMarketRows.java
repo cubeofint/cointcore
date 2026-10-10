@@ -11,6 +11,7 @@ import java.util.Set;
 /**
  * Groups identical global-market lots (same item key including deal count) onto one row.
  * The cheapest listing is the buy target; extra sellers collapse to a count.
+ * {@link Row#dealsLeft()} is stock at or below the shown unit price.
  */
 public final class GlobalMarketRows {
     private GlobalMarketRows() {
@@ -21,7 +22,7 @@ public final class GlobalMarketRows {
             String groupKey,
             int count,
             long price,
-            int dealsLeft,
+            long dealsLeft,
             String sellerName,
             long createdAt,
             long expiresAt,
@@ -33,7 +34,7 @@ public final class GlobalMarketRows {
             groupKey = groupKey == null ? "" : groupKey;
             count = Math.max(1, count);
             price = Math.max(0L, price);
-            dealsLeft = Math.max(0, dealsLeft);
+            dealsLeft = Math.max(0L, dealsLeft);
             sellerName = sellerName == null ? "" : sellerName;
             createdAt = Math.max(0L, createdAt);
             expiresAt = Math.max(0L, expiresAt);
@@ -46,7 +47,7 @@ public final class GlobalMarketRows {
             String listingId,
             int count,
             long price,
-            int dealsLeft,
+            long dealsLeft,
             int listingCount,
             List<String> sellers,
             long createdAt,
@@ -58,7 +59,7 @@ public final class GlobalMarketRows {
             listingId = listingId == null ? "" : listingId;
             count = Math.max(1, count);
             price = Math.max(0L, price);
-            dealsLeft = Math.max(0, dealsLeft);
+            dealsLeft = Math.max(0L, dealsLeft);
             listingCount = Math.max(1, listingCount);
             sellers = sellers == null ? List.of() : List.copyOf(sellers);
             createdAt = Math.max(0L, createdAt);
@@ -77,6 +78,10 @@ public final class GlobalMarketRows {
 
         public long unitPrice() {
             return GlobalMarketPriceMath.unitPrice(price, count);
+        }
+
+        public long stockItems() {
+            return GlobalMarketMath.itemsForDeals(count, dealsLeft);
         }
     }
 
@@ -97,13 +102,15 @@ public final class GlobalMarketRows {
                     .thenComparingLong(Source::createdAt)
                     .thenComparing(Source::listingId));
             Source cheapest = bucket.getFirst();
-            int deals = 0;
+            long deals = 0L;
             Set<String> names = new LinkedHashSet<>();
             if (!cheapest.sellerName().isBlank()) {
                 names.add(cheapest.sellerName());
             }
             for (Source source : bucket) {
-                deals += source.dealsLeft();
+                if (source.price() <= cheapest.price()) {
+                    deals = GlobalMarketMath.saturatingAdd(deals, source.dealsLeft());
+                }
                 if (!source.sellerName().isBlank()) {
                     names.add(source.sellerName());
                 }

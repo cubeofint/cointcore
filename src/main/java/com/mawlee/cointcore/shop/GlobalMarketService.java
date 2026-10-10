@@ -1,10 +1,12 @@
 package com.mawlee.cointcore.shop;
 
 import com.mawlee.cointcore.config.TraderOffersConfig;
+import com.mawlee.cointcore.lang.CointCoreMessages;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -57,17 +59,18 @@ public final class GlobalMarketService {
     public static List<PlayerShopOfferSnapshot> ownSnapshots(MinecraftServer server, UUID sellerId) {
         expire(server);
         List<PlayerShopOfferSnapshot> rows = new ArrayList<>();
+        long now = System.currentTimeMillis();
         for (GlobalMarketListing listing : GlobalMarketSavedData.get(server).allListings()) {
-            if (!sellerId.equals(listing.sellerId()) || listing.dealsLeft() < 1) {
+            if (!sellerId.equals(listing.sellerId()) || GlobalMarketMath.expired(now, listing.expiresAt())) {
                 continue;
             }
             rows.add(new PlayerShopOfferSnapshot(
                     listing.id().toString(),
-                    listing.stack(),
+                    listing.template(),
                     listing.countPerDeal(),
                     listing.pricePerDeal(),
                     0L,
-                    listing.dealsLeft()
+                    listing.stockItems()
             ));
         }
         return rows;
@@ -77,15 +80,15 @@ public final class GlobalMarketService {
             ServerPlayer player,
             ItemStack template,
             int countPerDeal,
-            int deals,
+            long deals,
             int price
     ) {
         expire(player.server);
         int count = PlayerShopValidation.clampCount(countPerDeal);
-        int safeDeals = GlobalMarketMath.clampDeals(deals);
+        long safeDeals = GlobalMarketMath.clampDeals(deals);
         int safePrice = GlobalMarketMath.clampPrice(price);
         ItemStack sample = GhostTemplate.sanitize(template);
-        if (sample.isEmpty() || safeDeals < 1 || safePrice < 1) {
+        if (sample.isEmpty() || safeDeals < 1L || safePrice < 1) {
             return false;
         }
         GlobalMarketSavedData data = GlobalMarketSavedData.get(player.server);
@@ -97,36 +100,83 @@ public final class GlobalMarketService {
         )) {
             return false;
         }
-        int items = GlobalMarketMath.itemsForDeals(count, safeDeals);
-        ItemStack unit = sample.copy();
-        unit.setCount(count);
-        if (TraderInventory.countMatching(player.getInventory(), unit) < items) {
+        long items = GlobalMarketMath.itemsForDeals(count, safeDeals);
+        if (TraderInventory.countMatchingLong(player.getInventory(), sample) < items) {
             return false;
         }
         long fee = GlobalMarketMath.listingFee(TraderOffersConfig.playerShopListingFee());
         if (fee > 0L && !GluonWallet.trySubtract(player.server, player.getUUID(), fee)) {
             return false;
         }
-        if (!TraderInventory.removeMatching(player.getInventory(), unit, items)) {
+        if (!TraderInventory.removeMatching(player.getInventory(), sample, items)) {
             if (fee > 0L) {
                 GluonWallet.add(player.server, player.getUUID(), fee);
             }
             return false;
         }
         long now = System.currentTimeMillis();
-        ItemStack escrow = unit.copy();
-        escrow.setCount(count);
         data.put(new GlobalMarketListing(
                 UUID.randomUUID(),
                 player.getUUID(),
                 player.getGameProfile().getName(),
-                escrow,
-                safeDeals,
+                sample,
+                count,
                 safePrice,
+                items,
                 now,
                 GlobalMarketMath.expiresAt(now, TraderOffersConfig.playerShopListingLifetimeDays()),
-                0
+                0L
         ));
+        return true;
+    }
+
+    public static boolean update(
+            ServerPlayer player,
+            String listingId,
+            int countPerDeal,
+            long deals,
+            int price
+    ) {
+        expire(player.server);
+        UUID id = parseId(listingId);
+        if (id == null) {
+            return false;
+        }
+        GlobalMarketSavedData data = GlobalMarketSavedData.get(player.server);
+        GlobalMarketListing listing = data.listing(id);
+        if (listing == null) {
+            return false;
+        }
+        if (!GlobalMarketMath.canCancel(
+                player.getUUID().toString(),
+                listing.sellerId().toString(),
+                PlayerShopAccess.canAdmin(player)
+        )) {
+            return false;
+        }
+        int count = PlayerShopValidation.clampCount(countPerDeal);
+        int safePrice = GlobalMarketMath.clampPrice(price);
+        long safeDeals = GlobalMarketMath.clampDeals(deals);
+        if (count < 1 || safePrice < 1 || safeDeals < 0L) {
+            return false;
+        }
+        long leftover = count == listing.countPerDeal()
+                ? GlobalMarketMath.leftoverItems(listing.stockItems(), listing.countPerDeal())
+                : 0L;
+        long desired = GlobalMarketMath.saturatingAdd(GlobalMarketMath.itemsForDeals(count, safeDeals), leftover);
+        long delta = desired - listing.stockItems();
+        ItemStack sample = listing.template();
+        if (delta > 0L && TraderInventory.countMatchingLong(player.getInventory(), sample) < delta) {
+            return false;
+        }
+        if (delta > 0L && !TraderInventory.removeMatching(player.getInventory(), sample, delta)) {
+            return false;
+        }
+        if (delta < 0L) {
+            giveAmountOrReturn(player, sample, -delta);
+        }
+        listing.applyEdit(count, safePrice, desired);
+        data.put(listing);
         return true;
     }
 
@@ -149,8 +199,55 @@ public final class GlobalMarketService {
             return false;
         }
         data.remove(id);
-        giveOrReturn(player, listing.remainingGoods());
+        giveAmountOrReturn(player, listing.template(), listing.remainingStock());
         return true;
+    }
+
+    /**
+     * Insert items into the owner's matching lot escrow. Returns accepted count.
+     * Simulate never mutates. Off-thread / client / no match / blacklist / cap → 0.
+     */
+    public static int tryRestock(PlayerTraderBlockEntity shop, ItemStack stack, boolean simulate) {
+        if (shop == null || stack == null || stack.isEmpty() || shop.ownerId() == null) {
+            return 0;
+        }
+        net.minecraft.world.level.Level level = shop.getLevel();
+        if (level == null || level.isClientSide || level.getServer() == null || !level.getServer().isSameThread()) {
+            return 0;
+        }
+        if (GlobalMarketBlacklist.forbidden(stack, TraderOffersConfig.playerShopItemBlacklist())) {
+            return 0;
+        }
+        expire(level.getServer());
+        GlobalMarketSavedData data = GlobalMarketSavedData.get(level.getServer());
+        long now = System.currentTimeMillis();
+        long cap = TraderOffersConfig.playerShopMaxStockPerLot();
+        UUID owner = shop.ownerId();
+        GlobalMarketListing target = null;
+        for (GlobalMarketListing listing : data.allListings()) {
+            if (!owner.equals(listing.sellerId()) || GlobalMarketMath.expired(now, listing.expiresAt())) {
+                continue;
+            }
+            if (!MarketRestock.matchesTemplate(listing.template(), stack)) {
+                continue;
+            }
+            if (MarketRestock.acceptCount(listing.stockItems(), cap, stack.getCount()) < 1) {
+                continue;
+            }
+            if (target == null || listing.createdAt() < target.createdAt()) {
+                target = listing;
+            }
+        }
+        if (target == null) {
+            return 0;
+        }
+        int accepted = MarketRestock.acceptCount(target.stockItems(), cap, stack.getCount());
+        if (accepted < 1 || simulate) {
+            return accepted;
+        }
+        target.addStock(accepted);
+        data.put(target);
+        return accepted;
     }
 
     public static void claimReturns(ServerPlayer player) {
@@ -160,86 +257,95 @@ public final class GlobalMarketService {
         }
     }
 
-    public static void buy(ServerPlayer player, PlayerTraderMenu menu, String listingId, boolean max) {
+    public static void buy(ServerPlayer player, PlayerTraderMenu menu, String listingId, long requestedDeals) {
         expire(player.server);
         UUID id = parseId(listingId);
         if (id == null) {
-            fail(player, menu);
+            fail(player, menu, TraderFeedbackKind.OFFER_UNAVAILABLE, "unavailable");
             return;
         }
         GlobalMarketSavedData data = GlobalMarketSavedData.get(player.server);
         GlobalMarketListing first = data.listing(id);
         if (first == null || !first.active(System.currentTimeMillis())) {
-            fail(player, menu);
+            fail(player, menu, TraderFeedbackKind.OFFER_UNAVAILABLE, "unavailable");
             return;
         }
         if (GlobalMarketMath.canBuyOwn(player.getUUID().toString(), first.sellerId().toString())) {
-            fail(player, menu);
+            fail(player, menu, TraderFeedbackKind.OWN_SHOP, "own");
             return;
         }
-        List<GlobalMarketListing> chain = matchingCheapest(data, first);
-        int available = 0;
+        long requested = GlobalMarketMath.clampDeals(requestedDeals);
+        if (requested < 1L) {
+            fail(player, menu, TraderFeedbackKind.CANNOT_FILL, "stock");
+            return;
+        }
+        List<GlobalMarketListing> chain = matchingAtOrBelow(data, first, player.getUUID());
+        if (chain.isEmpty()) {
+            fail(player, menu, TraderFeedbackKind.CANNOT_FILL, "price");
+            return;
+        }
+        long available = 0L;
         for (GlobalMarketListing listing : chain) {
-            available += listing.dealsLeft();
+            available = GlobalMarketMath.saturatingAdd(available, listing.dealsLeft());
+        }
+        if (available < requested) {
+            fail(player, menu, TraderFeedbackKind.CANNOT_FILL, "stock");
+            return;
         }
         double commission = TraderOffersConfig.playerShopCommissionPercent();
+        long debit = debitFor(chain, requested, commission);
         long balance = GluonWallet.get(player);
-        int cap = max ? available : 1;
-        int affordable = 0;
-        long running = 0L;
-        outer:
-        for (GlobalMarketListing listing : chain) {
-            Commission.Result unit = Commission.of(listing.pricePerDeal(), commission);
-            for (int step = 0; step < listing.dealsLeft() && affordable < cap; step++) {
-                long next = GlobalMarketMath.saturatingAdd(running, unit.total());
-                if (next > balance) {
-                    break outer;
-                }
-                running = next;
-                affordable++;
-            }
-        }
-        int requested = affordable;
-        if (requested < 1) {
-            fail(player, menu);
+        if (debit < 1L || debit > balance) {
+            fail(player, menu, TraderFeedbackKind.CANNOT_FILL, "money");
             return;
         }
-        int remaining = requested;
+        long remaining = requested;
         List<Taken> taken = new ArrayList<>();
         for (GlobalMarketListing listing : chain) {
-            if (remaining < 1) {
+            if (remaining < 1L) {
                 break;
             }
-            int take = Math.min(remaining, listing.dealsLeft());
-            ItemStack goods = listing.takeDeals(take);
-            if (goods.isEmpty()) {
+            if (listing.unitPrice() > first.unitPrice()) {
+                restoreAll(data, taken);
+                fail(player, menu, TraderFeedbackKind.CANNOT_FILL, "price");
+                return;
+            }
+            long take = Math.min(remaining, listing.dealsLeft());
+            long items = listing.takeDeals(take);
+            if (items < 1L) {
                 continue;
             }
-            if (listing.dealsLeft() < 1) {
+            if (listing.stockItems() < 1L) {
                 data.remove(listing.id());
             } else {
                 data.put(listing);
             }
-            taken.add(new Taken(listing, take, goods));
+            taken.add(new Taken(listing, take, items));
             remaining -= take;
         }
-        if (taken.isEmpty()) {
-            fail(player, menu);
+        if (taken.isEmpty() || remaining > 0L) {
+            restoreAll(data, taken);
+            fail(player, menu, TraderFeedbackKind.CANNOT_FILL, "stock");
             return;
         }
         long totalDebit = 0L;
+        long totalFee = 0L;
+        long totalItems = 0L;
         for (Taken row : taken) {
             Commission.Result unit = Commission.of(row.listing.pricePerDeal(), commission);
             totalDebit = GlobalMarketMath.saturatingAdd(
                     totalDebit,
                     GlobalMarketMath.buyerDebit(row.listing.pricePerDeal(), unit.fee(), row.deals)
             );
+            totalFee = GlobalMarketMath.saturatingAdd(
+                    totalFee,
+                    GlobalMarketMath.saturatingMul(unit.fee(), row.deals)
+            );
+            totalItems = GlobalMarketMath.saturatingAdd(totalItems, row.items);
         }
         if (!GluonWallet.trySubtract(player.server, player.getUUID(), totalDebit)) {
-            for (Taken row : taken) {
-                restoreListing(data, row);
-            }
-            fail(player, menu);
+            restoreAll(data, taken);
+            fail(player, menu, TraderFeedbackKind.CANNOT_FILL, "money");
             return;
         }
         for (Taken row : taken) {
@@ -270,22 +376,37 @@ public final class GlobalMarketService {
                     ),
                     null
             );
-            TraderInventory.giveOrFail(player.getInventory(), row.goods);
+            TraderInventory.giveAmount(player.getInventory(), row.listing.template(), row.items);
         }
-        refreshShop(player, menu);
+        String name = first.stack().getHoverName().getString();
+        int shown = totalItems > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) totalItems;
+        notify(
+                player,
+                menu,
+                TraderFeedbackKind.BOUGHT,
+                shown,
+                name,
+                totalDebit,
+                totalFee,
+                CointCoreMessages.TRADER_BOUGHT,
+                shown,
+                name,
+                totalDebit,
+                totalFee
+        );
     }
 
     public static void expire(MinecraftServer server) {
         GlobalMarketSavedData data = GlobalMarketSavedData.get(server);
         long now = System.currentTimeMillis();
         for (GlobalMarketListing listing : data.allListings()) {
-            if (!GlobalMarketMath.expired(now, listing.expiresAt()) && listing.dealsLeft() >= 1) {
+            if (!GlobalMarketMath.expired(now, listing.expiresAt()) && listing.stockItems() > 0L) {
                 continue;
             }
             data.remove(listing.id());
-            ItemStack leftover = listing.remainingGoods();
-            if (!leftover.isEmpty() && listing.sellerId() != null) {
-                data.addReturn(listing.sellerId(), leftover);
+            long leftover = listing.remainingStock();
+            if (leftover > 0L && listing.sellerId() != null) {
+                data.addReturn(listing.sellerId(), listing.template(), leftover);
             }
         }
     }
@@ -296,26 +417,32 @@ public final class GlobalMarketService {
         }
     }
 
-    private static void restoreListing(GlobalMarketSavedData data, Taken taken) {
-        GlobalMarketListing current = data.listing(taken.listing.id());
-        int deals = taken.deals + (current == null ? 0 : current.dealsLeft());
-        int sold = Math.max(0, taken.listing.soldDeals() - taken.deals);
-        data.put(new GlobalMarketListing(
-                taken.listing.id(),
-                taken.listing.sellerId(),
-                taken.listing.sellerName(),
-                taken.listing.stack(),
-                deals,
-                taken.listing.pricePerDeal(),
-                taken.listing.createdAt(),
-                taken.listing.expiresAt(),
-                sold
-        ));
+    private static void restoreAll(GlobalMarketSavedData data, List<Taken> taken) {
+        for (int index = taken.size() - 1; index >= 0; index--) {
+            restoreListing(data, taken.get(index));
+        }
     }
 
-    private static List<GlobalMarketListing> matchingCheapest(GlobalMarketSavedData data, GlobalMarketListing first) {
+    private static void restoreListing(GlobalMarketSavedData data, Taken taken) {
+        GlobalMarketListing current = data.listing(taken.listing.id());
+        if (current != null) {
+            current.restoreTaken(taken.deals, taken.items);
+            data.put(current);
+            return;
+        }
+        taken.listing.restoreTaken(taken.deals, taken.items);
+        data.put(taken.listing);
+    }
+
+    private static List<GlobalMarketListing> matchingAtOrBelow(
+            GlobalMarketSavedData data,
+            GlobalMarketListing first,
+            UUID buyerId
+    ) {
         List<GlobalMarketListing> same = new ArrayList<>();
         long now = System.currentTimeMillis();
+        long cap = first.unitPrice();
+        String buyer = buyerId == null ? "" : buyerId.toString();
         for (GlobalMarketListing listing : data.allListings()) {
             if (!listing.active(now)) {
                 continue;
@@ -326,10 +453,38 @@ public final class GlobalMarketService {
             if (listing.countPerDeal() != first.countPerDeal()) {
                 continue;
             }
+            if (listing.unitPrice() > cap) {
+                continue;
+            }
+            if (GlobalMarketMath.canBuyOwn(buyer, listing.sellerId().toString())) {
+                continue;
+            }
             same.add(listing);
         }
         same.sort(Comparator.comparingInt(GlobalMarketListing::pricePerDeal).thenComparingLong(GlobalMarketListing::createdAt));
         return same;
+    }
+
+    private static long debitFor(List<GlobalMarketListing> chain, long requested, double commission) {
+        long remaining = requested;
+        long total = 0L;
+        for (GlobalMarketListing listing : chain) {
+            if (remaining < 1L) {
+                break;
+            }
+            long take = Math.min(remaining, listing.dealsLeft());
+            Commission.Result unit = Commission.of(listing.pricePerDeal(), commission);
+            total = GlobalMarketMath.saturatingAdd(
+                    total,
+                    GlobalMarketMath.buyerDebit(listing.pricePerDeal(), unit.fee(), take)
+            );
+            remaining -= take;
+        }
+        return remaining > 0L ? Long.MAX_VALUE : total;
+    }
+
+    private static void giveAmountOrReturn(ServerPlayer player, ItemStack template, long amount) {
+        TraderInventory.giveAmount(player.getInventory(), template, amount);
     }
 
     private static void giveOrReturn(ServerPlayer player, ItemStack goods) {
@@ -339,15 +494,53 @@ public final class GlobalMarketService {
         TraderInventory.giveOrFail(player.getInventory(), goods);
     }
 
-    private static void fail(ServerPlayer player, PlayerTraderMenu menu) {
+    private static void fail(ServerPlayer player, PlayerTraderMenu menu, TraderFeedbackKind kind, String reason) {
+        String chatKey = switch (kind) {
+            case OWN_SHOP -> CointCoreMessages.PLAYER_SHOP_OWN;
+            case CANNOT_FILL -> cannotFillChat(reason);
+            case OFFER_UNAVAILABLE, INVENTORY_FULL, NOT_ENOUGH_GLUONS, NOT_ENOUGH_ITEMS, BOUGHT, SOLD,
+                    OUT_OF_STOCK, STOCK_FULL, OWNER_BROKE -> CointCoreMessages.TRADER_OFFER_UNAVAILABLE;
+        };
+        notify(player, menu, kind, 0, reason, 0L, 0L, chatKey);
+    }
+
+    private static String cannotFillChat(String reason) {
+        return switch (reason == null ? "" : reason) {
+            case "stock" -> CointCoreMessages.PLAYER_SHOP_CANNOT_FILL_STOCK;
+            case "money" -> CointCoreMessages.PLAYER_SHOP_CANNOT_FILL_MONEY;
+            case "price" -> CointCoreMessages.PLAYER_SHOP_CANNOT_FILL_PRICE;
+            default -> CointCoreMessages.PLAYER_SHOP_CANNOT_FILL;
+        };
+    }
+
+    private static void notify(
+            ServerPlayer player,
+            PlayerTraderMenu menu,
+            TraderFeedbackKind kind,
+            int count,
+            String itemName,
+            long gluons,
+            long fee,
+            String chatKey,
+            Object... chatArgs
+    ) {
+        PacketDistributor.sendToPlayer(
+                player,
+                new TraderFeedbackPayload(menu.containerId, kind, count, itemName == null ? "" : itemName, gluons, fee)
+        );
         refreshShop(player, menu);
+        if (chatArgs.length == 0) {
+            player.sendSystemMessage(CointCoreMessages.forPlayer(player, chatKey));
+        } else {
+            player.sendSystemMessage(CointCoreMessages.forPlayer(player, chatKey, chatArgs));
+        }
     }
 
     private static void refreshShop(ServerPlayer player, PlayerTraderMenu menu) {
         List<PlayerTraderListing> listings = catalog(player.server);
         long balance = GluonWallet.get(player);
         menu.refresh(balance, menu.ownerName(), listings);
-        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
+        PacketDistributor.sendToPlayer(
                 player,
                 new PlayerTraderCatalogPayload(menu.containerId, balance, menu.ownerName(), listings)
         );
@@ -438,6 +631,6 @@ public final class GlobalMarketService {
         return BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace();
     }
 
-    private record Taken(GlobalMarketListing listing, int deals, ItemStack goods) {
+    private record Taken(GlobalMarketListing listing, long deals, long items) {
     }
 }

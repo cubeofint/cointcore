@@ -2,22 +2,24 @@ package com.mawlee.cointcore.shop;
 
 /**
  * Pure escrow / listing arithmetic for the server-wide player market.
- * Callers saturate overflow; prices and deal counts are never taken from the client as-is.
+ * Deal count per lot is unbounded; stock is a {@code long}.
  */
 public final class GlobalMarketMath {
     public static final int DEFAULT_MAX_LISTINGS = 20;
     public static final int DEFAULT_LIFETIME_DAYS = 7;
-    public static final int MAX_DEALS = 9_999;
+    public static final long DEFAULT_MAX_STOCK_PER_LOT = 1_000_000L;
     public static final long DAY_MS = 86_400_000L;
 
     private GlobalMarketMath() {
     }
 
+    public static long clampDeals(long deals) {
+        return deals < 1L ? 0L : deals;
+    }
+
     public static int clampDeals(int deals) {
-        if (deals < 1) {
-            return 0;
-        }
-        return Math.min(deals, MAX_DEALS);
+        long value = clampDeals((long) deals);
+        return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
     }
 
     public static int clampPrice(int price) {
@@ -47,48 +49,70 @@ public final class GlobalMarketMath {
         return expiresAt > 0L && now >= expiresAt;
     }
 
+    public static long dealsFromStock(long stockItems, int countPerDeal) {
+        long count = Math.max(1, countPerDeal);
+        if (stockItems <= 0L) {
+            return 0L;
+        }
+        return stockItems / count;
+    }
+
     public static int dealsFromStock(int stockItems, int countPerDeal) {
-        return TraderDealMath.itemUnits(stockItems, countPerDeal);
+        long deals = dealsFromStock((long) stockItems, countPerDeal);
+        return deals > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) deals;
+    }
+
+    public static long leftoverItems(long stockItems, int countPerDeal) {
+        long count = Math.max(1, countPerDeal);
+        if (stockItems <= 0L) {
+            return 0L;
+        }
+        return stockItems - dealsFromStock(stockItems, (int) count) * count;
     }
 
     public static int leftoverItems(int stockItems, int countPerDeal) {
-        int count = Math.max(1, countPerDeal);
-        if (stockItems <= 0) {
-            return 0;
-        }
-        return stockItems - dealsFromStock(stockItems, count) * count;
+        long leftover = leftoverItems((long) stockItems, countPerDeal);
+        return leftover > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) leftover;
     }
 
-    public static int itemsForDeals(int countPerDeal, int deals) {
-        int count = Math.max(1, countPerDeal);
-        int safeDeals = clampDeals(deals);
-        if (safeDeals < 1) {
-            return 0;
+    public static long itemsForDeals(int countPerDeal, long deals) {
+        long count = Math.max(1, countPerDeal);
+        long safeDeals = clampDeals(deals);
+        if (safeDeals < 1L) {
+            return 0L;
         }
-        if (count > Integer.MAX_VALUE / safeDeals) {
-            return Integer.MAX_VALUE;
+        if (count > 0L && safeDeals > Long.MAX_VALUE / count) {
+            return Long.MAX_VALUE;
         }
         return count * safeDeals;
     }
 
-    public static long buyerDebit(long pricePerDeal, long feePerDeal, int deals) {
+    public static int itemsForDeals(int countPerDeal, int deals) {
+        long items = itemsForDeals(countPerDeal, (long) deals);
+        return items > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) items;
+    }
+
+    public static long buyerDebit(long pricePerDeal, long feePerDeal, long deals) {
         long unit = saturatingAdd(Math.max(0L, pricePerDeal), Math.max(0L, feePerDeal));
-        return TraderDealMath.cost(unit, clampDeals(deals));
+        return saturatingMul(unit, clampDeals(deals));
     }
 
-    public static long sellerCredit(long pricePerDeal, int deals) {
-        return TraderDealMath.cost(Math.max(0L, pricePerDeal), clampDeals(deals));
+    public static long sellerCredit(long pricePerDeal, long deals) {
+        return saturatingMul(Math.max(0L, pricePerDeal), clampDeals(deals));
     }
 
-    public static int maxAffordableDeals(long unitTotal, long balance, int available) {
-        return TraderDealMath.affordableUnits(unitTotal, balance, clampDeals(available));
+    public static long maxAffordableDeals(long unitTotal, long balance, long available) {
+        if (unitTotal <= 0L || balance < unitTotal || available <= 0L) {
+            return 0L;
+        }
+        return Math.min(available, balance / unitTotal);
     }
 
-    public static boolean canCreateListing(int currentListings, int maxListings, int deals, int price) {
+    public static boolean canCreateListing(int currentListings, int maxListings, long deals, int price) {
         if (currentListings < 0 || currentListings >= Math.max(1, maxListings)) {
             return false;
         }
-        return clampDeals(deals) >= 1 && clampPrice(price) >= 1;
+        return clampDeals(deals) >= 1L && clampPrice(price) >= 1;
     }
 
     public static boolean canCancel(String actorId, String sellerId, boolean admin) {
@@ -108,5 +132,15 @@ public final class GlobalMarketMath {
             return Long.MAX_VALUE;
         }
         return sum;
+    }
+
+    static long saturatingMul(long left, long right) {
+        if (left <= 0L || right <= 0L) {
+            return 0L;
+        }
+        if (left > Long.MAX_VALUE / right) {
+            return Long.MAX_VALUE;
+        }
+        return left * right;
     }
 }

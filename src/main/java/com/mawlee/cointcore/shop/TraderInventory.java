@@ -47,7 +47,12 @@ final class TraderInventory {
     }
 
     static int countMatching(Inventory inventory, ItemStack sample) {
-        int total = 0;
+        long total = countMatchingLong(inventory, sample);
+        return total > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) total;
+    }
+
+    static long countMatchingLong(Inventory inventory, ItemStack sample) {
+        long total = 0L;
         for (ItemStack stack : inventory.items) {
             if (ItemStack.isSameItemSameComponents(stack, sample)) {
                 total += stack.getCount();
@@ -57,26 +62,48 @@ final class TraderInventory {
     }
 
     static boolean removeMatching(Inventory inventory, ItemStack sample, int amount) {
-        if (countMatching(inventory, sample) < amount) {
+        return removeMatching(inventory, sample, (long) amount);
+    }
+
+    static boolean removeMatching(Inventory inventory, ItemStack sample, long amount) {
+        if (amount <= 0L) {
+            return true;
+        }
+        if (countMatchingLong(inventory, sample) < amount) {
             return false;
         }
-        int remaining = amount;
-        for (int slot = 0; slot < inventory.items.size() && remaining > 0; slot++) {
+        long remaining = amount;
+        for (int slot = 0; slot < inventory.items.size() && remaining > 0L; slot++) {
             ItemStack stack = inventory.items.get(slot);
             if (!ItemStack.isSameItemSameComponents(stack, sample)) {
                 continue;
             }
-            int take = Math.min(remaining, stack.getCount());
+            int take = (int) Math.min(remaining, stack.getCount());
             stack.shrink(take);
             remaining -= take;
         }
-        return remaining == 0;
+        return remaining == 0L;
     }
 
     static void giveOrFail(Inventory inventory, ItemStack goods) {
         inventory.add(goods);
         if (!goods.isEmpty()) {
             inventory.player.drop(goods, false);
+        }
+    }
+
+    static void giveAmount(Inventory inventory, ItemStack template, long amount) {
+        if (template == null || template.isEmpty() || amount <= 0L) {
+            return;
+        }
+        int max = Math.max(1, template.getMaxStackSize());
+        long remaining = amount;
+        while (remaining > 0L) {
+            int chunk = (int) Math.min(max, remaining);
+            ItemStack stack = template.copy();
+            stack.setCount(chunk);
+            giveOrFail(inventory, stack);
+            remaining -= chunk;
         }
     }
 }

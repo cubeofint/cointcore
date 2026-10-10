@@ -44,7 +44,7 @@ public final class GlobalMarketSavedData extends SavedData {
     public synchronized int listingCount(UUID sellerId) {
         int count = 0;
         for (GlobalMarketListing listing : listings.values()) {
-            if (sellerId.equals(listing.sellerId()) && listing.dealsLeft() > 0) {
+            if (sellerId.equals(listing.sellerId()) && listing.stockItems() > 0L) {
                 count++;
             }
         }
@@ -72,6 +72,21 @@ public final class GlobalMarketSavedData extends SavedData {
         setDirty();
     }
 
+    public synchronized void addReturn(UUID playerId, ItemStack template, long amount) {
+        if (playerId == null || template == null || template.isEmpty() || amount <= 0L) {
+            return;
+        }
+        int max = Math.max(1, template.getMaxStackSize());
+        long remaining = amount;
+        while (remaining > 0L) {
+            int chunk = (int) Math.min(max, remaining);
+            ItemStack stack = template.copy();
+            stack.setCount(chunk);
+            addReturn(playerId, stack);
+            remaining -= chunk;
+        }
+    }
+
     public synchronized List<ItemStack> claimReturns(UUID playerId) {
         List<ItemStack> box = returnBoxes.remove(playerId);
         if (box == null || box.isEmpty()) {
@@ -86,12 +101,13 @@ public final class GlobalMarketSavedData extends SavedData {
         return box == null ? 0 : box.size();
     }
 
-    public synchronized void recordSold(UUID sellerId, int deals, long gluons) {
-        if (sellerId == null || deals <= 0 || gluons <= 0L) {
+    public synchronized void recordSold(UUID sellerId, long deals, long gluons) {
+        if (sellerId == null || deals <= 0L || gluons <= 0L) {
             return;
         }
+        int add = deals > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) deals;
         SoldStats stats = sold.computeIfAbsent(sellerId, ignored -> new SoldStats());
-        stats.deals = saturateInt(stats.deals, deals);
+        stats.deals = saturateInt(stats.deals, add);
         stats.gluons = GlobalMarketMath.saturatingAdd(stats.gluons, gluons);
         setDirty();
     }

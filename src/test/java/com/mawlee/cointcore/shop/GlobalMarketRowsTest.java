@@ -33,7 +33,7 @@ class GlobalMarketRowsTest {
         GlobalMarketRows.Row row = rows.getFirst();
         assertEquals("cheap", row.listingId());
         assertEquals(248L, row.price());
-        assertEquals(4, row.dealsLeft());
+        assertEquals(2, row.dealsLeft());
         assertEquals(3, row.listingCount());
         assertTrue(row.multiSeller());
         assertEquals("Mawlee", row.cheapestSeller());

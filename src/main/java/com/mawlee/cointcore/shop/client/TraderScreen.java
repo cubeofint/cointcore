@@ -10,6 +10,7 @@ import com.mawlee.cointcore.shop.TraderMenu;
 import com.mawlee.cointcore.shop.TraderOffer;
 import com.mawlee.cointcore.shop.TraderShopLayout;
 import com.mawlee.cointcore.shop.TraderTradePayload;
+import com.mawlee.cointcore.ui.PagerChrome;
 import com.mawlee.cointcore.ui.ScaledGuiLayout;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -91,16 +92,16 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
         }
 
         int pagerY = topPos + layout.pagerY();
-        Button prev = Button.builder(Component.literal("<"), button -> changePage(-1))
-                .bounds(listLeft, pagerY, 16, 16)
-                .build();
-        prev.active = page > 0;
-        addRenderableWidget(prev);
-        Button next = Button.builder(Component.literal(">"), button -> changePage(1))
-                .bounds(leftPos + imageWidth - 24, pagerY, 16, 16)
-                .build();
-        next.active = page < maxPage();
-        addRenderableWidget(next);
+        if (PagerChrome.showPrev(page, maxPage())) {
+            addRenderableWidget(Button.builder(Component.literal("<"), button -> changePage(-1))
+                    .bounds(listLeft, pagerY, 16, 16)
+                    .build());
+        }
+        if (PagerChrome.showNext(page, maxPage())) {
+            addRenderableWidget(Button.builder(Component.literal(">"), button -> changePage(1))
+                    .bounds(leftPos + imageWidth - 24, pagerY, 16, 16)
+                    .build());
+        }
     }
 
     void setFeedback(TraderFeedbackPayload payload) {
@@ -172,17 +173,19 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
             );
         }
 
-        int pages = maxPage() + 1;
-        Component pageLabel = Component.translatable("gui.cointcore.trader.page", page + 1, pages);
-        int pagerY = layout.offerPanelHeight() - 13;
-        graphics.drawString(
-                font,
-                pageLabel,
-                (imageWidth - font.width(pageLabel)) / 2,
-                pagerY,
-                VanillaContainerSkin.LABEL_COLOR,
-                false
-        );
+        if (PagerChrome.showLabel(maxPage())) {
+            int pages = maxPage() + 1;
+            Component pageLabel = Component.translatable("gui.cointcore.trader.page", page + 1, pages);
+            int pagerY = layout.offerPanelHeight() - 13;
+            graphics.drawString(
+                    font,
+                    pageLabel,
+                    (imageWidth - font.width(pageLabel)) / 2,
+                    pagerY,
+                    VanillaContainerSkin.LABEL_COLOR,
+                    false
+            );
+        }
 
         if (feedback != null) {
             Component line = feedbackLine(feedback);

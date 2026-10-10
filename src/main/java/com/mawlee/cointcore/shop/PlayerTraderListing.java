@@ -6,7 +6,7 @@ package com.mawlee.cointcore.shop;
 public record PlayerTraderListing(
         String listingId,
         TraderOffer offer,
-        int dealsLeft,
+        long dealsLeft,
         String sellerName,
         String sellerId,
         long createdAt,
@@ -19,7 +19,7 @@ public record PlayerTraderListing(
         sellerName = sellerName == null ? "" : sellerName;
         sellerId = sellerId == null ? "" : sellerId;
         modId = modId == null ? "" : modId;
-        dealsLeft = Math.max(0, dealsLeft);
+        dealsLeft = Math.max(0L, dealsLeft);
         createdAt = Math.max(0L, createdAt);
         expiresAt = Math.max(0L, expiresAt);
         marketUnitPrice = Math.max(0L, marketUnitPrice);
@@ -29,7 +29,7 @@ public record PlayerTraderListing(
         this(
                 offer.id(),
                 offer,
-                Math.max(0, stockItems / Math.max(1, offer.count())),
+                GlobalMarketMath.dealsFromStock(stockItems, offer.count()),
                 "",
                 "",
                 0L,
@@ -39,12 +39,12 @@ public record PlayerTraderListing(
         );
     }
 
-    public int stockItems() {
-        return dealsLeft * Math.max(1, offer.count());
+    public long stockItems() {
+        return GlobalMarketMath.itemsForDeals(offer.count(), dealsLeft);
     }
 
     public boolean inStock() {
-        return dealsLeft >= 1;
+        return dealsLeft >= 1L;
     }
 
     public long unitPrice() {

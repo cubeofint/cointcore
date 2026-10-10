@@ -10,27 +10,39 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
- * Client request to buy or sell one trader listing. Quantity is decided on the server
- * ({@code stack} means fill one item stack of that listing).
+ * Client request to buy or sell. For the NPC terminal, {@code stack} fills one item stack.
+ * For the global market, {@code deals} is the requested deal count (all-or-nothing).
  */
-public record TraderTradePayload(int containerId, int offerIndex, boolean sell, boolean stack)
+public record TraderTradePayload(int containerId, int offerIndex, boolean sell, boolean stack, long deals)
         implements CustomPacketPayload {
     public static final Type<TraderTradePayload> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(CointCore.MOD_ID, "trader_trade")
     );
 
     public static final StreamCodec<RegistryFriendlyByteBuf, TraderTradePayload> STREAM_CODEC =
-            StreamCodec.composite(
-                    ByteBufCodecs.VAR_INT,
-                    TraderTradePayload::containerId,
-                    ByteBufCodecs.VAR_INT,
-                    TraderTradePayload::offerIndex,
-                    ByteBufCodecs.BOOL,
-                    TraderTradePayload::sell,
-                    ByteBufCodecs.BOOL,
-                    TraderTradePayload::stack,
-                    TraderTradePayload::new
-            );
+            StreamCodec.of(TraderTradePayload::encode, TraderTradePayload::decode);
+
+    public TraderTradePayload(int containerId, int offerIndex, boolean sell, boolean stack) {
+        this(containerId, offerIndex, sell, stack, 0L);
+    }
+
+    private static void encode(RegistryFriendlyByteBuf buffer, TraderTradePayload payload) {
+        ByteBufCodecs.VAR_INT.encode(buffer, payload.containerId);
+        ByteBufCodecs.VAR_INT.encode(buffer, payload.offerIndex);
+        ByteBufCodecs.BOOL.encode(buffer, payload.sell);
+        ByteBufCodecs.BOOL.encode(buffer, payload.stack);
+        buffer.writeLong(payload.deals);
+    }
+
+    private static TraderTradePayload decode(RegistryFriendlyByteBuf buffer) {
+        return new TraderTradePayload(
+                ByteBufCodecs.VAR_INT.decode(buffer),
+                ByteBufCodecs.VAR_INT.decode(buffer),
+                ByteBufCodecs.BOOL.decode(buffer),
+                ByteBufCodecs.BOOL.decode(buffer),
+                buffer.readLong()
+        );
+    }
 
     @Override
     public Type<? extends CustomPacketPayload> type() {
@@ -73,7 +85,7 @@ public record TraderTradePayload(int containerId, int offerIndex, boolean sell, 
                         player,
                         menu,
                         menu.listings().get(payload.offerIndex()).listingId(),
-                        payload.stack()
+                        payload.deals()
                 );
                 return true;
             }, false);

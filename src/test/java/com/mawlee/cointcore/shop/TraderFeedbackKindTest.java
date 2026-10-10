@@ -17,6 +17,7 @@ class TraderFeedbackKindTest {
         assertTrue(TraderFeedbackKind.STOCK_FULL.error());
         assertTrue(TraderFeedbackKind.OWNER_BROKE.error());
         assertTrue(TraderFeedbackKind.OWN_SHOP.error());
+        assertTrue(TraderFeedbackKind.CANNOT_FILL.error());
         assertFalse(TraderFeedbackKind.BOUGHT.error());
         assertFalse(TraderFeedbackKind.SOLD.error());
     }

@@ -43,7 +43,7 @@ public final class GlobalMarketMigration {
                 int price = offer.buyPrice() > Integer.MAX_VALUE
                         ? Integer.MAX_VALUE
                         : (int) offer.buyPrice();
-                data.put(new GlobalMarketListing(
+                data.put(GlobalMarketListing.fromLegacyDeals(
                         parseUuid(offer.id()),
                         seller,
                         name,

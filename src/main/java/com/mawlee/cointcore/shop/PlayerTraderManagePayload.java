@@ -19,7 +19,7 @@ public record PlayerTraderManagePayload(
         int offerIndex,
         ItemStack template,
         int count,
-        int deals,
+        long deals,
         long buyPrice,
         long sellPrice
 ) implements CustomPacketPayload {
@@ -42,7 +42,7 @@ public record PlayerTraderManagePayload(
         ByteBufCodecs.VAR_INT.encode(buffer, payload.offerIndex);
         ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, payload.template == null ? ItemStack.EMPTY : payload.template);
         ByteBufCodecs.VAR_INT.encode(buffer, payload.count);
-        ByteBufCodecs.VAR_INT.encode(buffer, payload.deals);
+        buffer.writeLong(payload.deals);
         buffer.writeLong(payload.buyPrice);
         buffer.writeLong(payload.sellPrice);
     }
@@ -58,7 +58,7 @@ public record PlayerTraderManagePayload(
         int offerIndex = ByteBufCodecs.VAR_INT.decode(buffer);
         ItemStack template = ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer);
         int count = ByteBufCodecs.VAR_INT.decode(buffer);
-        int deals = ByteBufCodecs.VAR_INT.decode(buffer);
+        long deals = buffer.readLong();
         long buy = buffer.readLong();
         long sell = buffer.readLong();
         return new PlayerTraderManagePayload(containerId, action, offerIndex, template, count, deals, buy, sell);
@@ -105,7 +105,17 @@ public record PlayerTraderManagePayload(
                     int price = payload.buyPrice > Integer.MAX_VALUE
                             ? Integer.MAX_VALUE
                             : (int) Math.max(0L, payload.buyPrice);
-                    ok = GlobalMarketService.create(player, template, payload.count, payload.deals, price);
+                    if (payload.offerIndex >= 0 && payload.offerIndex < menu.offers().size()) {
+                        ok = GlobalMarketService.update(
+                                player,
+                                menu.offers().get(payload.offerIndex).id(),
+                                payload.count,
+                                payload.deals,
+                                price
+                        );
+                    } else {
+                        ok = GlobalMarketService.create(player, template, payload.count, payload.deals, price);
+                    }
                 }
                 default -> {
                     Action unknown = payload.action;

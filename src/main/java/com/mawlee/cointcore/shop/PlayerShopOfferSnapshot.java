@@ -16,9 +16,9 @@ public record PlayerShopOfferSnapshot(
         int count,
         long buyPrice,
         long sellPrice,
-        int stockItems
+        long stockItems
 ) {
-    private static final int MAX = PlayerTraderBlockEntity.MAX_OFFERS;
+    private static final int MAX = 256;
 
     public static List<PlayerShopOfferSnapshot> of(PlayerTraderBlockEntity shop) {
         List<PlayerShopOfferSnapshot> list = new ArrayList<>();
@@ -35,6 +35,10 @@ public record PlayerShopOfferSnapshot(
         return list;
     }
 
+    public long dealsLeft() {
+        return GlobalMarketMath.dealsFromStock(stockItems, count);
+    }
+
     public static void writeList(RegistryFriendlyByteBuf buffer, List<PlayerShopOfferSnapshot> offers) {
         List<PlayerShopOfferSnapshot> limited = offers.size() > MAX ? offers.subList(0, MAX) : offers;
         ByteBufCodecs.VAR_INT.encode(buffer, limited.size());
@@ -44,7 +48,7 @@ public record PlayerShopOfferSnapshot(
             ByteBufCodecs.VAR_INT.encode(buffer, offer.count());
             buffer.writeLong(offer.buyPrice());
             buffer.writeLong(offer.sellPrice());
-            ByteBufCodecs.VAR_INT.encode(buffer, offer.stockItems());
+            buffer.writeLong(offer.stockItems());
         }
     }
 
@@ -60,7 +64,7 @@ public record PlayerShopOfferSnapshot(
             int lot = ByteBufCodecs.VAR_INT.decode(buffer);
             long buy = buffer.readLong();
             long sell = buffer.readLong();
-            int stock = ByteBufCodecs.VAR_INT.decode(buffer);
+            long stock = buffer.readLong();
             offers.add(new PlayerShopOfferSnapshot(id, template, lot, buy, sell, stock));
         }
         return offers;
