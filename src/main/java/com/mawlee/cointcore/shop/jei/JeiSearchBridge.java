@@ -104,7 +104,7 @@ public final class JeiSearchBridge {
         }
         try {
             return Class.forName(PLUGIN_CLASS).getMethod("runtime").invoke(null);
-        } catch (ReflectiveOperationException | RuntimeException | LinkageError | ExceptionInInitializerError ignored) {
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
             return null;
         }
     }
