@@ -339,6 +339,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `cointcore.claim_flag.entry` | OP | Флаг `entry` |
 | `cointcore.claim_flag.entry.bypass` | OP | Входить в приваты, закрытые для чужих |
 | `cointcore.claim.buffer.bypass` | OP | Захват чанков в буферной зоне между командами |
+| `cointcore.claim.boss_arena.bypass` | OP | Приват чанков арены дракона Края и структур боссов Cataclysm |
 | `cointcore.kit_credits` | OP | Управление кредитами на киты |
 | `cointcore.starter` | все | `/kit start` — получить стартовый кит |
 | `cointcore.starter.admin` | OP | Правка стартового кита и флагов первого входа |
@@ -435,6 +436,7 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/mob-cleanup.json` | Очистка мобов |
 | `config/cointcore/votes.json` | Голосования (день, погода, сон) |
 | `config/cointcore/chunk-limits.json` | Лимиты блоков (чанк / команда / игрок) и сущностей (чанк / команда) |
+| `config/cointcore/claims.json` | Буфер между командами, бонус чанков, запрет привата арен боссов (`bossClaimGuard`) |
 | `config/cointcore/join-messages.json` | Сообщения при входе/выходе |
 | `config/cointcore/admin-chat.json` | Формат админ-чата |
 | `config/cointcore/spark-profiler.json` | Автопрофилирование Spark + retention профилей |
@@ -707,7 +709,7 @@ src/main/java/com/mawlee/cointcore/
 ├── command/          # Brigadier-команды
 ├── config/           # JSON-конфиги (Gson)
 ├── permission/       # Узлы NeoForge Permission API
-├── claim/            # FTB Chunks: ClaimGuard, флаги, буферная зона
+├── claim/            # FTB Chunks: ClaimGuard, флаги, буфер, запрет привата арен боссов
 ├── mixin/            # Mixin + CointCoreMixinPlugin (условная загрузка)
 ├── shop/             # Глюоны: кошелёк, торговый терминал, обмен с сайтом через AzLink
 │   └── client/       #   экран терминала, спарклайн, иконка глюона
