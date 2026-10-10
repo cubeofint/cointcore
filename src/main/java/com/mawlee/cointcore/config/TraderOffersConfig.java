@@ -68,6 +68,10 @@ public final class TraderOffersConfig {
         return loaded.playerShopItemBlacklist;
     }
 
+    public static long playerShopMaxStockPerLot() {
+        return loaded.playerShopMaxStockPerLot;
+    }
+
     public static int priceHistoryCapacity() {
         return loaded.priceHistoryCapacity;
     }
@@ -78,6 +82,14 @@ public final class TraderOffersConfig {
 
     public static double priceHistoryAverageBandPercent() {
         return loaded.priceHistoryAverageBandPercent;
+    }
+
+    public static int marketPriceWindowDays() {
+        return loaded.marketPriceWindowDays;
+    }
+
+    public static int marketPriceMaxSales() {
+        return loaded.marketPriceMaxSales;
     }
 
     public static List<TraderOffer> offers() {
@@ -147,6 +159,9 @@ public final class TraderOffersConfig {
         List<String> blacklist = data.playerShopItemBlacklist == null
                 ? List.of("#minecraft:shulker_boxes")
                 : List.copyOf(data.playerShopItemBlacklist);
+        long maxStockPerLot = data.playerShopMaxStockPerLot == null
+                ? com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_MAX_STOCK_PER_LOT
+                : com.mawlee.cointcore.shop.GlobalMarketMath.clampMaxStockPerLot(data.playerShopMaxStockPerLot);
         List<TraderOffer> offers = new ArrayList<>();
         if (data.offers != null) {
             for (OfferData entry : data.offers) {
@@ -162,6 +177,12 @@ public final class TraderOffersConfig {
         double band = data.priceHistoryAverageBandPercent != null && !Double.isNaN(data.priceHistoryAverageBandPercent)
                 ? Math.max(0.0d, data.priceHistoryAverageBandPercent)
                 : 5.0d;
+        int marketWindowDays = data.marketPriceWindowDays == null
+                ? com.mawlee.cointcore.shop.GlobalMarketPriceMath.DEFAULT_WINDOW_DAYS
+                : Math.max(1, Math.min(365, data.marketPriceWindowDays));
+        int marketMaxSales = data.marketPriceMaxSales == null
+                ? com.mawlee.cointcore.shop.GlobalMarketPriceMath.DEFAULT_MAX_SALES
+                : Math.max(1, Math.min(2000, data.marketPriceMaxSales));
         return new Loaded(
                 percent,
                 playerShopPercent,
@@ -170,9 +191,12 @@ public final class TraderOffersConfig {
                 lifetimeDays,
                 listingFee,
                 blacklist,
+                maxStockPerLot,
                 historyCapacity,
                 sampleTicks,
                 band,
+                marketWindowDays,
+                marketMaxSales,
                 List.copyOf(offers)
         );
     }
@@ -220,9 +244,12 @@ public final class TraderOffersConfig {
             int playerShopListingLifetimeDays,
             long playerShopListingFee,
             List<String> playerShopItemBlacklist,
+            long playerShopMaxStockPerLot,
             int priceHistoryCapacity,
             int priceHistorySampleIntervalTicks,
             double priceHistoryAverageBandPercent,
+            int marketPriceWindowDays,
+            int marketPriceMaxSales,
             List<TraderOffer> offers
     ) {
         static Loaded empty() {
@@ -234,9 +261,12 @@ public final class TraderOffersConfig {
                     com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_LIFETIME_DAYS,
                     0L,
                     List.of("#minecraft:shulker_boxes"),
+                    com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_MAX_STOCK_PER_LOT,
                     OfferBuyPriceHistory.DEFAULT_CAPACITY,
                     1200,
                     5.0d,
+                    com.mawlee.cointcore.shop.GlobalMarketPriceMath.DEFAULT_WINDOW_DAYS,
+                    com.mawlee.cointcore.shop.GlobalMarketPriceMath.DEFAULT_MAX_SALES,
                     List.of()
             );
         }
@@ -257,12 +287,18 @@ public final class TraderOffersConfig {
         Long playerShopListingFee;
         @SerializedName("player_shop_item_blacklist")
         List<String> playerShopItemBlacklist;
+        @SerializedName("player_shop_max_stock_per_lot")
+        Long playerShopMaxStockPerLot;
         @SerializedName("price_history_capacity")
         Integer priceHistoryCapacity;
         @SerializedName("price_history_sample_interval_ticks")
         Integer priceHistorySampleIntervalTicks;
         @SerializedName("price_history_average_band_percent")
         Double priceHistoryAverageBandPercent;
+        @SerializedName("market_price_window_days")
+        Integer marketPriceWindowDays;
+        @SerializedName("market_price_max_sales")
+        Integer marketPriceMaxSales;
         List<OfferData> offers;
 
         static FileData defaults() {
@@ -274,9 +310,12 @@ public final class TraderOffersConfig {
             data.playerShopListingLifetimeDays = com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_LIFETIME_DAYS;
             data.playerShopListingFee = 0L;
             data.playerShopItemBlacklist = List.of("#minecraft:shulker_boxes");
+            data.playerShopMaxStockPerLot = com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_MAX_STOCK_PER_LOT;
             data.priceHistoryCapacity = OfferBuyPriceHistory.DEFAULT_CAPACITY;
             data.priceHistorySampleIntervalTicks = 1200;
             data.priceHistoryAverageBandPercent = 5.0d;
+            data.marketPriceWindowDays = com.mawlee.cointcore.shop.GlobalMarketPriceMath.DEFAULT_WINDOW_DAYS;
+            data.marketPriceMaxSales = com.mawlee.cointcore.shop.GlobalMarketPriceMath.DEFAULT_MAX_SALES;
             data.offers = List.of(
                     offer("diamond", "minecraft:diamond", 1, 100L, 80L),
                     offer("emerald", "minecraft:emerald", 1, 80L, 64L),

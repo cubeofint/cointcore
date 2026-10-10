@@ -1,8 +1,10 @@
 package com.mawlee.cointcore.invsee.client;
 
 import com.mawlee.cointcore.client.VanillaContainerSkin;
+import com.mawlee.cointcore.invsee.InvSeeScaleLayout;
 import com.mawlee.cointcore.invsee.menu.InvSeeCurioSlot;
 import com.mawlee.cointcore.invsee.menu.InvSeeCuriosMenu;
+import com.mawlee.cointcore.ui.PagerChrome;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
@@ -28,12 +30,14 @@ public final class InvSeeCuriosScreen extends InvSeeBaseScreen<InvSeeCuriosMenu>
     @Override
     protected void initExtraWidgets() {
         int midY = topPos + 18 + (InvSeeCuriosMenu.ROWS * 18) / 2 - 8;
+        var prevBox = InvSeeScaleLayout.sideButton(leftPos, imageWidth, width, midY, false);
+        var nextBox = InvSeeScaleLayout.sideButton(leftPos, imageWidth, width, midY, true);
         prevButton = Button.builder(Component.literal("<"), b -> sendButton(InvSeeCuriosMenu.BUTTON_PREV_PAGE))
-                .bounds(leftPos - 22, midY, 18, 16)
+                .bounds(prevBox.x(), prevBox.y(), prevBox.w(), prevBox.h())
                 .tooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.page.prev")))
                 .build();
         nextButton = Button.builder(Component.literal(">"), b -> sendButton(InvSeeCuriosMenu.BUTTON_NEXT_PAGE))
-                .bounds(leftPos + imageWidth + 4, midY, 18, 16)
+                .bounds(nextBox.x(), nextBox.y(), nextBox.w(), nextBox.h())
                 .tooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.page.next")))
                 .build();
         addRenderableWidget(prevButton);
@@ -42,11 +46,9 @@ public final class InvSeeCuriosScreen extends InvSeeBaseScreen<InvSeeCuriosMenu>
     }
 
     private void updatePageButtons() {
-        boolean multi = menu.maxPage() > 0 && !menu.unavailableOffline();
-        prevButton.visible = multi;
-        nextButton.visible = multi;
-        prevButton.active = menu.page() > 0;
-        nextButton.active = menu.page() < menu.maxPage();
+        boolean multi = !menu.unavailableOffline();
+        prevButton.visible = multi && PagerChrome.showPrev(menu.page(), menu.maxPage());
+        nextButton.visible = multi && PagerChrome.showNext(menu.page(), menu.maxPage());
     }
 
     @Override

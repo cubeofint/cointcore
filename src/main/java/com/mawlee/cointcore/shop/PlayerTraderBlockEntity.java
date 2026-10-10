@@ -13,14 +13,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.items.IItemHandler;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 /**
- * Player-owned vending machine. Does not implement {@link net.minecraft.world.Container}
- * so hoppers/pipes get no item-handler capability.
+ * Player-owned vending machine. Does not implement {@link net.minecraft.world.Container}.
+ * Pipes see an insert-only {@link IItemHandler} that restocks the owner's global-market lots.
  * <p>
  * Revenue is <strong>not</strong> stored in the block for later withdraw. Each deal
  * immediately debits the customer (or owner, when buying from a player) and credits
@@ -44,9 +45,14 @@ public class PlayerTraderBlockEntity extends BlockEntity {
     };
     private final List<PlayerShopOffer> offers = new ArrayList<>();
     private boolean marketMigrated;
+    private final PlayerTraderRestockHandler restockHandler = new PlayerTraderRestockHandler(this);
 
     public PlayerTraderBlockEntity(BlockPos pos, BlockState state) {
         super(ShopBlockEntities.PLAYER_TRADER.get(), pos, state);
+    }
+
+    public IItemHandler restockHandler() {
+        return restockHandler;
     }
 
     public UUID ownerId() {

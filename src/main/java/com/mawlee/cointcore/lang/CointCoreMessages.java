@@ -237,6 +237,10 @@ public final class CointCoreMessages {
     public static final String PLAYER_SHOP_STOCK_FULL = "message.cointcore.player_trader.stock_full";
     public static final String PLAYER_SHOP_OWNER_BROKE = "message.cointcore.player_trader.owner_broke";
     public static final String PLAYER_SHOP_OWN = "message.cointcore.player_trader.own_shop";
+    public static final String PLAYER_SHOP_CANNOT_FILL = "message.cointcore.player_trader.cannot_fill";
+    public static final String PLAYER_SHOP_CANNOT_FILL_STOCK = "message.cointcore.player_trader.cannot_fill.stock";
+    public static final String PLAYER_SHOP_CANNOT_FILL_MONEY = "message.cointcore.player_trader.cannot_fill.money";
+    public static final String PLAYER_SHOP_CANNOT_FILL_PRICE = "message.cointcore.player_trader.cannot_fill.price";
 
     private CointCoreMessages() {
     }

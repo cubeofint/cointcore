@@ -48,6 +48,7 @@ public final class ShopBlocks {
         ITEMS.register(modEventBus);
         ShopBlockEntities.register(modEventBus);
         modEventBus.addListener(ShopBlocks::addToCreativeTabs);
+        modEventBus.addListener(PlayerTraderCapabilities::register);
     }
 
     private static void addToCreativeTabs(BuildCreativeModeTabContentsEvent event) {

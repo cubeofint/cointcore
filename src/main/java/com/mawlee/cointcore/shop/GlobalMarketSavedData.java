@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.shop;
 
 import com.mawlee.cointcore.CointCore;
+import com.mawlee.cointcore.config.TraderOffersConfig;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -21,6 +22,7 @@ public final class GlobalMarketSavedData extends SavedData {
     private final Map<UUID, GlobalMarketListing> listings = new HashMap<>();
     private final Map<UUID, List<ItemStack>> returnBoxes = new HashMap<>();
     private final Map<UUID, SoldStats> sold = new HashMap<>();
+    private final Map<String, List<GlobalMarketPriceMath.Sale>> sales = new HashMap<>();
 
     private GlobalMarketSavedData() {
     }
@@ -42,7 +44,7 @@ public final class GlobalMarketSavedData extends SavedData {
     public synchronized int listingCount(UUID sellerId) {
         int count = 0;
         for (GlobalMarketListing listing : listings.values()) {
-            if (sellerId.equals(listing.sellerId()) && listing.dealsLeft() > 0) {
+            if (sellerId.equals(listing.sellerId()) && listing.stockItems() > 0L) {
                 count++;
             }
         }
@@ -70,6 +72,21 @@ public final class GlobalMarketSavedData extends SavedData {
         setDirty();
     }
 
+    public synchronized void addReturn(UUID playerId, ItemStack template, long amount) {
+        if (playerId == null || template == null || template.isEmpty() || amount <= 0L) {
+            return;
+        }
+        int max = Math.max(1, template.getMaxStackSize());
+        long remaining = amount;
+        while (remaining > 0L) {
+            int chunk = (int) Math.min(max, remaining);
+            ItemStack stack = template.copy();
+            stack.setCount(chunk);
+            addReturn(playerId, stack);
+            remaining -= chunk;
+        }
+    }
+
     public synchronized List<ItemStack> claimReturns(UUID playerId) {
         List<ItemStack> box = returnBoxes.remove(playerId);
         if (box == null || box.isEmpty()) {
@@ -84,12 +101,13 @@ public final class GlobalMarketSavedData extends SavedData {
         return box == null ? 0 : box.size();
     }
 
-    public synchronized void recordSold(UUID sellerId, int deals, long gluons) {
-        if (sellerId == null || deals <= 0 || gluons <= 0L) {
+    public synchronized void recordSold(UUID sellerId, long deals, long gluons) {
+        if (sellerId == null || deals <= 0L || gluons <= 0L) {
             return;
         }
+        int add = deals > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) deals;
         SoldStats stats = sold.computeIfAbsent(sellerId, ignored -> new SoldStats());
-        stats.deals = saturateInt(stats.deals, deals);
+        stats.deals = saturateInt(stats.deals, add);
         stats.gluons = GlobalMarketMath.saturatingAdd(stats.gluons, gluons);
         setDirty();
     }
@@ -97,6 +115,51 @@ public final class GlobalMarketSavedData extends SavedData {
     public synchronized SoldStats stats(UUID sellerId) {
         SoldStats stats = sold.get(sellerId);
         return stats == null ? new SoldStats() : new SoldStats(stats.deals, stats.gluons);
+    }
+
+    public synchronized void recordSale(String itemKey, long unitPrice, long timestamp) {
+        if (itemKey == null || itemKey.isBlank() || unitPrice <= 0L) {
+            return;
+        }
+        List<GlobalMarketPriceMath.Sale> bucket = sales.computeIfAbsent(itemKey, ignored -> new ArrayList<>());
+        bucket.add(new GlobalMarketPriceMath.Sale(itemKey, unitPrice, timestamp));
+        List<GlobalMarketPriceMath.Sale> pruned = GlobalMarketPriceMath.prune(
+                bucket,
+                timestamp,
+                TraderOffersConfig.marketPriceWindowDays(),
+                TraderOffersConfig.marketPriceMaxSales()
+        );
+        bucket.clear();
+        bucket.addAll(pruned);
+        if (bucket.isEmpty()) {
+            sales.remove(itemKey);
+        }
+        setDirty();
+    }
+
+    public synchronized List<Long> recentUnitPrices(String itemKey, long now) {
+        if (itemKey == null || itemKey.isBlank()) {
+            return List.of();
+        }
+        List<GlobalMarketPriceMath.Sale> bucket = sales.get(itemKey);
+        if (bucket == null || bucket.isEmpty()) {
+            return List.of();
+        }
+        List<GlobalMarketPriceMath.Sale> pruned = GlobalMarketPriceMath.prune(
+                bucket,
+                now,
+                TraderOffersConfig.marketPriceWindowDays(),
+                TraderOffersConfig.marketPriceMaxSales()
+        );
+        if (pruned.size() != bucket.size()) {
+            bucket.clear();
+            bucket.addAll(pruned);
+            if (bucket.isEmpty()) {
+                sales.remove(itemKey);
+            }
+            setDirty();
+        }
+        return GlobalMarketPriceMath.unitPrices(pruned);
     }
 
     private static int saturateInt(int current, int add) {
@@ -140,6 +203,17 @@ public final class GlobalMarketSavedData extends SavedData {
             }
             data.sold.put(row.getUUID("player_id"), new SoldStats(row.getInt("deals"), row.getLong("gluons")));
         }
+        ListTag saleTags = tag.getList("sales", Tag.TAG_COMPOUND);
+        for (int index = 0; index < saleTags.size(); index++) {
+            CompoundTag row = saleTags.getCompound(index);
+            String key = row.getString("item_key");
+            if (key.isBlank()) {
+                continue;
+            }
+            data.sales.computeIfAbsent(key, ignored -> new ArrayList<>()).add(
+                    new GlobalMarketPriceMath.Sale(key, row.getLong("unit_price"), row.getLong("at"))
+            );
+        }
         return data;
     }
 
@@ -173,6 +247,17 @@ public final class GlobalMarketSavedData extends SavedData {
             soldTags.add(row);
         }
         tag.put("sold", soldTags);
+        ListTag saleTags = new ListTag();
+        for (List<GlobalMarketPriceMath.Sale> bucket : sales.values()) {
+            for (GlobalMarketPriceMath.Sale sale : bucket) {
+                CompoundTag row = new CompoundTag();
+                row.putString("item_key", sale.itemKey());
+                row.putLong("unit_price", sale.unitPrice());
+                row.putLong("at", sale.timestamp());
+                saleTags.add(row);
+            }
+        }
+        tag.put("sales", saleTags);
         return tag;
     }
 

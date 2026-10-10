@@ -132,11 +132,13 @@ public class PlayerTraderMenu extends AbstractContainerMenu {
             ByteBufCodecs.STRING_UTF8.encode(buffer, listing.listingId() == null || listing.listingId().isBlank()
                     ? offer.id()
                     : listing.listingId());
-            ByteBufCodecs.VAR_INT.encode(buffer, listing.dealsLeft());
+            buffer.writeLong(listing.dealsLeft());
             ByteBufCodecs.STRING_UTF8.encode(buffer, listing.sellerName() == null ? "" : listing.sellerName());
             ByteBufCodecs.STRING_UTF8.encode(buffer, listing.sellerId() == null ? "" : listing.sellerId());
             buffer.writeLong(listing.createdAt());
             ByteBufCodecs.STRING_UTF8.encode(buffer, listing.modId() == null ? "" : listing.modId());
+            buffer.writeLong(listing.expiresAt());
+            buffer.writeLong(listing.marketUnitPrice());
         }
     }
 
@@ -155,11 +157,13 @@ public class PlayerTraderMenu extends AbstractContainerMenu {
             long sellFee = buffer.readLong();
             long sellNet = buffer.readLong();
             String id = ByteBufCodecs.STRING_UTF8.decode(buffer);
-            int deals = ByteBufCodecs.VAR_INT.decode(buffer);
+            long deals = buffer.readLong();
             String sellerName = ByteBufCodecs.STRING_UTF8.decode(buffer);
             String sellerId = ByteBufCodecs.STRING_UTF8.decode(buffer);
             long createdAt = buffer.readLong();
             String modId = ByteBufCodecs.STRING_UTF8.decode(buffer);
+            long expiresAt = buffer.readableBytes() >= Long.BYTES ? buffer.readLong() : 0L;
+            long marketUnitPrice = buffer.readableBytes() >= Long.BYTES ? buffer.readLong() : 0L;
             TraderOffer offer = new TraderOffer(
                     id,
                     stack,
@@ -172,7 +176,17 @@ public class PlayerTraderMenu extends AbstractContainerMenu {
                     sellNet,
                     new long[0]
             );
-            listings.add(new PlayerTraderListing(id, offer, Math.max(0, deals), sellerName, sellerId, createdAt, modId));
+            listings.add(new PlayerTraderListing(
+                    id,
+                    offer,
+                    Math.max(0L, deals),
+                    sellerName,
+                    sellerId,
+                    createdAt,
+                    modId,
+                    expiresAt,
+                    marketUnitPrice
+            ));
         }
         return listings;
     }

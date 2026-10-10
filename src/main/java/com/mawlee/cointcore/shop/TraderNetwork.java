@@ -30,6 +30,11 @@ public final class TraderNetwork {
                 PlayerTraderManagePayload.STREAM_CODEC,
                 PlayerTraderManagePayload::handleServer
         );
+        registrar.playToServer(
+                PlayerTraderGhostPayload.TYPE,
+                PlayerTraderGhostPayload.STREAM_CODEC,
+                PlayerTraderGhostPayload::handleServer
+        );
         registrar.playToClient(
                 PlayerTraderCatalogPayload.TYPE,
                 PlayerTraderCatalogPayload.STREAM_CODEC,

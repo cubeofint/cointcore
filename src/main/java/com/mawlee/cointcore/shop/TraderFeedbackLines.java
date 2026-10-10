@@ -31,6 +31,16 @@ public final class TraderFeedbackLines {
             case STOCK_FULL -> Component.translatable("gui.cointcore.player_trader.error.stock_full");
             case OWNER_BROKE -> Component.translatable("gui.cointcore.player_trader.error.owner_broke");
             case OWN_SHOP -> Component.translatable("gui.cointcore.player_trader.error.own_shop");
+            case CANNOT_FILL -> cannotFill(payload.itemName());
+        };
+    }
+
+    private static Component cannotFill(String reason) {
+        return switch (reason == null ? "" : reason) {
+            case "stock" -> Component.translatable("gui.cointcore.player_trader.error.cannot_fill.stock");
+            case "money" -> Component.translatable("gui.cointcore.player_trader.error.cannot_fill.money");
+            case "price" -> Component.translatable("gui.cointcore.player_trader.error.cannot_fill.price");
+            default -> Component.translatable("gui.cointcore.player_trader.error.cannot_fill");
         };
     }
 }

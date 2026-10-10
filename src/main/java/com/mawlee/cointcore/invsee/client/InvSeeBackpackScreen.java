@@ -1,7 +1,9 @@
 package com.mawlee.cointcore.invsee.client;
 
 import com.mawlee.cointcore.client.VanillaContainerSkin;
+import com.mawlee.cointcore.invsee.InvSeeScaleLayout;
 import com.mawlee.cointcore.invsee.menu.InvSeeBackpackMenu;
+import com.mawlee.cointcore.ui.PagerChrome;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
@@ -19,12 +21,14 @@ public final class InvSeeBackpackScreen extends InvSeeBaseScreen<InvSeeBackpackM
 
     @Override
     protected void initExtraWidgets() {
+        var prevBox = InvSeeScaleLayout.sideButton(leftPos, imageWidth, width, topPos + 40, false);
+        var nextBox = InvSeeScaleLayout.sideButton(leftPos, imageWidth, width, topPos + 40, true);
         prevButton = Button.builder(Component.literal("<"), b -> sendButton(InvSeeBackpackMenu.BUTTON_PREV_PAGE))
-                .bounds(leftPos - 22, topPos + 40, 18, 16)
+                .bounds(prevBox.x(), prevBox.y(), prevBox.w(), prevBox.h())
                 .tooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.page.prev")))
                 .build();
         nextButton = Button.builder(Component.literal(">"), b -> sendButton(InvSeeBackpackMenu.BUTTON_NEXT_PAGE))
-                .bounds(leftPos + imageWidth + 4, topPos + 40, 18, 16)
+                .bounds(nextBox.x(), nextBox.y(), nextBox.w(), nextBox.h())
                 .tooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.page.next")))
                 .build();
         addRenderableWidget(prevButton);
@@ -33,11 +37,8 @@ public final class InvSeeBackpackScreen extends InvSeeBaseScreen<InvSeeBackpackM
     }
 
     private void updatePageButtons() {
-        boolean multi = menu.maxPage() > 0;
-        prevButton.visible = multi;
-        nextButton.visible = multi;
-        prevButton.active = menu.page() > 0;
-        nextButton.active = menu.page() < menu.maxPage();
+        prevButton.visible = PagerChrome.showPrev(menu.page(), menu.maxPage());
+        nextButton.visible = PagerChrome.showNext(menu.page(), menu.maxPage());
     }
 
     @Override

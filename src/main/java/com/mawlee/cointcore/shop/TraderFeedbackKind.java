@@ -10,12 +10,13 @@ public enum TraderFeedbackKind {
     OUT_OF_STOCK,
     STOCK_FULL,
     OWNER_BROKE,
-    OWN_SHOP;
+    OWN_SHOP,
+    CANNOT_FILL;
 
     public boolean error() {
         return switch (this) {
             case OFFER_UNAVAILABLE, INVENTORY_FULL, NOT_ENOUGH_GLUONS, NOT_ENOUGH_ITEMS,
-                    OUT_OF_STOCK, STOCK_FULL, OWNER_BROKE, OWN_SHOP -> true;
+                    OUT_OF_STOCK, STOCK_FULL, OWNER_BROKE, OWN_SHOP, CANNOT_FILL -> true;
             case BOUGHT, SOLD -> false;
         };
     }

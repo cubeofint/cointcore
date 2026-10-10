@@ -6,21 +6,48 @@ package com.mawlee.cointcore.shop;
 public record PlayerTraderListing(
         String listingId,
         TraderOffer offer,
-        int dealsLeft,
+        long dealsLeft,
         String sellerName,
         String sellerId,
         long createdAt,
-        String modId
+        String modId,
+        long expiresAt,
+        long marketUnitPrice
 ) {
-    public PlayerTraderListing(TraderOffer offer, int stockItems) {
-        this(offer.id(), offer, Math.max(0, stockItems / Math.max(1, offer.count())), "", "", 0L, "");
+    public PlayerTraderListing {
+        listingId = listingId == null ? "" : listingId;
+        sellerName = sellerName == null ? "" : sellerName;
+        sellerId = sellerId == null ? "" : sellerId;
+        modId = modId == null ? "" : modId;
+        dealsLeft = Math.max(0L, dealsLeft);
+        createdAt = Math.max(0L, createdAt);
+        expiresAt = Math.max(0L, expiresAt);
+        marketUnitPrice = Math.max(0L, marketUnitPrice);
     }
 
-    public int stockItems() {
-        return dealsLeft * Math.max(1, offer.count());
+    public PlayerTraderListing(TraderOffer offer, int stockItems) {
+        this(
+                offer.id(),
+                offer,
+                GlobalMarketMath.dealsFromStock(stockItems, offer.count()),
+                "",
+                "",
+                0L,
+                "",
+                0L,
+                0L
+        );
+    }
+
+    public long stockItems() {
+        return GlobalMarketMath.itemsForDeals(offer.count(), dealsLeft);
     }
 
     public boolean inStock() {
-        return dealsLeft >= 1;
+        return dealsLeft >= 1L;
+    }
+
+    public long unitPrice() {
+        return GlobalMarketPriceMath.unitPrice(offer.buyPrice(), offer.count());
     }
 }
