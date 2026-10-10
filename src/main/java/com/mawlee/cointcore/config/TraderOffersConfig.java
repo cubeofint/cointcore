@@ -52,6 +52,22 @@ public final class TraderOffersConfig {
         return loaded.playerShopCraftingEnabled;
     }
 
+    public static int playerShopMaxListings() {
+        return loaded.playerShopMaxListings;
+    }
+
+    public static int playerShopListingLifetimeDays() {
+        return loaded.playerShopListingLifetimeDays;
+    }
+
+    public static long playerShopListingFee() {
+        return loaded.playerShopListingFee;
+    }
+
+    public static List<String> playerShopItemBlacklist() {
+        return loaded.playerShopItemBlacklist;
+    }
+
     public static int priceHistoryCapacity() {
         return loaded.priceHistoryCapacity;
     }
@@ -121,6 +137,16 @@ public final class TraderOffersConfig {
                 ? Math.max(0.0d, data.playerShopCommissionPercent)
                 : percent;
         boolean crafting = data.playerShopCraftingEnabled == null || data.playerShopCraftingEnabled;
+        int maxListings = data.playerShopMaxListings == null
+                ? com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_MAX_LISTINGS
+                : Math.max(1, Math.min(256, data.playerShopMaxListings));
+        int lifetimeDays = data.playerShopListingLifetimeDays == null
+                ? com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_LIFETIME_DAYS
+                : Math.max(1, Math.min(365, data.playerShopListingLifetimeDays));
+        long listingFee = data.playerShopListingFee == null ? 0L : Math.max(0L, data.playerShopListingFee);
+        List<String> blacklist = data.playerShopItemBlacklist == null
+                ? List.of("#minecraft:shulker_boxes")
+                : List.copyOf(data.playerShopItemBlacklist);
         List<TraderOffer> offers = new ArrayList<>();
         if (data.offers != null) {
             for (OfferData entry : data.offers) {
@@ -140,6 +166,10 @@ public final class TraderOffersConfig {
                 percent,
                 playerShopPercent,
                 crafting,
+                maxListings,
+                lifetimeDays,
+                listingFee,
+                blacklist,
                 historyCapacity,
                 sampleTicks,
                 band,
@@ -186,13 +216,29 @@ public final class TraderOffersConfig {
             double commissionPercent,
             double playerShopCommissionPercent,
             boolean playerShopCraftingEnabled,
+            int playerShopMaxListings,
+            int playerShopListingLifetimeDays,
+            long playerShopListingFee,
+            List<String> playerShopItemBlacklist,
             int priceHistoryCapacity,
             int priceHistorySampleIntervalTicks,
             double priceHistoryAverageBandPercent,
             List<TraderOffer> offers
     ) {
         static Loaded empty() {
-            return new Loaded(2.5d, 2.5d, true, OfferBuyPriceHistory.DEFAULT_CAPACITY, 1200, 5.0d, List.of());
+            return new Loaded(
+                    2.5d,
+                    2.5d,
+                    true,
+                    com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_MAX_LISTINGS,
+                    com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_LIFETIME_DAYS,
+                    0L,
+                    List.of("#minecraft:shulker_boxes"),
+                    OfferBuyPriceHistory.DEFAULT_CAPACITY,
+                    1200,
+                    5.0d,
+                    List.of()
+            );
         }
     }
 
@@ -203,6 +249,14 @@ public final class TraderOffersConfig {
         Double playerShopCommissionPercent;
         @SerializedName("player_shop_crafting")
         Boolean playerShopCraftingEnabled;
+        @SerializedName("player_shop_max_listings")
+        Integer playerShopMaxListings;
+        @SerializedName("player_shop_listing_lifetime_days")
+        Integer playerShopListingLifetimeDays;
+        @SerializedName("player_shop_listing_fee")
+        Long playerShopListingFee;
+        @SerializedName("player_shop_item_blacklist")
+        List<String> playerShopItemBlacklist;
         @SerializedName("price_history_capacity")
         Integer priceHistoryCapacity;
         @SerializedName("price_history_sample_interval_ticks")
@@ -216,6 +270,10 @@ public final class TraderOffersConfig {
             data.commissionPercent = 2.5d;
             data.playerShopCommissionPercent = 2.5d;
             data.playerShopCraftingEnabled = true;
+            data.playerShopMaxListings = com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_MAX_LISTINGS;
+            data.playerShopListingLifetimeDays = com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_LIFETIME_DAYS;
+            data.playerShopListingFee = 0L;
+            data.playerShopItemBlacklist = List.of("#minecraft:shulker_boxes");
             data.priceHistoryCapacity = OfferBuyPriceHistory.DEFAULT_CAPACITY;
             data.priceHistorySampleIntervalTicks = 1200;
             data.priceHistoryAverageBandPercent = 5.0d;

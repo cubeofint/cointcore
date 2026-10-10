@@ -1,9 +1,8 @@
 package com.mawlee.cointcore.shop;
 
 /**
- * Client/server slot geometry for the owner management screen.
- * Fits 1080p at GUI scale 3 ({@link #MAX_GUI_WIDTH}×{@link #MAX_GUI_HEIGHT}).
- * Text-dependent widget sizes are computed from measured string widths.
+ * Seller «Мои лоты» geometry. Fits 1080p at GUI scale 3.
+ * Widget widths come from measured {@code font.width}.
  */
 public final class PlayerTraderManageLayout {
     public static final int MAX_GUI_WIDTH = 360;
@@ -21,19 +20,16 @@ public final class PlayerTraderManageLayout {
     public static final int TITLE_Y = 22;
     public static final int REVENUE_Y = 32;
     public static final int SECTION_LABEL_Y = 44;
-    public static final int STOCK_Y = 54;
-    public static final int STOCK_ROWS = 3;
-    public static final int STOCK_COLS = 9;
 
-    public static final int LIST_PAGE_SIZE = 3;
+    public static final int LIST_PAGE_SIZE = 4;
     public static final int LIST_ROW_H = 18;
-    public static final int LIST_Y = STOCK_Y;
+    public static final int LIST_Y = SECTION_LABEL_Y + 10;
     public static final int LIST_INNER_H = LIST_PAGE_SIZE * LIST_ROW_H;
     public static final int LIST_PAGER_H = 14;
     public static final int LIST_PAGER_Y = LIST_Y + LIST_INNER_H;
     public static final int LIST_BOTTOM = LIST_PAGER_Y + LIST_PAGER_H;
 
-    public static final int EDITOR_Y = LIST_BOTTOM + 2;
+    public static final int EDITOR_Y = LIST_Y;
     public static final int GHOST_X = RIGHT_INNER_X;
     public static final int GHOST_Y = EDITOR_Y;
     public static final int SAMPLE_LABEL_X = GHOST_X + SLOT + 4;
@@ -48,23 +44,15 @@ public final class PlayerTraderManageLayout {
     public static final int BUTTON_GAP = 4;
     public static final int BUTTON_ROW_GAP = 2;
 
-    public static final int PLAYER_INV_LABEL_Y = STOCK_Y + STOCK_ROWS * SLOT + 2;
+    public static final int PLAYER_INV_LABEL_Y = Math.max(LIST_BOTTOM, BUTTON_Y + BUTTON_H * 2 + BUTTON_ROW_GAP) + 4;
     public static final int PLAYER_INV_Y = PLAYER_INV_LABEL_Y + 11;
     public static final int PLAYER_HOTBAR_Y = PLAYER_INV_Y + 58;
-    public static final int GUI_HEIGHT = Math.max(PLAYER_HOTBAR_Y + SLOT + PAD, BUTTON_Y + BUTTON_H * 2 + BUTTON_ROW_GAP + PAD);
+    public static final int GUI_HEIGHT = Math.min(MAX_GUI_HEIGHT, PLAYER_HOTBAR_Y + SLOT + PAD);
 
     public static final int HIGHLIGHT = 0x68FFFF00;
     public static final int PAGER_W = 14;
 
     private PlayerTraderManageLayout() {
-    }
-
-    public static int stockSlotX(int col) {
-        return PAD + col * SLOT;
-    }
-
-    public static int stockSlotY(int row) {
-        return STOCK_Y + row * SLOT;
     }
 
     public static int playerSlotX(int col) {
@@ -76,7 +64,7 @@ public final class PlayerTraderManageLayout {
     }
 
     public static int listRowX() {
-        return RIGHT_INNER_X;
+        return PAD;
     }
 
     public static int listRowY(int row) {
@@ -84,15 +72,15 @@ public final class PlayerTraderManageLayout {
     }
 
     public static int listRowW() {
-        return RIGHT_INNER_W;
+        return LEFT_WIDTH - PAD * 2;
     }
 
     public static Rect pagerPrev() {
-        return new Rect(RIGHT_INNER_X, LIST_PAGER_Y, PAGER_W, LIST_PAGER_H);
+        return new Rect(PAD, LIST_PAGER_Y, PAGER_W, LIST_PAGER_H);
     }
 
     public static Rect pagerNext() {
-        return new Rect(RIGHT_INNER_X + RIGHT_INNER_W - PAGER_W, LIST_PAGER_Y, PAGER_W, LIST_PAGER_H);
+        return new Rect(LEFT_WIDTH - PAD - PAGER_W, LIST_PAGER_Y, PAGER_W, LIST_PAGER_H);
     }
 
     public static int fieldLabelY(int index) {
@@ -111,19 +99,15 @@ public final class PlayerTraderManageLayout {
         return Math.max(32, textWidth + BUTTON_TEXT_PAD);
     }
 
-    /**
-     * Packs action buttons left-to-right inside the editor column, wrapping to a second row if needed.
-     */
     public static Rect[] actionButtons(int... textWidths) {
         Rect[] rects = new Rect[textWidths.length];
         int x = RIGHT_INNER_X;
         int y = BUTTON_Y;
-        int rowStartX = RIGHT_INNER_X;
         int rowRight = RIGHT_INNER_X + RIGHT_INNER_W;
         for (int index = 0; index < textWidths.length; index++) {
             int width = actionButtonWidth(textWidths[index]);
             if (index > 0 && x + width > rowRight) {
-                x = rowStartX;
+                x = RIGHT_INNER_X;
                 y += BUTTON_H + BUTTON_ROW_GAP;
             }
             rects[index] = new Rect(x, y, width, BUTTON_H);

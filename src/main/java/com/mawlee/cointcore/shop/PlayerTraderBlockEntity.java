@@ -43,6 +43,7 @@ public class PlayerTraderBlockEntity extends BlockEntity {
         }
     };
     private final List<PlayerShopOffer> offers = new ArrayList<>();
+    private boolean marketMigrated;
 
     public PlayerTraderBlockEntity(BlockPos pos, BlockState state) {
         super(ShopBlockEntities.PLAYER_TRADER.get(), pos, state);
@@ -155,6 +156,28 @@ public class PlayerTraderBlockEntity extends BlockEntity {
         return true;
     }
 
+    public boolean marketMigrated() {
+        return marketMigrated;
+    }
+
+    public void markMarketMigrated() {
+        marketMigrated = true;
+        setChanged();
+    }
+
+    public synchronized void clearOffersAfterMigration() {
+        offers.clear();
+        setChanged();
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (getLevel() != null && !getLevel().isClientSide && getLevel().getServer() != null) {
+            GlobalMarketMigration.migrate(getLevel().getServer(), this);
+        }
+    }
+
     public synchronized boolean deleteOffer(int index) {
         if (index < 0 || index >= offers.size()) {
             return false;
@@ -224,6 +247,7 @@ public class PlayerTraderBlockEntity extends BlockEntity {
             offerTags.add(offer.save(registries));
         }
         tag.put("offers", offerTags);
+        tag.putBoolean("market_migrated", marketMigrated);
     }
 
     @Override
@@ -247,5 +271,6 @@ public class PlayerTraderBlockEntity extends BlockEntity {
         for (int index = 0; index < offerTags.size() && offers.size() < MAX_OFFERS; index++) {
             offers.add(PlayerShopOffer.load(offerTags.getCompound(index), registries));
         }
+        marketMigrated = tag.getBoolean("market_migrated");
     }
 }

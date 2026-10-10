@@ -2,7 +2,6 @@ package com.mawlee.cointcore.shop.client;
 
 import com.mawlee.cointcore.client.VanillaContainerSkin;
 import com.mawlee.cointcore.shop.PlayerShopOfferSnapshot;
-import com.mawlee.cointcore.shop.PlayerShopValidation;
 import com.mawlee.cointcore.shop.PlayerTraderManageLayout;
 import com.mawlee.cointcore.shop.PlayerTraderManageMenu;
 import com.mawlee.cointcore.shop.PlayerTraderManagePayload;
@@ -20,8 +19,8 @@ import org.lwjgl.glfw.GLFW;
 
 public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTraderManageMenu> {
     private EditBox countBox;
-    private EditBox buyBox;
-    private EditBox sellBox;
+    private EditBox dealsBox;
+    private EditBox priceBox;
     private Button deleteButton;
     private int selected = -1;
     private int offerPage;
@@ -60,14 +59,14 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                 font.width(Component.translatable("gui.cointcore.player_trader.tab.shop"))
         );
         int manageTabW = PlayerTraderManageLayout.tabWidth(
-                font.width(Component.translatable("gui.cointcore.player_trader.tab.manage"))
+                font.width(Component.translatable("gui.cointcore.player_trader.tab.mine"))
         );
         addRenderableWidget(Button.builder(
                 Component.translatable("gui.cointcore.player_trader.tab.shop"),
                 button -> PacketDistributor.sendToServer(new PlayerTraderTabPayload(menu.containerId, false))
         ).bounds(leftPos + PlayerTraderManageLayout.PAD, topPos + PlayerTraderManageLayout.TAB_Y, shopTabW, PlayerTraderManageLayout.TAB_H).build());
         addRenderableWidget(Button.builder(
-                Component.translatable("gui.cointcore.player_trader.tab.manage"),
+                Component.translatable("gui.cointcore.player_trader.tab.mine"),
                 button -> {
                 }
         ).bounds(
@@ -77,36 +76,33 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                 PlayerTraderManageLayout.TAB_H
         ).build()).active = false;
 
-        PlayerTraderManageLayout.Rect countRect = PlayerTraderManageLayout.fieldBox(0);
-        PlayerTraderManageLayout.Rect buyRect = PlayerTraderManageLayout.fieldBox(1);
-        PlayerTraderManageLayout.Rect sellRect = PlayerTraderManageLayout.fieldBox(2);
-        countBox = field(countRect, selected >= 0 ? String.valueOf(menu.offers().get(selected).count()) : "1",
+        countBox = field(PlayerTraderManageLayout.fieldBox(0), selected >= 0 ? String.valueOf(menu.offers().get(selected).count()) : "1",
                 "gui.cointcore.player_trader.manage.count.tooltip");
-        buyBox = field(buyRect, selected >= 0 ? String.valueOf(menu.offers().get(selected).buyPrice()) : "0",
+        dealsBox = field(PlayerTraderManageLayout.fieldBox(1), selected >= 0 ? String.valueOf(menu.offers().get(selected).stockItems()) : "1",
+                "gui.cointcore.player_trader.manage.deals.tooltip");
+        priceBox = field(PlayerTraderManageLayout.fieldBox(2), selected >= 0 ? String.valueOf(menu.offers().get(selected).buyPrice()) : "1",
                 "gui.cointcore.player_trader.manage.buy.tooltip");
-        sellBox = field(sellRect, selected >= 0 ? String.valueOf(menu.offers().get(selected).sellPrice()) : "0",
-                "gui.cointcore.player_trader.manage.sell.tooltip");
 
-        Component newLabel = Component.translatable("gui.cointcore.player_trader.manage.new");
-        Component saveLabel = Component.translatable("gui.cointcore.player_trader.manage.save");
-        Component deleteLabel = deleteArmed
+        Component listLabel = Component.translatable("gui.cointcore.player_trader.manage.list");
+        Component cancelLabel = deleteArmed
                 ? Component.translatable("gui.cointcore.player_trader.manage.delete_confirm")
-                : Component.translatable("gui.cointcore.player_trader.manage.delete");
+                : Component.translatable("gui.cointcore.player_trader.manage.cancel");
+        Component claimLabel = Component.translatable("gui.cointcore.player_trader.manage.claim", menu.returnCount());
         PlayerTraderManageLayout.Rect[] actions = PlayerTraderManageLayout.actionButtons(
-                font.width(newLabel),
-                font.width(saveLabel),
-                font.width(deleteLabel)
+                font.width(listLabel),
+                font.width(cancelLabel),
+                font.width(claimLabel)
         );
-        addRenderableWidget(Button.builder(newLabel, button -> startNewOffer())
+        addRenderableWidget(Button.builder(listLabel, button -> save())
                 .bounds(leftPos + actions[0].x(), topPos + actions[0].y(), actions[0].w(), actions[0].h())
                 .build());
-        addRenderableWidget(Button.builder(saveLabel, button -> save())
+        deleteButton = addRenderableWidget(Button.builder(cancelLabel, button -> delete())
                 .bounds(leftPos + actions[1].x(), topPos + actions[1].y(), actions[1].w(), actions[1].h())
                 .build());
-        deleteButton = addRenderableWidget(Button.builder(deleteLabel, button -> delete())
-                .bounds(leftPos + actions[2].x(), topPos + actions[2].y(), actions[2].w(), actions[2].h())
-                .build());
         deleteButton.active = selected >= 0;
+        addRenderableWidget(Button.builder(claimLabel, button -> claim())
+                .bounds(leftPos + actions[2].x(), topPos + actions[2].y(), actions[2].w(), actions[2].h())
+                .build()).active = menu.returnCount() > 0;
 
         PlayerTraderManageLayout.Rect prev = PlayerTraderManageLayout.pagerPrev();
         PlayerTraderManageLayout.Rect next = PlayerTraderManageLayout.pagerNext();
@@ -137,7 +133,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        int titleMax = PlayerTraderManageLayout.RIGHT_INNER_X - PlayerTraderManageLayout.PAD - titleLabelX;
+        int titleMax = PlayerTraderManageLayout.GUI_WIDTH - PlayerTraderManageLayout.PAD - titleLabelX;
         graphics.drawString(
                 font,
                 font.width(title) <= titleMax ? title : Component.literal(font.plainSubstrByWidth(title.getString(), titleMax)),
@@ -154,7 +150,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         GluonGuiIcon.blit(graphics, PlayerTraderManageLayout.PAD + font.width(revenue) + 2, PlayerTraderManageLayout.REVENUE_Y - 1);
         graphics.drawString(
                 font,
-                Component.translatable("gui.cointcore.player_trader.manage.stock"),
+                Component.translatable("gui.cointcore.player_trader.manage.offers"),
                 PlayerTraderManageLayout.PAD,
                 PlayerTraderManageLayout.SECTION_LABEL_Y,
                 VanillaContainerSkin.LABEL_COLOR,
@@ -162,7 +158,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         );
         graphics.drawString(
                 font,
-                Component.translatable("gui.cointcore.player_trader.manage.offers"),
+                Component.translatable("gui.cointcore.player_trader.manage.editor"),
                 PlayerTraderManageLayout.RIGHT_INNER_X,
                 PlayerTraderManageLayout.SECTION_LABEL_Y,
                 VanillaContainerSkin.LABEL_COLOR,
@@ -176,9 +172,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                 VanillaContainerSkin.LABEL_COLOR,
                 false
         );
-        Component sampleLabel = selected < 0
-                ? Component.translatable("gui.cointcore.player_trader.manage.new_item")
-                : Component.translatable("gui.cointcore.player_trader.manage.sample");
+        Component sampleLabel = Component.translatable("gui.cointcore.player_trader.manage.sample");
         int sampleMax = PlayerTraderManageLayout.GUI_WIDTH - PlayerTraderManageLayout.PAD - PlayerTraderManageLayout.SAMPLE_LABEL_X;
         graphics.drawString(
                 font,
@@ -191,13 +185,12 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                 false
         );
         drawFieldLabel(graphics, "gui.cointcore.player_trader.manage.count", 0);
-        drawFieldLabel(graphics, "gui.cointcore.player_trader.manage.buy", 1);
-        drawFieldLabel(graphics, "gui.cointcore.player_trader.manage.sell", 2);
+        drawFieldLabel(graphics, "gui.cointcore.player_trader.manage.deals", 1);
+        drawFieldLabel(graphics, "gui.cointcore.player_trader.manage.buy", 2);
         if (!status.getString().isEmpty()) {
-            int statusMax = PlayerTraderManageLayout.RIGHT_INNER_W;
             graphics.drawString(
                     font,
-                    Component.literal(font.plainSubstrByWidth(status.getString(), statusMax)),
+                    Component.literal(font.plainSubstrByWidth(status.getString(), PlayerTraderManageLayout.RIGHT_INNER_W)),
                     PlayerTraderManageLayout.RIGHT_INNER_X,
                     PlayerTraderManageLayout.TITLE_Y,
                     statusColor,
@@ -242,8 +235,6 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        // Keep digits / E / Q / hotbar keys inside a focused price field instead of
-        // closing the screen or swapping/dropping the hovered slot (same as the anvil).
         if (keyCode != GLFW.GLFW_KEY_ESCAPE
                 && keyCode != GLFW.GLFW_KEY_TAB
                 && getFocused() instanceof EditBox box
@@ -269,8 +260,8 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        if (mouseX >= leftPos + PlayerTraderManageLayout.RIGHT_X
-                && mouseX < leftPos + imageWidth
+        if (mouseX >= leftPos
+                && mouseX < leftPos + PlayerTraderManageLayout.LEFT_WIDTH
                 && mouseY >= topPos + PlayerTraderManageLayout.LIST_Y
                 && mouseY < topPos + PlayerTraderManageLayout.LIST_BOTTOM) {
             if (scrollY > 0) {
@@ -309,7 +300,6 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
             Component prices = Component.translatable(
                     "gui.cointcore.player_trader.manage.list_prices",
                     Long.toString(offer.buyPrice()),
-                    offer.sellPrice() <= 0L ? "—" : Long.toString(offer.sellPrice()),
                     Integer.toString(offer.stockItems())
             );
             int maxText = x + w - textX - GluonGuiIcon.SIZE - 2;
@@ -357,40 +347,26 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         PlayerShopOfferSnapshot offer = menu.offers().get(index);
         menu.setGhost(offer.template());
         countBox.setValue(Integer.toString(offer.count()));
-        buyBox.setValue(Long.toString(offer.buyPrice()));
-        sellBox.setValue(Long.toString(offer.sellPrice()));
-        rebuildWidgets();
-    }
-
-    private void startNewOffer() {
-        selected = -1;
-        deleteArmed = false;
-        menu.setGhost(ItemStack.EMPTY);
-        countBox.setValue("1");
-        buyBox.setValue("0");
-        sellBox.setValue("0");
+        dealsBox.setValue(Integer.toString(offer.stockItems()));
+        priceBox.setValue(Long.toString(offer.buyPrice()));
         rebuildWidgets();
     }
 
     private void save() {
         deleteArmed = false;
         int count = parseInt(countBox.getValue(), 1);
-        long buy = parseLong(buyBox.getValue());
-        long sell = parseLong(sellBox.getValue());
+        int deals = parseInt(dealsBox.getValue(), 1);
+        long price = parseLong(priceBox.getValue());
         ItemStack template = menu.ghostItem();
-        if (!PlayerShopValidation.offerValid(template.isEmpty(), count, buy, sell)) {
-            status = Component.translatable("gui.cointcore.player_trader.manage.invalid");
-            statusColor = 0xAA0000;
-            return;
-        }
         PacketDistributor.sendToServer(new PlayerTraderManagePayload(
                 menu.containerId,
                 PlayerTraderManagePayload.Action.SAVE,
                 selected,
                 template,
                 count,
-                buy,
-                sell
+                deals,
+                price,
+                0L
         ));
     }
 
@@ -409,6 +385,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                 selected,
                 ItemStack.EMPTY,
                 1,
+                1,
                 0L,
                 0L
         ));
@@ -417,20 +394,32 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         rebuildWidgets();
     }
 
+    private void claim() {
+        PacketDistributor.sendToServer(new PlayerTraderManagePayload(
+                menu.containerId,
+                PlayerTraderManagePayload.Action.CLAIM,
+                -1,
+                ItemStack.EMPTY,
+                1,
+                1,
+                0L,
+                0L
+        ));
+    }
+
     private void changeOfferPage(int delta) {
         offerPage = Math.max(0, Math.min(PlayerTraderManageLayout.maxOfferPage(menu.offers().size()), offerPage + delta));
         rebuildKeepingInput();
     }
 
-    /** Page switches and the delete-confirm relabel must not discard what the owner typed. */
     private void rebuildKeepingInput() {
         String count = countBox.getValue();
-        String buy = buyBox.getValue();
-        String sell = sellBox.getValue();
+        String deals = dealsBox.getValue();
+        String price = priceBox.getValue();
         rebuildWidgets();
         countBox.setValue(count);
-        buyBox.setValue(buy);
-        sellBox.setValue(sell);
+        dealsBox.setValue(deals);
+        priceBox.setValue(price);
     }
 
     private static int parseInt(String text, int fallback) {
