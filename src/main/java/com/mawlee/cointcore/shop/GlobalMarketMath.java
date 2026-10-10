@@ -13,6 +13,10 @@ public final class GlobalMarketMath {
     private GlobalMarketMath() {
     }
 
+    public static long clampMaxStockPerLot(long configured) {
+        return configured < 0L ? 0L : configured;
+    }
+
     public static long clampDeals(long deals) {
         return deals < 1L ? 0L : deals;
     }

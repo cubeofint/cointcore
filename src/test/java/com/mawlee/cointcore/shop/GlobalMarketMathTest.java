@@ -17,6 +17,9 @@ class GlobalMarketMathTest {
         assertEquals(0, GlobalMarketMath.clampDeals(0));
         assertEquals(Integer.MAX_VALUE, GlobalMarketMath.clampDeals(Integer.MAX_VALUE));
         assertEquals(10_000L, GlobalMarketMath.clampDeals(10_000L));
+        assertEquals(0L, GlobalMarketMath.clampMaxStockPerLot(-4L));
+        assertEquals(50L, GlobalMarketMath.clampMaxStockPerLot(50L));
+        assertEquals(GlobalMarketMath.DEFAULT_MAX_STOCK_PER_LOT, GlobalMarketMath.DEFAULT_MAX_STOCK_PER_LOT);
     }
 
     @Test

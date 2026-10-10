@@ -161,7 +161,7 @@ public final class TraderOffersConfig {
                 : List.copyOf(data.playerShopItemBlacklist);
         long maxStockPerLot = data.playerShopMaxStockPerLot == null
                 ? com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_MAX_STOCK_PER_LOT
-                : Math.max(0L, data.playerShopMaxStockPerLot);
+                : com.mawlee.cointcore.shop.GlobalMarketMath.clampMaxStockPerLot(data.playerShopMaxStockPerLot);
         List<TraderOffer> offers = new ArrayList<>();
         if (data.offers != null) {
             for (OfferData entry : data.offers) {
