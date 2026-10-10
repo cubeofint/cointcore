@@ -39,7 +39,8 @@ public final class PlayerTraderManageLayout {
     public static final int FIELD_START_Y = EDITOR_Y + SLOT + 4;
     public static final int LABEL_H = 10;
     public static final int FIELD_H = 12;
-    public static final int FIELD_STRIDE = LABEL_H + FIELD_H + 2;
+    public static final int FIELD_GAP = 4;
+    public static final int FIELD_STRIDE = LABEL_H + FIELD_H + FIELD_GAP;
     public static final int FIELD_COUNT = 3;
     public static final int BUTTON_Y = FIELD_START_Y + FIELD_COUNT * FIELD_STRIDE;
     public static final int BUTTON_H = 16;
@@ -132,24 +133,13 @@ public final class PlayerTraderManageLayout {
     }
 
     /**
-     * Geometry for the current scaled screen. Drops list rows until the window fits.
+     * Geometry for the current scaled screen. Inventory is reserved first; the lot
+     * list shrinks to a scrollable page so the hotbar stays inside the window.
      */
     public static Geom fit(int screenW, int screenH) {
         int width = ScaledGuiLayout.clampSize(GUI_WIDTH, screenW, 220, ScaledGuiLayout.MARGIN);
-        for (boolean compact : new boolean[] {false, true}) {
-            for (int rows = LIST_PAGE_SIZE; rows >= 1; rows--) {
-                Geom geom = Geom.of(width, rows, compact);
-                if (geom.insideScreen(screenW, screenH)) {
-                    return geom;
-                }
-            }
-        }
-        Geom compact = Geom.of(width, 1, true);
         int maxH = Math.max(160, screenH - ScaledGuiLayout.MARGIN * 2);
-        if (compact.guiHeight <= maxH) {
-            return compact;
-        }
-        return compact.withHeight(maxH);
+        return Geom.ofAvailable(width, maxH);
     }
 
     public static final class Geom {
@@ -240,32 +230,60 @@ public final class PlayerTraderManageLayout {
         }
 
         static Geom of(int width, int rows) {
-            return of(width, rows, false);
+            return ofAvailable(Math.max(220, width), MAX_GUI_HEIGHT, Math.max(1, rows));
         }
 
         static Geom of(int width, int rows, boolean compact) {
+            return ofAvailable(Math.max(220, width), compact ? 262 : MAX_GUI_HEIGHT, Math.max(1, rows));
+        }
+
+        static Geom ofAvailable(int width, int maxH) {
+            return ofAvailable(width, maxH, LIST_PAGE_SIZE);
+        }
+
+        static Geom ofAvailable(int width, int maxH, int preferredRows) {
             int safeW = Math.max(220, width);
             int left = Math.min(LEFT_WIDTH, Math.max(120, safeW / 2));
             int rightX = left;
             int rightInnerX = rightX + PAD;
             int rightInnerW = Math.max(64, safeW - rightInnerX - PAD);
-            int listPageSize = Math.max(1, rows);
+            int fieldStride = FIELD_STRIDE;
             int listY = LIST_Y;
-            int listPagerY = listY + listPageSize * LIST_ROW_H;
-            int listBottom = listPagerY + LIST_PAGER_H;
             int editorY = LIST_Y;
             int ghostX = rightInnerX;
             int ghostY = editorY;
-            int fieldStride = compact ? 20 : FIELD_STRIDE;
-            int fieldStartY = editorY + SLOT + (compact ? 2 : 4);
+            int fieldStartY = editorY + SLOT + 4;
             int lastFieldBottom = fieldStartY + (FIELD_COUNT - 1) * fieldStride + LABEL_H + FIELD_H;
-            int recommendY = lastFieldBottom + (compact ? 2 : 4);
-            int buttonY = compact ? recommendY : recommendY + 14;
-            int editorBottom = buttonY + BUTTON_H * (compact ? 1 : 2) + BUTTON_ROW_GAP;
-            int playerInvLabelY = Math.max(listBottom, editorBottom) + (compact ? 2 : 4);
-            int playerInvY = playerInvLabelY + (compact ? 8 : 11);
+            int recommendY = lastFieldBottom + 4;
+            int buttonY = recommendY + 14;
+            int editorBottom = buttonY + BUTTON_H * 2 + BUTTON_ROW_GAP;
+            int invBlock = ScaledGuiLayout.PLAYER_INV_LABEL + ScaledGuiLayout.PLAYER_INV_HEIGHT + PAD;
+            int midBottom = Math.min(maxH - invBlock, Math.max(listY + LIST_ROW_H + LIST_PAGER_H, editorBottom));
+            int listBudget = midBottom - listY - LIST_PAGER_H;
+            int listPageSize = Math.max(1, Math.min(preferredRows, Math.max(1, listBudget / LIST_ROW_H)));
+            int listPagerY = listY + listPageSize * LIST_ROW_H;
+            int listBottom = listPagerY + LIST_PAGER_H;
+            if (buttonY + BUTTON_H * 2 + BUTTON_ROW_GAP > midBottom) {
+                buttonY = Math.max(recommendY, midBottom - BUTTON_H * 2 - BUTTON_ROW_GAP);
+            }
+            int columnBottom = Math.max(listBottom, buttonY + BUTTON_H * 2 + BUTTON_ROW_GAP);
+            int playerInvLabelY = columnBottom + 4;
+            int playerInvY = playerInvLabelY + ScaledGuiLayout.PLAYER_INV_LABEL - 1;
             int playerHotbarY = playerInvY + 58;
-            int height = Math.min(MAX_GUI_HEIGHT, playerHotbarY + SLOT + PAD);
+            int height = playerHotbarY + SLOT + PAD;
+            if (height > maxH) {
+                height = maxH;
+                playerHotbarY = height - PAD - SLOT;
+                playerInvY = playerHotbarY - 58;
+                playerInvLabelY = playerInvY - (ScaledGuiLayout.PLAYER_INV_LABEL - 1);
+                int listMaxBottom = playerInvLabelY - 2;
+                listPageSize = Math.max(1, Math.min(preferredRows, Math.max(1, (listMaxBottom - LIST_PAGER_H - listY) / LIST_ROW_H)));
+                listPagerY = listY + listPageSize * LIST_ROW_H;
+                listBottom = listPagerY + LIST_PAGER_H;
+                if (buttonY + BUTTON_H > playerInvLabelY - 2) {
+                    buttonY = Math.max(fieldStartY + FIELD_COUNT * fieldStride, playerInvLabelY - 2 - BUTTON_H * 2 - BUTTON_ROW_GAP);
+                }
+            }
             return new Geom(
                     safeW,
                     height,
@@ -297,37 +315,10 @@ public final class PlayerTraderManageLayout {
             );
         }
 
-        Geom withHeight(int height) {
-            int clamped = Math.max(playerInvY + ScaledGuiLayout.PLAYER_INV_HEIGHT, height);
-            return new Geom(
-                    guiWidth,
-                    clamped,
-                    leftWidth,
-                    rightX,
-                    rightInnerX,
-                    rightInnerW,
-                    tabY,
-                    tabH,
-                    titleY,
-                    revenueY,
-                    sectionLabelY,
-                    listPageSize,
-                    listRowH,
-                    listY,
-                    listPagerY,
-                    listBottom,
-                    editorY,
-                    ghostX,
-                    ghostY,
-                    sampleLabelX,
-                    fieldStartY,
-                    fieldStride,
-                    buttonY,
-                    recommendY,
-                    playerInvLabelY,
-                    playerInvY,
-                    playerHotbarY
-            );
+        public boolean inventoryFullyInside() {
+            return playerHotbarY + SLOT + PAD <= guiHeight
+                    && playerInvY >= playerInvLabelY
+                    && playerHotbarY >= playerInvY + 3 * SLOT;
         }
 
         public int listRowX() {

@@ -2,17 +2,20 @@ package com.mawlee.cointcore.shop;
 
 import com.mawlee.cointcore.config.TraderOffersConfig;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 
 import java.util.ArrayList;
@@ -45,14 +48,29 @@ public class PlayerTraderBlockEntity extends BlockEntity {
     };
     private final List<PlayerShopOffer> offers = new ArrayList<>();
     private boolean marketMigrated;
+    private boolean autoPull;
     private final PlayerTraderRestockHandler restockHandler = new PlayerTraderRestockHandler(this);
 
     public PlayerTraderBlockEntity(BlockPos pos, BlockState state) {
         super(ShopBlockEntities.PLAYER_TRADER.get(), pos, state);
     }
 
-    public IItemHandler restockHandler() {
+    public PlayerTraderRestockHandler restockHandler() {
         return restockHandler;
+    }
+
+    public boolean autoPull() {
+        return autoPull;
+    }
+
+    public void setAutoPull(boolean autoPull) {
+        this.autoPull = autoPull;
+        setChanged();
+    }
+
+    public boolean toggleAutoPull() {
+        setAutoPull(!autoPull);
+        return autoPull;
     }
 
     public UUID ownerId() {
@@ -171,6 +189,59 @@ public class PlayerTraderBlockEntity extends BlockEntity {
         setChanged();
     }
 
+    public static void serverTick(Level level, BlockPos pos, BlockState state, PlayerTraderBlockEntity shop) {
+        if (!(level instanceof ServerLevel) || !shop.autoPull || shop.ownerId == null) {
+            return;
+        }
+        if (level.getGameTime() % 10L != 0L) {
+            return;
+        }
+        shop.pullFromAdjacent();
+    }
+
+    private void pullFromAdjacent() {
+        Level level = getLevel();
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        BlockPos origin = getBlockPos();
+        for (Direction direction : Direction.values()) {
+            BlockPos neighbor = origin.relative(direction);
+            IItemHandler source = level.getCapability(
+                    Capabilities.ItemHandler.BLOCK,
+                    neighbor,
+                    direction.getOpposite()
+            );
+            if (source == null || source == restockHandler) {
+                continue;
+            }
+            for (int slot = 0; slot < source.getSlots(); slot++) {
+                ItemStack simulated = source.extractItem(slot, 64, true);
+                if (simulated.isEmpty()) {
+                    continue;
+                }
+                int accepted = GlobalMarketService.tryRestock(this, simulated, true);
+                if (accepted < 1) {
+                    continue;
+                }
+                ItemStack taken = source.extractItem(slot, accepted, false);
+                if (taken.isEmpty()) {
+                    continue;
+                }
+                int committed = GlobalMarketService.tryRestock(this, taken, false);
+                if (committed >= taken.getCount()) {
+                    continue;
+                }
+                ItemStack leftover = taken.copy();
+                leftover.shrink(committed);
+                ItemStack rejected = leftover;
+                for (int back = 0; back < source.getSlots() && !rejected.isEmpty(); back++) {
+                    rejected = source.insertItem(back, rejected, false);
+                }
+            }
+        }
+    }
+
     public synchronized void clearOffersAfterMigration() {
         offers.clear();
         setChanged();
@@ -254,6 +325,7 @@ public class PlayerTraderBlockEntity extends BlockEntity {
         }
         tag.put("offers", offerTags);
         tag.putBoolean("market_migrated", marketMigrated);
+        tag.putBoolean("auto_pull", autoPull);
     }
 
     @Override
@@ -278,5 +350,6 @@ public class PlayerTraderBlockEntity extends BlockEntity {
             offers.add(PlayerShopOffer.load(offerTags.getCompound(index), registries));
         }
         marketMigrated = tag.getBoolean("market_migrated");
+        autoPull = tag.getBoolean("auto_pull");
     }
 }

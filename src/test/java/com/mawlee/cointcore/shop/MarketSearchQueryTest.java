@@ -123,9 +123,64 @@ class MarketSearchQueryTest {
     }
 
     @Test
+    void plainWordMatchesRegistryIdWhenLocalizedNameDiffers() {
+        MarketSearchTarget russianDiamond = MarketSearchTarget.of(
+                "Алмаз",
+                "Алмаз",
+                "minecraft",
+                "Minecraft",
+                List.of("c:gems", "gems"),
+                "light_blue",
+                "minecraft:diamond"
+        );
+        assertTrue(MarketSearchQuery.matches("diamond", russianDiamond));
+        assertTrue(MarketSearchQuery.matches("minecraft:diamond", russianDiamond));
+        assertTrue(MarketSearchQuery.matches("алмаз", russianDiamond));
+        assertTrue(MarketSearchQuery.matches("@minecraft diamond", russianDiamond));
+        assertTrue(MarketSearchQuery.matches("$gems", russianDiamond));
+        assertFalse(MarketSearchQuery.matches("emerald", russianDiamond));
+    }
+
+    @Test
+    void searchPolicyPrefersJeiWhenPresent() {
+        assertTrue(MarketSearchPolicy.decide(false, true, false));
+        assertFalse(MarketSearchPolicy.decide(true, false, false));
+        assertTrue(MarketSearchPolicy.decide(true, null, false));
+        assertFalse(MarketSearchPolicy.decide(false, true, true));
+        assertTrue(MarketSearchPolicy.decide(true, true, true));
+    }
+
+    @Test
     void resourceIdPrefix() {
         assertTrue(MarketSearchQuery.matches("&diamond_sword", SWORD));
         assertFalse(MarketSearchQuery.matches("&red_wool", SWORD));
+    }
+
+    @Test
+    void sellerPrefixesMatchNickname() {
+        MarketSearchTarget listed = MarketSearchTarget.of(
+                "Алмаз",
+                "Алмаз",
+                "minecraft",
+                "Minecraft",
+                List.of("gems"),
+                "light_blue",
+                "minecraft:diamond",
+                "Mawlee"
+        );
+        assertTrue(MarketSearchQuery.matches("by:mawlee", listed));
+        assertTrue(MarketSearchQuery.matches("%maw", listed));
+        assertTrue(MarketSearchQuery.matches("~lee", listed));
+        assertTrue(MarketSearchQuery.matches("diamond by:maw", listed));
+        assertFalse(MarketSearchQuery.matches("by:bob", listed));
+        assertFalse(MarketSearchQuery.matches("-by:mawlee", listed));
+        assertTrue(MarketSearchSeller.hasTerms("diamond %nick"));
+        assertEquals("diamond", MarketSearchSeller.strip("diamond by:Mawlee"));
+        assertEquals("diamond", MarketSearchSeller.strip("diamond %Mawlee"));
+        assertEquals("diamond", MarketSearchSeller.strip("diamond ~Mawlee"));
+        assertEquals("by:mawlee", MarketSearchSeller.fragment("diamond by:Mawlee"));
+        assertEquals("emerald by:mawlee", MarketSearchSeller.merge("emerald", "by:mawlee"));
+        assertEquals("", MarketSearchSeller.strip("%mawlee"));
     }
 
     @Test

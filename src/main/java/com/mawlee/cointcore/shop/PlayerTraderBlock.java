@@ -16,6 +16,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.BlockHitResult;
@@ -76,6 +78,18 @@ public class PlayerTraderBlock extends HorizontalDirectionalBlock implements Ent
     }
 
     @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
+        if (level.isClientSide || type != ShopBlockEntities.PLAYER_TRADER.get()) {
+            return null;
+        }
+        return (lvl, pos, st, blockEntity) -> {
+            if (blockEntity instanceof PlayerTraderBlockEntity shop) {
+                PlayerTraderBlockEntity.serverTick(lvl, pos, st, shop);
+            }
+        };
+    }
+
+    @Override
     protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return SHAPES.get(state.getValue(FACING));
     }
@@ -113,6 +127,14 @@ public class PlayerTraderBlock extends HorizontalDirectionalBlock implements Ent
             }
             if (!(level.getBlockEntity(pos) instanceof PlayerTraderBlockEntity shop)) {
                 return InteractionResult.FAIL;
+            }
+            if (serverPlayer.isShiftKeyDown() && shop.canManage(serverPlayer) && serverPlayer.getMainHandItem().isEmpty()) {
+                boolean enabled = shop.toggleAutoPull();
+                serverPlayer.sendSystemMessage(CointCoreMessages.forPlayer(
+                        serverPlayer,
+                        enabled ? CointCoreMessages.PLAYER_SHOP_PULL_ON : CointCoreMessages.PLAYER_SHOP_PULL_OFF
+                ));
+                return InteractionResult.SUCCESS;
             }
             PlayerTraderMenus.open(serverPlayer, shop, false);
         }

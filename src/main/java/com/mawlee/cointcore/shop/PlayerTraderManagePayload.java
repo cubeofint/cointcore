@@ -102,19 +102,26 @@ public record PlayerTraderManagePayload(
                             ? menu.ghostItem()
                             : payload.template;
                     ItemStack template = GhostTemplate.sanitize(incoming);
-                    int price = payload.buyPrice > Integer.MAX_VALUE
+                    int count = PlayerShopValidation.clampCount(payload.count);
+                    long addItems = Math.max(0L, payload.deals);
+                    long unitPrice = Math.max(0L, payload.buyPrice);
+                    long dealPriceLong = GlobalMarketPriceMath.dealPrice(unitPrice, count);
+                    int price = dealPriceLong > Integer.MAX_VALUE
                             ? Integer.MAX_VALUE
-                            : (int) Math.max(0L, payload.buyPrice);
+                            : (int) dealPriceLong;
                     if (payload.offerIndex >= 0 && payload.offerIndex < menu.offers().size()) {
+                        PlayerShopOfferSnapshot current = menu.offers().get(payload.offerIndex);
+                        long desired = GlobalMarketMath.saturatingAdd(current.stockItems(), addItems);
+                        long deals = GlobalMarketMath.dealsFromStock(desired, count);
                         ok = GlobalMarketService.update(
                                 player,
-                                menu.offers().get(payload.offerIndex).id(),
-                                payload.count,
-                                payload.deals,
+                                current.id(),
+                                count,
+                                Math.max(1L, deals),
                                 price
                         );
                     } else {
-                        ok = GlobalMarketService.create(player, template, payload.count, payload.deals, price);
+                        ok = GlobalMarketService.create(player, template, count, addItems, price);
                     }
                 }
                 default -> {
@@ -124,6 +131,10 @@ public record PlayerTraderManagePayload(
             }
             sync(player, menu, ok);
         });
+    }
+
+    public static void syncOpen(ServerPlayer player, PlayerTraderManageMenu menu, boolean ok) {
+        sync(player, menu, ok);
     }
 
     private static void sync(ServerPlayer player, PlayerTraderManageMenu menu, boolean ok) {

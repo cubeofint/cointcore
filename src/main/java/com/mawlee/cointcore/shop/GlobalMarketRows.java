@@ -43,6 +43,44 @@ public final class GlobalMarketRows {
         }
     }
 
+    public record SellerOffer(
+            String listingId,
+            String sellerName,
+            long stockItems,
+            long unitPrice,
+            int countPerDeal,
+            long pricePerDeal,
+            long dealsLeft,
+            long createdAt
+    ) {
+        public SellerOffer {
+            listingId = listingId == null ? "" : listingId;
+            sellerName = sellerName == null ? "" : sellerName;
+            stockItems = Math.max(0L, stockItems);
+            unitPrice = Math.max(0L, unitPrice);
+            countPerDeal = Math.max(1, countPerDeal);
+            pricePerDeal = Math.max(0L, pricePerDeal);
+            dealsLeft = Math.max(0L, dealsLeft);
+            createdAt = Math.max(0L, createdAt);
+        }
+
+        public static SellerOffer from(Source source) {
+            Source safe = source == null
+                    ? new Source("", "", 1, 0L, 0L, "", 0L, 0L, 0L, "")
+                    : source;
+            return new SellerOffer(
+                    safe.listingId(),
+                    safe.sellerName(),
+                    GlobalMarketMath.itemsForDeals(safe.count(), safe.dealsLeft()),
+                    GlobalMarketPriceMath.unitPrice(safe.price(), safe.count()),
+                    safe.count(),
+                    safe.price(),
+                    safe.dealsLeft(),
+                    safe.createdAt()
+            );
+        }
+    }
+
     public record Row(
             String listingId,
             int count,
@@ -50,6 +88,7 @@ public final class GlobalMarketRows {
             long dealsLeft,
             int listingCount,
             List<String> sellers,
+            List<SellerOffer> offers,
             long createdAt,
             long expiresAt,
             long marketUnitPrice,
@@ -62,6 +101,7 @@ public final class GlobalMarketRows {
             dealsLeft = Math.max(0L, dealsLeft);
             listingCount = Math.max(1, listingCount);
             sellers = sellers == null ? List.of() : List.copyOf(sellers);
+            offers = offers == null ? List.of() : List.copyOf(offers);
             createdAt = Math.max(0L, createdAt);
             expiresAt = Math.max(0L, expiresAt);
             marketUnitPrice = Math.max(0L, marketUnitPrice);
@@ -69,11 +109,28 @@ public final class GlobalMarketRows {
         }
 
         public boolean multiSeller() {
-            return sellers.size() > 1;
+            return offers.size() > 1 || sellers.size() > 1;
         }
 
         public String cheapestSeller() {
+            if (!offers.isEmpty()) {
+                return offers.getFirst().sellerName();
+            }
             return sellers.isEmpty() ? "" : sellers.getFirst();
+        }
+
+        public SellerOffer cheapestOffer() {
+            return offers.isEmpty() ? null : offers.getFirst();
+        }
+
+        public SellerOffer offer(String listingId) {
+            String id = listingId == null ? "" : listingId;
+            for (SellerOffer offer : offers) {
+                if (offer.listingId().equals(id)) {
+                    return offer;
+                }
+            }
+            return null;
         }
 
         public long unitPrice() {
@@ -98,12 +155,13 @@ public final class GlobalMarketRows {
         List<Row> rows = new ArrayList<>(buckets.size());
         for (List<Source> bucket : buckets.values()) {
             bucket.sort(Comparator
-                    .comparingLong(Source::price)
+                    .comparingLong((Source source) -> GlobalMarketPriceMath.unitPrice(source.price(), source.count()))
                     .thenComparingLong(Source::createdAt)
                     .thenComparing(Source::listingId));
             Source cheapest = bucket.getFirst();
             long deals = 0L;
             Set<String> names = new LinkedHashSet<>();
+            List<SellerOffer> offers = new ArrayList<>(bucket.size());
             if (!cheapest.sellerName().isBlank()) {
                 names.add(cheapest.sellerName());
             }
@@ -114,6 +172,7 @@ public final class GlobalMarketRows {
                 if (!source.sellerName().isBlank()) {
                     names.add(source.sellerName());
                 }
+                offers.add(SellerOffer.from(source));
             }
             rows.add(new Row(
                     cheapest.listingId(),
@@ -122,6 +181,7 @@ public final class GlobalMarketRows {
                     deals,
                     bucket.size(),
                     List.copyOf(names),
+                    List.copyOf(offers),
                     cheapest.createdAt(),
                     cheapest.expiresAt(),
                     cheapest.marketUnitPrice(),

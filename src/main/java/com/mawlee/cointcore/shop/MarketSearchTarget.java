@@ -15,7 +15,8 @@ public record MarketSearchTarget(
         List<String> tags,
         String colors,
         String itemId,
-        String creativeTabs
+        String creativeTabs,
+        String seller
 ) {
     public MarketSearchTarget {
         names = lower(names);
@@ -26,6 +27,7 @@ public record MarketSearchTarget(
         colors = lower(colors);
         itemId = lower(itemId);
         creativeTabs = lower(creativeTabs);
+        seller = lower(seller);
     }
 
     public static MarketSearchTarget of(
@@ -37,7 +39,24 @@ public record MarketSearchTarget(
             String colors,
             String itemId
     ) {
-        return new MarketSearchTarget(names, tooltip, modId, modName, tags, colors, itemId, modName);
+        return new MarketSearchTarget(names, tooltip, modId, modName, tags, colors, itemId, modName, "");
+    }
+
+    public static MarketSearchTarget of(
+            String names,
+            String tooltip,
+            String modId,
+            String modName,
+            List<String> tags,
+            String colors,
+            String itemId,
+            String seller
+    ) {
+        return new MarketSearchTarget(names, tooltip, modId, modName, tags, colors, itemId, modName, seller);
+    }
+
+    public MarketSearchTarget withSeller(String sellerName) {
+        return new MarketSearchTarget(names, tooltip, modId, modName, tags, colors, itemId, creativeTabs, sellerName);
     }
 
     private static String lower(String value) {

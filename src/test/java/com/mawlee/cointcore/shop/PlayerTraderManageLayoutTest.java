@@ -41,11 +41,11 @@ class PlayerTraderManageLayoutTest {
     void fieldsStackLabelThenBoxWithoutOverflow() {
         for (int index = 0; index < PlayerTraderManageLayout.FIELD_COUNT; index++) {
             PlayerTraderManageLayout.Rect box = PlayerTraderManageLayout.fieldBox(index);
-            assertTrue(PlayerTraderManageLayout.fieldLabelY(index) + 8 <= box.y());
+            assertTrue(PlayerTraderManageLayout.fieldLabelY(index) + PlayerTraderManageLayout.LABEL_H <= box.y());
             assertEquals(PlayerTraderManageLayout.RIGHT_INNER_X, box.x());
             assertTrue(box.right() <= PlayerTraderManageLayout.GUI_WIDTH - PlayerTraderManageLayout.PAD);
             if (index > 0) {
-                assertTrue(box.y() >= PlayerTraderManageLayout.fieldBox(index - 1).bottom());
+                assertTrue(PlayerTraderManageLayout.fieldLabelY(index) >= PlayerTraderManageLayout.fieldBox(index - 1).bottom());
             }
         }
         assertTrue(PlayerTraderManageLayout.fieldBox(2).bottom() <= PlayerTraderManageLayout.BUTTON_Y);
@@ -71,11 +71,24 @@ class PlayerTraderManageLayoutTest {
     }
 
     @Test
-    void fittedGeometryStaysOnScaleFour() {
-        PlayerTraderManageLayout.Geom geom = PlayerTraderManageLayout.fit(480, 270);
-        assertTrue(geom.insideScreen(480, 270));
-        assertTrue(geom.listPageSize >= 1);
-        assertTrue(geom.fieldBox(2).bottom() <= geom.buttonY);
-        assertTrue(geom.playerInvLabelY >= geom.listBottom);
+    void fittedGeometryKeepsInventoryInsideScaleFourAndThree() {
+        PlayerTraderManageLayout.Geom scale4 = PlayerTraderManageLayout.fit(480, 270);
+        PlayerTraderManageLayout.Geom scale3 = PlayerTraderManageLayout.fit(640, 360);
+        assertTrue(scale4.insideScreen(480, 270));
+        assertTrue(scale3.insideScreen(640, 360));
+        assertTrue(scale4.inventoryFullyInside());
+        assertTrue(scale3.inventoryFullyInside());
+        assertTrue(scale4.listPageSize >= 1);
+        assertTrue(scale4.fieldStride >= PlayerTraderManageLayout.LABEL_H + PlayerTraderManageLayout.FIELD_H);
+        for (int index = 0; index < PlayerTraderManageLayout.FIELD_COUNT; index++) {
+            PlayerTraderManageLayout.Rect box = scale4.fieldBox(index);
+            assertTrue(scale4.fieldLabelY(index) + PlayerTraderManageLayout.LABEL_H <= box.y());
+            if (index > 0) {
+                assertTrue(scale4.fieldLabelY(index) >= scale4.fieldBox(index - 1).bottom());
+            }
+        }
+        assertTrue(scale4.fieldBox(2).bottom() <= scale4.buttonY || scale4.buttonY >= scale4.recommendY);
+        assertTrue(scale4.playerInvLabelY >= scale4.listBottom || scale4.listBottom <= scale4.playerInvY);
+        assertTrue(scale4.playerHotbarY + PlayerTraderManageLayout.SLOT + PlayerTraderManageLayout.PAD <= scale4.guiHeight);
     }
 }

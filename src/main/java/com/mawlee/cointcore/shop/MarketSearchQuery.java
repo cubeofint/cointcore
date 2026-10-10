@@ -6,8 +6,8 @@ import java.util.Locale;
 
 /**
  * JEI-like search syntax: plain words (name + tooltip), {@code @mod}, {@code #tooltip},
- * {@code $tag}, {@code ^color}, optional {@code %} tab / {@code &} id, leading {@code -}
- * to negate, {@code |} as OR, and quoted phrases.
+ * {@code $tag}, {@code ^color}, {@code &} id, seller {@code by:nick} / {@code %nick} /
+ * {@code ~nick}, leading {@code -} to negate, {@code |} as OR, and quoted phrases.
  */
 public final class MarketSearchQuery {
     private static final String OR = "|";
@@ -22,7 +22,8 @@ public final class MarketSearchQuery {
         TAG,
         COLOR,
         CREATIVE_TAB,
-        RESOURCE_ID
+        RESOURCE_ID,
+        SELLER
     }
 
     public record Term(Kind kind, String text, boolean negated) {
@@ -99,13 +100,16 @@ public final class MarketSearchQuery {
             return true;
         }
         return switch (kind) {
-            case NAME -> contains(target.names(), needle) || contains(target.tooltip(), needle);
+            case NAME -> contains(target.names(), needle)
+                    || contains(target.tooltip(), needle)
+                    || contains(target.itemId(), needle);
             case MOD -> containsLoose(target.modId(), needle) || containsLoose(target.modName(), needle);
             case TOOLTIP -> contains(target.tooltip(), needle);
             case TAG -> matchesAny(target.tags(), needle);
             case COLOR -> contains(target.colors(), needle);
             case CREATIVE_TAB -> containsLoose(target.creativeTabs(), needle);
             case RESOURCE_ID -> contains(target.itemId(), needle);
+            case SELLER -> containsLoose(target.seller(), needle);
             default -> {
                 Kind unused = kind;
                 throw new IllegalStateException(unused.name());
@@ -147,7 +151,10 @@ public final class MarketSearchQuery {
             raw = raw.substring(1);
         }
         Kind kind = Kind.NAME;
-        if (!raw.isEmpty() && isPrefix(raw.charAt(0))) {
+        if (raw.length() >= 3 && raw.regionMatches(true, 0, "by:", 0, 3)) {
+            kind = Kind.SELLER;
+            raw = raw.substring(3);
+        } else if (!raw.isEmpty() && isPrefix(raw.charAt(0))) {
             kind = kindOf(raw.charAt(0));
             raw = raw.substring(1);
         }
@@ -158,7 +165,8 @@ public final class MarketSearchQuery {
     }
 
     private static boolean isPrefix(char prefix) {
-        return prefix == '@' || prefix == '#' || prefix == '$' || prefix == '^' || prefix == '%' || prefix == '&';
+        return prefix == '@' || prefix == '#' || prefix == '$' || prefix == '^'
+                || prefix == '%' || prefix == '&' || prefix == '~';
     }
 
     private static Kind kindOf(char prefix) {
@@ -167,8 +175,9 @@ public final class MarketSearchQuery {
             case '#' -> Kind.TOOLTIP;
             case '$' -> Kind.TAG;
             case '^' -> Kind.COLOR;
-            case '%' -> Kind.CREATIVE_TAB;
+            case '%' -> Kind.SELLER;
             case '&' -> Kind.RESOURCE_ID;
+            case '~' -> Kind.SELLER;
             default -> Kind.NAME;
         };
     }

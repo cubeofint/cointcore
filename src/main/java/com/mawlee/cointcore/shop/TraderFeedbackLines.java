@@ -40,6 +40,7 @@ public final class TraderFeedbackLines {
             case "stock" -> Component.translatable("gui.cointcore.player_trader.error.cannot_fill.stock");
             case "money" -> Component.translatable("gui.cointcore.player_trader.error.cannot_fill.money");
             case "price" -> Component.translatable("gui.cointcore.player_trader.error.cannot_fill.price");
+            case "price_up" -> Component.translatable("gui.cointcore.player_trader.error.cannot_fill.price_up");
             default -> Component.translatable("gui.cointcore.player_trader.error.cannot_fill");
         };
     }

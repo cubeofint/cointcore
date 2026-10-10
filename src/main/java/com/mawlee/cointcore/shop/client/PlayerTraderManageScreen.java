@@ -103,14 +103,14 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
 
         countBox = field(geom.fieldBox(0), selected >= 0 ? String.valueOf(menu.offers().get(selected).count()) : "1",
                 "gui.cointcore.player_trader.manage.count.tooltip");
-        dealsBox = field(geom.fieldBox(1), selected >= 0 ? String.valueOf(menu.offers().get(selected).dealsLeft()) : "1",
+        dealsBox = field(geom.fieldBox(1), selected >= 0 ? "0" : "1",
                 "gui.cointcore.player_trader.manage.deals.tooltip");
         dealsBox.setMaxLength(18);
         long recommended = recommendedUnitPrice();
         PlayerTraderManageLayout.Rect priceRect = geom.fieldBox(2);
         Component fill = Component.translatable("gui.cointcore.player_trader.manage.recommend.fill");
-        int fillW = recommended > 0L ? Math.max(48, font.width(fill) + 10) : 0;
-        boolean inlineRecommend = recommended > 0L && geom.buttonY <= geom.recommendY;
+        int fillW = Math.max(48, font.width(fill) + 10);
+        boolean inlineRecommend = geom.buttonY <= geom.recommendY;
         if (inlineRecommend) {
             priceRect = new PlayerTraderManageLayout.Rect(
                     priceRect.x(),
@@ -119,19 +119,23 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                     priceRect.h()
             );
         }
-        priceBox = field(priceRect, selected >= 0 ? String.valueOf(menu.offers().get(selected).buyPrice()) : "1",
+        long shownPrice = selected >= 0
+                ? GlobalMarketPriceMath.unitPrice(menu.offers().get(selected).buyPrice(), menu.offers().get(selected).count())
+                : 1L;
+        priceBox = field(priceRect, Long.toString(Math.max(1L, shownPrice)),
                 "gui.cointcore.player_trader.manage.buy.tooltip");
-        if (recommended > 0L) {
-            int fillX = inlineRecommend ? priceRect.right() + 2 : geom.rightInnerX;
-            int fillY = inlineRecommend ? priceRect.y() : geom.recommendY;
-            addRenderableWidget(Button.builder(fill, button -> fillRecommended())
-                    .bounds(leftPos + fillX, topPos + fillY, fillW, 12)
-                    .tooltip(Tooltip.create(Component.translatable(
-                            "gui.cointcore.player_trader.manage.recommend",
-                            Long.toString(recommended)
-                    )))
-                    .build());
-        }
+        int fillX = inlineRecommend ? priceRect.right() + 2 : geom.rightInnerX;
+        int fillY = inlineRecommend ? priceRect.y() : geom.recommendY;
+        Button fillButton = addRenderableWidget(Button.builder(fill, button -> fillRecommended())
+                .bounds(leftPos + fillX, topPos + fillY, fillW, 12)
+                .tooltip(Tooltip.create(Component.translatable(
+                        recommended > 0L
+                                ? "gui.cointcore.player_trader.manage.recommend"
+                                : "gui.cointcore.player_trader.manage.recommend.none",
+                        Long.toString(Math.max(0L, recommended))
+                )))
+                .build());
+        fillButton.active = recommended > 0L;
 
         Component listLabel = Component.translatable(
                 selected >= 0 ? "gui.cointcore.player_trader.manage.save" : "gui.cointcore.player_trader.manage.list"
@@ -262,15 +266,14 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         drawFieldLabel(graphics, "gui.cointcore.player_trader.manage.deals", 1);
         drawFieldLabel(graphics, "gui.cointcore.player_trader.manage.buy", 2);
         long recommended = recommendedUnitPrice();
-        if (recommended > 0L && geom.buttonY > geom.recommendY) {
-            Component rec = Component.translatable(
-                    "gui.cointcore.player_trader.manage.recommend",
-                    Long.toString(recommended)
-            );
+        if (geom.buttonY > geom.recommendY) {
+            Component rec = recommended > 0L
+                    ? Component.translatable("gui.cointcore.player_trader.manage.recommend", Long.toString(recommended))
+                    : Component.translatable("gui.cointcore.player_trader.manage.recommend.none");
             graphics.drawString(
                     font,
                     Component.literal(font.plainSubstrByWidth(rec.getString(), geom.rightInnerW)),
-                    geom.rightInnerX + 56,
+                    geom.rightInnerX,
                     geom.recommendY + 2,
                     VanillaContainerSkin.LABEL_COLOR,
                     false
@@ -393,8 +396,9 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
             int textY = y + 5;
             Component prices = Component.translatable(
                     "gui.cointcore.player_trader.manage.list_prices",
-                    Long.toString(offer.buyPrice()),
-                    Long.toString(offer.dealsLeft())
+                    Long.toString(offer.stockItems()),
+                    Long.toString(GlobalMarketPriceMath.unitPrice(offer.buyPrice(), offer.count())),
+                    Integer.toString(offer.count())
             );
             int maxText = x + w - textX - GluonGuiIcon.SIZE - 2;
             graphics.drawString(
@@ -459,8 +463,8 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         PlayerShopOfferSnapshot offer = menu.offers().get(index);
         applyGhostTemplate(offer.template());
         countBox.setValue(Integer.toString(offer.count()));
-        dealsBox.setValue(Long.toString(offer.dealsLeft()));
-        priceBox.setValue(Long.toString(offer.buyPrice()));
+        dealsBox.setValue("0");
+        priceBox.setValue(Long.toString(Math.max(1L, GlobalMarketPriceMath.unitPrice(offer.buyPrice(), offer.count()))));
         rebuildWidgets();
     }
 
@@ -469,8 +473,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         if (unit <= 0L) {
             return;
         }
-        int count = parseInt(countBox.getValue(), 1);
-        priceBox.setValue(Long.toString(GlobalMarketPriceMath.dealPrice(unit, count)));
+        priceBox.setValue(Long.toString(unit));
     }
 
     private long recommendedUnitPrice() {
