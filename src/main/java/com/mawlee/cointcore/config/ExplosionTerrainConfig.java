@@ -26,6 +26,7 @@ public final class ExplosionTerrainConfig {
 
     private static boolean enabled = true;
     private static boolean tntPlayerDamage;
+    private static boolean allowSpawnerDetonation = true;
 
     private ExplosionTerrainConfig() {
     }
@@ -36,6 +37,10 @@ public final class ExplosionTerrainConfig {
 
     public static boolean isTntPlayerDamageEnabled() {
         return tntPlayerDamage;
+    }
+
+    public static boolean isSpawnerDetonationAllowed() {
+        return allowSpawnerDetonation;
     }
 
     public static Path getConfigPath() {
@@ -52,13 +57,14 @@ public final class ExplosionTerrainConfig {
             return false;
         }
         apply(loaded);
-        LOGGER.info("Reloaded explosion terrain config (enabled={}, tnt_player_damage={})", enabled, tntPlayerDamage);
+        LOGGER.info("Reloaded explosion terrain config (enabled={}, tnt_player_damage={}, allow_spawner_detonation={})", enabled, tntPlayerDamage, allowSpawnerDetonation);
         return true;
     }
 
     private static void apply(LoadedConfig loaded) {
         enabled = loaded.enabled();
         tntPlayerDamage = loaded.tntPlayerDamage();
+        allowSpawnerDetonation = loaded.allowSpawnerDetonation();
     }
 
     private static LoadedConfig loadFromDisk(boolean reloading) {
@@ -88,13 +94,15 @@ public final class ExplosionTerrainConfig {
     private static LoadedConfig parse(FileData data) {
         boolean on = data.enabled == null || data.enabled;
         boolean tntDamage = Boolean.TRUE.equals(data.tntPlayerDamage);
-        return new LoadedConfig(on, tntDamage);
+        boolean spawners = data.allowSpawnerDetonation == null || data.allowSpawnerDetonation;
+        return new LoadedConfig(on, tntDamage, spawners);
     }
 
     private static FileData defaultFileData() {
         FileData data = new FileData();
         data.enabled = true;
         data.tntPlayerDamage = false;
+        data.allowSpawnerDetonation = true;
         return data;
     }
 
@@ -108,7 +116,7 @@ public final class ExplosionTerrainConfig {
         return FMLPaths.CONFIGDIR.get().resolve(CointCore.MOD_ID).resolve("explosion-terrain.json");
     }
 
-    private record LoadedConfig(boolean enabled, boolean tntPlayerDamage) {
+    private record LoadedConfig(boolean enabled, boolean tntPlayerDamage, boolean allowSpawnerDetonation) {
     }
 
     private static final class FileData {
@@ -117,5 +125,8 @@ public final class ExplosionTerrainConfig {
 
         @SerializedName("tnt_player_damage")
         private Boolean tntPlayerDamage;
+
+        @SerializedName("allow_spawner_detonation")
+        private Boolean allowSpawnerDetonation;
     }
 }
