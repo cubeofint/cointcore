@@ -4,8 +4,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.item.ItemStack;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class PlayerTraderMenus {
@@ -57,6 +60,8 @@ public final class PlayerTraderMenus {
         List<PlayerShopOfferSnapshot> offers = GlobalMarketService.ownSnapshots(player.server, player.getUUID());
         GlobalMarketSavedData.SoldStats stats = GlobalMarketSavedData.get(player.server).stats(player.getUUID());
         long revenue = stats.gluons();
+        int returns = GlobalMarketSavedData.get(player.server).returnCount(player.getUUID());
+        List<MarketPriceHint> hints = priceHints(player, offers);
         player.openMenu(
                 new SimpleMenuProvider(
                         (containerId, inventory, opener) -> new PlayerTraderManageMenu(
@@ -66,7 +71,8 @@ public final class PlayerTraderMenus {
                                 shop.ownerName(),
                                 revenue,
                                 offers,
-                                GlobalMarketSavedData.get(player.server).returnCount(player.getUUID())
+                                returns,
+                                hints
                         ),
                         Component.translatable("container.cointcore.player_trader.manage", player.getGameProfile().getName())
                 ),
@@ -75,7 +81,8 @@ public final class PlayerTraderMenus {
                         shop.ownerName(),
                         revenue,
                         offers,
-                        GlobalMarketSavedData.get(player.server).returnCount(player.getUUID())
+                        returns,
+                        hints
                 )
         );
     }
@@ -96,12 +103,31 @@ public final class PlayerTraderMenus {
             menu.refresh(GluonWallet.get(player), shop.ownerName(), listingsOf(player.server));
         } else if (player.containerMenu instanceof PlayerTraderManageMenu menu) {
             GlobalMarketSavedData.SoldStats stats = GlobalMarketSavedData.get(player.server).stats(player.getUUID());
+            List<PlayerShopOfferSnapshot> offers = GlobalMarketService.ownSnapshots(player.server, player.getUUID());
             menu.refresh(
                     shop.ownerName(),
                     stats.gluons(),
-                    GlobalMarketService.ownSnapshots(player.server, player.getUUID()),
-                    GlobalMarketSavedData.get(player.server).returnCount(player.getUUID())
+                    offers,
+                    GlobalMarketSavedData.get(player.server).returnCount(player.getUUID()),
+                    priceHints(player, offers)
             );
         }
+    }
+
+    static List<MarketPriceHint> priceHints(ServerPlayer player, List<PlayerShopOfferSnapshot> offers) {
+        List<ItemStack> stacks = new ArrayList<>();
+        Inventory inventory = player.getInventory();
+        for (int index = 0; index < inventory.getContainerSize(); index++) {
+            stacks.add(inventory.getItem(index));
+        }
+        if (offers != null) {
+            for (PlayerShopOfferSnapshot offer : offers) {
+                stacks.add(offer.template());
+            }
+        }
+        if (player.containerMenu instanceof PlayerTraderManageMenu menu) {
+            stacks.add(menu.ghostItem());
+        }
+        return GlobalMarketService.priceHints(player.server, stacks);
     }
 }

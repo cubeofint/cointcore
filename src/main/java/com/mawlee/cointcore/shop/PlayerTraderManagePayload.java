@@ -11,6 +11,8 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+import java.util.List;
+
 public record PlayerTraderManagePayload(
         int containerId,
         Action action,
@@ -96,9 +98,10 @@ public record PlayerTraderManagePayload(
                     }
                 }
                 case SAVE -> {
-                    ItemStack template = payload.template == null || payload.template.isEmpty()
+                    ItemStack incoming = payload.template == null || payload.template.isEmpty()
                             ? menu.ghostItem()
                             : payload.template;
+                    ItemStack template = GhostTemplate.sanitize(incoming);
                     int price = payload.buyPrice > Integer.MAX_VALUE
                             ? Integer.MAX_VALUE
                             : (int) Math.max(0L, payload.buyPrice);
@@ -117,7 +120,8 @@ public record PlayerTraderManagePayload(
         GlobalMarketSavedData.SoldStats stats = GlobalMarketSavedData.get(player.server).stats(player.getUUID());
         var offers = GlobalMarketService.ownSnapshots(player.server, player.getUUID());
         int returns = GlobalMarketSavedData.get(player.server).returnCount(player.getUUID());
-        menu.refresh(player.getGameProfile().getName(), stats.gluons(), offers, returns);
+        List<MarketPriceHint> hints = PlayerTraderMenus.priceHints(player, offers);
+        menu.refresh(player.getGameProfile().getName(), stats.gluons(), offers, returns, hints);
         PacketDistributor.sendToPlayer(
                 player,
                 new PlayerTraderManageSyncPayload(
@@ -126,7 +130,8 @@ public record PlayerTraderManagePayload(
                         stats.gluons(),
                         offers,
                         ok,
-                        returns
+                        returns,
+                        hints
                 )
         );
     }

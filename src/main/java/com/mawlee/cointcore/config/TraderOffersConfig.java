@@ -80,6 +80,14 @@ public final class TraderOffersConfig {
         return loaded.priceHistoryAverageBandPercent;
     }
 
+    public static int marketPriceWindowDays() {
+        return loaded.marketPriceWindowDays;
+    }
+
+    public static int marketPriceMaxSales() {
+        return loaded.marketPriceMaxSales;
+    }
+
     public static List<TraderOffer> offers() {
         return loaded.offers;
     }
@@ -162,6 +170,12 @@ public final class TraderOffersConfig {
         double band = data.priceHistoryAverageBandPercent != null && !Double.isNaN(data.priceHistoryAverageBandPercent)
                 ? Math.max(0.0d, data.priceHistoryAverageBandPercent)
                 : 5.0d;
+        int marketWindowDays = data.marketPriceWindowDays == null
+                ? com.mawlee.cointcore.shop.GlobalMarketPriceMath.DEFAULT_WINDOW_DAYS
+                : Math.max(1, Math.min(365, data.marketPriceWindowDays));
+        int marketMaxSales = data.marketPriceMaxSales == null
+                ? com.mawlee.cointcore.shop.GlobalMarketPriceMath.DEFAULT_MAX_SALES
+                : Math.max(1, Math.min(2000, data.marketPriceMaxSales));
         return new Loaded(
                 percent,
                 playerShopPercent,
@@ -173,6 +187,8 @@ public final class TraderOffersConfig {
                 historyCapacity,
                 sampleTicks,
                 band,
+                marketWindowDays,
+                marketMaxSales,
                 List.copyOf(offers)
         );
     }
@@ -223,6 +239,8 @@ public final class TraderOffersConfig {
             int priceHistoryCapacity,
             int priceHistorySampleIntervalTicks,
             double priceHistoryAverageBandPercent,
+            int marketPriceWindowDays,
+            int marketPriceMaxSales,
             List<TraderOffer> offers
     ) {
         static Loaded empty() {
@@ -237,6 +255,8 @@ public final class TraderOffersConfig {
                     OfferBuyPriceHistory.DEFAULT_CAPACITY,
                     1200,
                     5.0d,
+                    com.mawlee.cointcore.shop.GlobalMarketPriceMath.DEFAULT_WINDOW_DAYS,
+                    com.mawlee.cointcore.shop.GlobalMarketPriceMath.DEFAULT_MAX_SALES,
                     List.of()
             );
         }
@@ -263,6 +283,10 @@ public final class TraderOffersConfig {
         Integer priceHistorySampleIntervalTicks;
         @SerializedName("price_history_average_band_percent")
         Double priceHistoryAverageBandPercent;
+        @SerializedName("market_price_window_days")
+        Integer marketPriceWindowDays;
+        @SerializedName("market_price_max_sales")
+        Integer marketPriceMaxSales;
         List<OfferData> offers;
 
         static FileData defaults() {
@@ -277,6 +301,8 @@ public final class TraderOffersConfig {
             data.priceHistoryCapacity = OfferBuyPriceHistory.DEFAULT_CAPACITY;
             data.priceHistorySampleIntervalTicks = 1200;
             data.priceHistoryAverageBandPercent = 5.0d;
+            data.marketPriceWindowDays = com.mawlee.cointcore.shop.GlobalMarketPriceMath.DEFAULT_WINDOW_DAYS;
+            data.marketPriceMaxSales = com.mawlee.cointcore.shop.GlobalMarketPriceMath.DEFAULT_MAX_SALES;
             data.offers = List.of(
                     offer("diamond", "minecraft:diamond", 1, 100L, 80L),
                     offer("emerald", "minecraft:emerald", 1, 80L, 64L),
