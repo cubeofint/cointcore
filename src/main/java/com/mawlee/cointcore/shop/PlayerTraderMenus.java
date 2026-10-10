@@ -1,11 +1,11 @@
 package com.mawlee.cointcore.shop;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public final class PlayerTraderMenus {
@@ -13,7 +13,7 @@ public final class PlayerTraderMenus {
     }
 
     public static void open(ServerPlayer player, PlayerTraderBlockEntity shop, boolean manage) {
-        if (PlayerShopAccess.allowOpenManage(manage, player, shop.ownerId())) {
+        if (manage && PlayerShopAccess.canUse(player)) {
             openManage(player, shop);
         } else {
             openShop(player, shop);
@@ -21,9 +21,10 @@ public final class PlayerTraderMenus {
     }
 
     public static void openShop(ServerPlayer player, PlayerTraderBlockEntity shop) {
+        GlobalMarketMigration.migrate(player.server, shop);
         long balance = GluonWallet.get(player);
-        boolean canManage = shop.canManage(player);
-        List<PlayerTraderListing> listings = listingsOf(shop);
+        boolean canManage = PlayerShopAccess.canUse(player);
+        List<PlayerTraderListing> listings = listingsOf(player.server);
         player.openMenu(
                 new SimpleMenuProvider(
                         (containerId, inventory, opener) -> new PlayerTraderMenu(
@@ -48,48 +49,59 @@ public final class PlayerTraderMenus {
     }
 
     public static void openManage(ServerPlayer player, PlayerTraderBlockEntity shop) {
-        if (!shop.canManage(player)) {
+        if (!PlayerShopAccess.canUse(player)) {
             openShop(player, shop);
             return;
         }
-        List<PlayerShopOfferSnapshot> offers = PlayerShopOfferSnapshot.of(shop);
+        GlobalMarketMigration.migrate(player.server, shop);
+        List<PlayerShopOfferSnapshot> offers = GlobalMarketService.ownSnapshots(player.server, player.getUUID());
+        GlobalMarketSavedData.SoldStats stats = GlobalMarketSavedData.get(player.server).stats(player.getUUID());
+        long revenue = stats.gluons();
         player.openMenu(
                 new SimpleMenuProvider(
                         (containerId, inventory, opener) -> new PlayerTraderManageMenu(
                                 containerId,
                                 inventory,
                                 ContainerLevelAccess.create(shop.getLevel(), shop.getBlockPos()),
-                                shop.stock(),
                                 shop.ownerName(),
-                                shop.lifetimeRevenue(),
-                                offers
+                                revenue,
+                                offers,
+                                GlobalMarketSavedData.get(player.server).returnCount(player.getUUID())
                         ),
-                        Component.translatable("container.cointcore.player_trader.manage", shop.ownerName())
+                        Component.translatable("container.cointcore.player_trader.manage", player.getGameProfile().getName())
                 ),
                 buffer -> PlayerTraderManageMenu.writeOpenData(
                         buffer,
                         shop.ownerName(),
-                        shop.lifetimeRevenue(),
-                        offers
+                        revenue,
+                        offers,
+                        GlobalMarketSavedData.get(player.server).returnCount(player.getUUID())
                 )
         );
     }
 
+    public static List<PlayerTraderListing> listingsOf(MinecraftServer server) {
+        return GlobalMarketService.catalog(server);
+    }
+
     public static List<PlayerTraderListing> listingsOf(PlayerTraderBlockEntity shop) {
-        List<TraderOffer> offers = shop.traderOffers();
-        int[] stock = shop.stockLeftForTraderOffers();
-        List<PlayerTraderListing> listings = new ArrayList<>(offers.size());
-        for (int index = 0; index < offers.size(); index++) {
-            listings.add(new PlayerTraderListing(offers.get(index), stock[index]));
+        if (shop.getLevel() != null && shop.getLevel().getServer() != null) {
+            return listingsOf(shop.getLevel().getServer());
         }
-        return listings;
+        return List.of();
     }
 
     public static void refreshOpen(ServerPlayer player, PlayerTraderBlockEntity shop) {
         if (player.containerMenu instanceof PlayerTraderMenu menu) {
-            menu.refresh(GluonWallet.get(player), shop.ownerName(), listingsOf(shop));
+            menu.refresh(GluonWallet.get(player), shop.ownerName(), listingsOf(player.server));
         } else if (player.containerMenu instanceof PlayerTraderManageMenu menu) {
-            menu.refresh(shop.ownerName(), shop.lifetimeRevenue(), PlayerShopOfferSnapshot.of(shop));
+            GlobalMarketSavedData.SoldStats stats = GlobalMarketSavedData.get(player.server).stats(player.getUUID());
+            menu.refresh(
+                    shop.ownerName(),
+                    stats.gluons(),
+                    GlobalMarketService.ownSnapshots(player.server, player.getUUID()),
+                    GlobalMarketSavedData.get(player.server).returnCount(player.getUUID())
+            );
         }
     }
 }

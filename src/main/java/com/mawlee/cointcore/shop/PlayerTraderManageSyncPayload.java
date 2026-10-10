@@ -16,7 +16,8 @@ public record PlayerTraderManageSyncPayload(
         String ownerName,
         long lifetimeRevenue,
         List<PlayerShopOfferSnapshot> offers,
-        boolean lastActionOk
+        boolean lastActionOk,
+        int returnCount
 ) implements CustomPacketPayload {
     public static final Type<PlayerTraderManageSyncPayload> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(CointCore.MOD_ID, "player_trader_manage_sync")
@@ -30,6 +31,7 @@ public record PlayerTraderManageSyncPayload(
         ByteBufCodecs.STRING_UTF8.encode(buffer, payload.ownerName == null ? "" : payload.ownerName);
         buffer.writeLong(payload.lifetimeRevenue);
         buffer.writeBoolean(payload.lastActionOk);
+        ByteBufCodecs.VAR_INT.encode(buffer, payload.returnCount);
         PlayerShopOfferSnapshot.writeList(buffer, payload.offers);
     }
 
@@ -38,12 +40,14 @@ public record PlayerTraderManageSyncPayload(
         String ownerName = ByteBufCodecs.STRING_UTF8.decode(buffer);
         long revenue = buffer.readLong();
         boolean ok = buffer.readBoolean();
+        int returns = ByteBufCodecs.VAR_INT.decode(buffer);
         return new PlayerTraderManageSyncPayload(
                 containerId,
                 ownerName,
                 revenue,
                 PlayerShopOfferSnapshot.readList(buffer),
-                ok
+                ok,
+                returns
         );
     }
 

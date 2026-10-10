@@ -32,7 +32,7 @@ public final class PlayerTraderClientSync {
         if (menu.containerId != payload.containerId()) {
             return;
         }
-        menu.refresh(payload.ownerName(), payload.lifetimeRevenue(), payload.offers());
+        menu.refresh(payload.ownerName(), payload.lifetimeRevenue(), payload.offers(), payload.returnCount());
         if (minecraft.screen instanceof PlayerTraderManageScreen screen) {
             screen.onOffersUpdated(payload.lastActionOk());
         }

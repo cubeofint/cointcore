@@ -48,7 +48,7 @@ public record PlayerTraderTabPayload(int containerId, boolean manage) implements
                 if (!(level.getBlockEntity(pos) instanceof PlayerTraderBlockEntity shop)) {
                     return false;
                 }
-                boolean manage = PlayerShopAccess.allowOpenManage(payload.manage(), player, shop.ownerId());
+                boolean manage = payload.manage() && PlayerShopAccess.canUse(player);
                 PlayerTraderMenus.open(player, shop, manage);
                 return true;
             }, false);

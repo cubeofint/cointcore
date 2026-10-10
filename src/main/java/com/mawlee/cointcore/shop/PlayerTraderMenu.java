@@ -18,11 +18,11 @@ import java.util.List;
  * Same layout as {@link TraderMenu}; no price-history sparkline.
  */
 public class PlayerTraderMenu extends AbstractContainerMenu {
-    public static final int PAGE_SIZE = TraderMenu.PAGE_SIZE;
-    public static final int GUI_WIDTH = TraderMenu.GUI_WIDTH;
+    public static final int PAGE_SIZE = 3;
+    public static final int GUI_WIDTH = 360;
     public static final int VANILLA_INV_WIDTH = TraderMenu.VANILLA_INV_WIDTH;
-    public static final int ROW_HEIGHT = TraderMenu.ROW_HEIGHT;
-    public static final int TITLE_HEIGHT = TraderMenu.TITLE_HEIGHT + 16;
+    public static final int ROW_HEIGHT = 36;
+    public static final int TITLE_HEIGHT = 52;
     public static final int STATUS_HEIGHT = TraderMenu.STATUS_HEIGHT;
     public static final int PAGE_BAR_HEIGHT = TraderMenu.PAGE_BAR_HEIGHT;
     public static final int OFFER_PANEL_HEIGHT =
@@ -129,8 +129,14 @@ public class PlayerTraderMenu extends AbstractContainerMenu {
             buffer.writeLong(offer.buyTotal());
             buffer.writeLong(offer.sellFee());
             buffer.writeLong(offer.sellNet());
-            ByteBufCodecs.STRING_UTF8.encode(buffer, offer.id());
-            ByteBufCodecs.VAR_INT.encode(buffer, listing.stockItems());
+            ByteBufCodecs.STRING_UTF8.encode(buffer, listing.listingId() == null || listing.listingId().isBlank()
+                    ? offer.id()
+                    : listing.listingId());
+            ByteBufCodecs.VAR_INT.encode(buffer, listing.dealsLeft());
+            ByteBufCodecs.STRING_UTF8.encode(buffer, listing.sellerName() == null ? "" : listing.sellerName());
+            ByteBufCodecs.STRING_UTF8.encode(buffer, listing.sellerId() == null ? "" : listing.sellerId());
+            buffer.writeLong(listing.createdAt());
+            ByteBufCodecs.STRING_UTF8.encode(buffer, listing.modId() == null ? "" : listing.modId());
         }
     }
 
@@ -149,7 +155,11 @@ public class PlayerTraderMenu extends AbstractContainerMenu {
             long sellFee = buffer.readLong();
             long sellNet = buffer.readLong();
             String id = ByteBufCodecs.STRING_UTF8.decode(buffer);
-            int stock = ByteBufCodecs.VAR_INT.decode(buffer);
+            int deals = ByteBufCodecs.VAR_INT.decode(buffer);
+            String sellerName = ByteBufCodecs.STRING_UTF8.decode(buffer);
+            String sellerId = ByteBufCodecs.STRING_UTF8.decode(buffer);
+            long createdAt = buffer.readLong();
+            String modId = ByteBufCodecs.STRING_UTF8.decode(buffer);
             TraderOffer offer = new TraderOffer(
                     id,
                     stack,
@@ -162,7 +172,7 @@ public class PlayerTraderMenu extends AbstractContainerMenu {
                     sellNet,
                     new long[0]
             );
-            listings.add(new PlayerTraderListing(offer, Math.max(0, stock)));
+            listings.add(new PlayerTraderListing(id, offer, Math.max(0, deals), sellerName, sellerId, createdAt, modId));
         }
         return listings;
     }

@@ -2,7 +2,6 @@ package com.mawlee.cointcore.shop;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -15,52 +14,40 @@ import net.minecraft.world.item.ItemStack;
 import java.util.List;
 
 /**
- * Owner management: 27 real stock slots plus a ghost template slot (not persisted).
+ * Seller «Мои лоты»: ghost sample slot plus the player's inventory. No machine stock.
  */
 public class PlayerTraderManageMenu extends AbstractContainerMenu {
-    public static final int STOCK_SIZE = PlayerTraderBlockEntity.STOCK_SIZE;
+    public static final int GHOST_SLOT_INDEX = 0;
     public static final int GUI_WIDTH = PlayerTraderManageLayout.GUI_WIDTH;
     public static final int TITLE_HEIGHT = PlayerTraderManageLayout.TITLE_Y;
-    public static final int STOCK_Y = PlayerTraderManageLayout.STOCK_Y;
-    public static final int EDITOR_Y = PlayerTraderManageLayout.EDITOR_Y;
-    public static final int GHOST_SLOT_INDEX = STOCK_SIZE;
+    public static final int GHOST_SLOT = PlayerTraderManageLayout.GHOST_X;
     public static final int PLAYER_INV_Y = PlayerTraderManageLayout.PLAYER_INV_Y;
     public static final int GUI_HEIGHT = PlayerTraderManageLayout.GUI_HEIGHT;
 
     private final ContainerLevelAccess access;
-    private final Container stock;
     private final SimpleContainer ghost;
     private String ownerName;
     private long lifetimeRevenue;
     private List<PlayerShopOfferSnapshot> offers;
+    private int returnCount;
 
     public PlayerTraderManageMenu(
             int containerId,
             Inventory playerInventory,
             ContainerLevelAccess access,
-            Container stock,
             String ownerName,
             long lifetimeRevenue,
-            List<PlayerShopOfferSnapshot> offers
+            List<PlayerShopOfferSnapshot> offers,
+            int returnCount
     ) {
         super(ShopMenus.PLAYER_TRADER_MANAGE.get(), containerId);
         this.access = access;
-        this.stock = stock;
         this.ghost = new SimpleContainer(1);
         this.ownerName = ownerName == null ? "" : ownerName;
         this.lifetimeRevenue = Math.max(0L, lifetimeRevenue);
         this.offers = List.copyOf(offers);
+        this.returnCount = Math.max(0, returnCount);
 
-        for (int row = 0; row < PlayerTraderManageLayout.STOCK_ROWS; row++) {
-            for (int col = 0; col < PlayerTraderManageLayout.STOCK_COLS; col++) {
-                addSlot(new Slot(
-                        stock,
-                        col + row * 9,
-                        PlayerTraderManageLayout.stockSlotX(col),
-                        PlayerTraderManageLayout.stockSlotY(row)
-                ));
-            }
-        }
         addSlot(new Slot(ghost, 0, PlayerTraderManageLayout.GHOST_X, PlayerTraderManageLayout.GHOST_Y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
@@ -99,15 +86,16 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
     ) {
         String ownerName = ByteBufCodecs.STRING_UTF8.decode(buffer);
         long revenue = buffer.readLong();
+        int returns = ByteBufCodecs.VAR_INT.decode(buffer);
         List<PlayerShopOfferSnapshot> offers = PlayerShopOfferSnapshot.readList(buffer);
         return new PlayerTraderManageMenu(
                 containerId,
                 playerInventory,
                 ContainerLevelAccess.NULL,
-                new SimpleContainer(STOCK_SIZE),
                 ownerName,
                 revenue,
-                offers
+                offers,
+                returns
         );
     }
 
@@ -115,10 +103,12 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
             RegistryFriendlyByteBuf buffer,
             String ownerName,
             long revenue,
-            List<PlayerShopOfferSnapshot> offers
+            List<PlayerShopOfferSnapshot> offers,
+            int returnCount
     ) {
         ByteBufCodecs.STRING_UTF8.encode(buffer, ownerName == null ? "" : ownerName);
         buffer.writeLong(revenue);
+        ByteBufCodecs.VAR_INT.encode(buffer, returnCount);
         PlayerShopOfferSnapshot.writeList(buffer, offers);
     }
 
@@ -134,6 +124,10 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
         return lifetimeRevenue;
     }
 
+    public int returnCount() {
+        return returnCount;
+    }
+
     public List<PlayerShopOfferSnapshot> offers() {
         return offers;
     }
@@ -146,10 +140,11 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
         ghost.setItem(0, stack.isEmpty() ? ItemStack.EMPTY : stack.copyWithCount(1));
     }
 
-    public void refresh(String ownerName, long revenue, List<PlayerShopOfferSnapshot> offers) {
+    public void refresh(String ownerName, long revenue, List<PlayerShopOfferSnapshot> offers, int returnCount) {
         this.ownerName = ownerName == null ? "" : ownerName;
         this.lifetimeRevenue = Math.max(0L, revenue);
         this.offers = List.copyOf(offers);
+        this.returnCount = Math.max(0, returnCount);
         broadcastChanges();
     }
 
@@ -158,28 +153,10 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
         if (!stillValid(player)) {
             return ItemStack.EMPTY;
         }
-        Slot slot = slots.get(index);
-        if (!slot.hasItem()) {
+        if (index == GHOST_SLOT_INDEX) {
             return ItemStack.EMPTY;
         }
-        ItemStack stack = slot.getItem();
-        ItemStack copy = stack.copy();
-        int playerStart = STOCK_SIZE + 1;
-        if (index < STOCK_SIZE) {
-            if (!moveItemStackTo(stack, playerStart, slots.size(), true)) {
-                return ItemStack.EMPTY;
-            }
-        } else if (index == GHOST_SLOT_INDEX) {
-            return ItemStack.EMPTY;
-        } else if (!moveItemStackTo(stack, 0, STOCK_SIZE, false)) {
-            return ItemStack.EMPTY;
-        }
-        if (stack.isEmpty()) {
-            slot.setByPlayer(ItemStack.EMPTY);
-        } else {
-            slot.setChanged();
-        }
-        return copy;
+        return ItemStack.EMPTY;
     }
 
     @Override
@@ -193,11 +170,8 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
     @Override
     public boolean stillValid(Player player) {
         return stillValid(access, player, ShopBlocks.PLAYER_TRADER.get())
-                && access.evaluate(
-                (level, pos) -> level.getBlockEntity(pos) instanceof PlayerTraderBlockEntity shop
-                        && shop.canManage(player),
-                false
-        );
+                && (!(player instanceof net.minecraft.server.level.ServerPlayer serverPlayer)
+                || PlayerShopAccess.canUse(serverPlayer));
     }
 
     @Override

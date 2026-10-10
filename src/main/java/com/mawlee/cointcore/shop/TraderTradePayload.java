@@ -64,10 +64,17 @@ public record TraderTradePayload(int containerId, int offerIndex, boolean sell, 
                     return false;
                 }
                 if (payload.sell()) {
-                    PlayerTraderDeals.sell(player, menu, shop, payload.offerIndex(), payload.stack());
-                } else {
-                    PlayerTraderDeals.buy(player, menu, shop, payload.offerIndex(), payload.stack());
+                    return false;
                 }
+                if (payload.offerIndex() < 0 || payload.offerIndex() >= menu.listings().size()) {
+                    return false;
+                }
+                GlobalMarketService.buy(
+                        player,
+                        menu,
+                        menu.listings().get(payload.offerIndex()).listingId(),
+                        payload.stack()
+                );
                 return true;
             }, false);
         });

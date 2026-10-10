@@ -12,18 +12,18 @@
 - Комиссия: `Commission.of`. Покупатель платит цена+комиссия, продавец получает цена−комиссия. Движения `trader_buy` / `trader_sell` (один игрок в deltas).
 
 ## Автомат игрока `cointcore:player_trader` («Торговый автомат»)
-- Модель/текстура те же, что у терминала. BlockEntity: owner UUID+name, склад 27 слотов (`SimpleContainer`, **не** Container на BE), список офферов, `lifetime_revenue` (статистика).
-- Крафт (железо/стекло/сундук/редстоун), условие `cointcore:player_shop_crafting` ← `player_shop_crafting` в `trader_offers.json` (дефолт true). Также creative / give.
-- Комиссия: `player_shop_commission_percent` (дефолт = системной).
-- **Выручка не копится в блоке.** На сделке сразу: debit/credit кошельков (владелец может быть офлайн), типы `player_shop_buy` / `player_shop_sell` с deltas как у `/pay` (покупатель и владелец). Комиссия сжигается (разница totals). Кнопка «забрать выручку» не нужна.
-- Владелец: вкладка «Управление» — склад, создание/правка/удаление офферов (ghost-слот, кол-во, цена продажи игроку и опционально скупки). Покупатель: то же GUI, что терминал, без спарклайна, «нет в наличии», имя владельца в заголовке.
-- Защита: ломать/управление только владелец (UUID BlockEntity) или `cointcore.playershop.admin`. Каждый manage-пакет (вкладка, save/delete оффера, клики по складу) проверяется на сервере; клиентский флаг вкладки и «owner» не доверяются. Меню управления — отдельный `MenuType` `player_trader_manage`; покупатель получает только `player_trader` без слотов склада. Оффер хранит `seller_id` действующего игрока с сервера, не UUID владельца блока, если действует не владелец.
-- Blast resistance 3600000; hoppers/pipes не видят склад. Права `cointcore.playershop.place` / `use` (всем по умолчанию).
-- Сделки только сервер, match включая components, synchronized на BE. Выручка покупки идёт на `seller_id` оффера (fallback — владелец блока).
+- Модель/текстура те же, что у терминала. BlockEntity: owner UUID+name (ломка/взрыв), склад 27 слотов только до миграции. После первого load офферы+склад уходят в глобальный рынок.
+- **Глобальный рынок:** overworld SavedData `cointcore_global_market`. Любой автомат показывает все лоты сервера. Предметы в эскроу (точные стеки с components), не в инвентаре блока.
+- Лот: seller UUID+name, стек (count = за сделку), число сделок, цена ≥ 1, created_at, expires_at. Лимит лотов / срок / плата за выставление / blacklist — `trader_offers.json`.
+- Покупка атомарно: сначала снять эскроу, потом debit покупателя (цена+комиссия `player_shop_commission_percent`), credit продавца (офлайн ок), выдать предметы (лишнее — drop). Outbox `player_shop_buy` с deltas обоих. Скупка (`player_shop_sell` / sell-кнопка) с рынка снята; код `PlayerTraderDeals.sell` оставлен для компиляции.
+- Вкладка «Мои лоты»: свои лоты, выставить (ghost из инвентаря, count/deals/price), снять (остаток в инвентарь/drop), статистика продаж, «вернуть» просроченное (return box, офлайн).
+- Миграция: sell-офферы с buyPrice≥1 + совпадающий склад → глобальные лоты владельца; остаток склада и скупка-only → return box. Флаг `market_migrated` на BE.
+- Крафт как раньше. Защита блока: ломать только владелец/admin. Выставлять/покупать — `cointcore.playershop.use`. Отмена чужого лота — только admin.
+- GUI ванильное, рамки слотов только под реальными слотами (ghost + инвентарь), RU/EN без обрезки (`font.width`), 1080p scale 3. Иконка `textures/gui/gluon.png`.
 
 ## Сайт / AzLink
 - Outbox: pay, trader_buy, trader_sell, admin_set, admin_add, **player_shop_buy, player_shop_sell**, site_*.
 - `player_shop_*` — `isServerWalletLog() == true` (сайт логирует, баланс сайта меняет deltas как у pay).
 
 ## Тесты
-PlayerShopValidationTest, PlayerShopManagementPolicyTest (+ прежние shop-тесты). `./gradlew build`.
+PlayerShopValidationTest, PlayerShopManagementPolicyTest, GlobalMarketMathTest (+ прежние shop-тесты). `./gradlew build`.

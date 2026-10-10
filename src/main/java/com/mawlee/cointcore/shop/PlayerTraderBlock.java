@@ -114,8 +114,7 @@ public class PlayerTraderBlock extends HorizontalDirectionalBlock implements Ent
             if (!(level.getBlockEntity(pos) instanceof PlayerTraderBlockEntity shop)) {
                 return InteractionResult.FAIL;
             }
-            boolean manage = shop.canManage(serverPlayer);
-            PlayerTraderMenus.open(serverPlayer, shop, manage);
+            PlayerTraderMenus.open(serverPlayer, shop, false);
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }

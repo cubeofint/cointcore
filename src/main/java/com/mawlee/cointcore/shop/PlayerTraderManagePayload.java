@@ -17,12 +17,14 @@ public record PlayerTraderManagePayload(
         int offerIndex,
         ItemStack template,
         int count,
+        int deals,
         long buyPrice,
         long sellPrice
 ) implements CustomPacketPayload {
     public enum Action {
         SAVE,
-        DELETE
+        DELETE,
+        CLAIM
     }
 
     public static final Type<PlayerTraderManagePayload> TYPE = new Type<>(
@@ -38,6 +40,7 @@ public record PlayerTraderManagePayload(
         ByteBufCodecs.VAR_INT.encode(buffer, payload.offerIndex);
         ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, payload.template == null ? ItemStack.EMPTY : payload.template);
         ByteBufCodecs.VAR_INT.encode(buffer, payload.count);
+        ByteBufCodecs.VAR_INT.encode(buffer, payload.deals);
         buffer.writeLong(payload.buyPrice);
         buffer.writeLong(payload.sellPrice);
     }
@@ -45,13 +48,18 @@ public record PlayerTraderManagePayload(
     private static PlayerTraderManagePayload decode(RegistryFriendlyByteBuf buffer) {
         int containerId = ByteBufCodecs.VAR_INT.decode(buffer);
         int actionOrd = ByteBufCodecs.VAR_INT.decode(buffer);
-        Action action = actionOrd == Action.DELETE.ordinal() ? Action.DELETE : Action.SAVE;
+        Action action = switch (actionOrd) {
+            case 1 -> Action.DELETE;
+            case 2 -> Action.CLAIM;
+            default -> Action.SAVE;
+        };
         int offerIndex = ByteBufCodecs.VAR_INT.decode(buffer);
         ItemStack template = ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer);
         int count = ByteBufCodecs.VAR_INT.decode(buffer);
+        int deals = ByteBufCodecs.VAR_INT.decode(buffer);
         long buy = buffer.readLong();
         long sell = buffer.readLong();
-        return new PlayerTraderManagePayload(containerId, action, offerIndex, template, count, buy, sell);
+        return new PlayerTraderManagePayload(containerId, action, offerIndex, template, count, deals, buy, sell);
     }
 
     @Override
@@ -70,44 +78,56 @@ public record PlayerTraderManagePayload(
             if (menu.containerId != payload.containerId() || !menu.stillValid(player)) {
                 return;
             }
-            menu.access().evaluate((level, pos) -> {
-                if (!(level.getBlockEntity(pos) instanceof PlayerTraderBlockEntity shop)) {
-                    return false;
+            if (!PlayerShopAccess.canUse(player)) {
+                player.closeContainer();
+                return;
+            }
+            boolean ok;
+            switch (payload.action) {
+                case CLAIM -> {
+                    GlobalMarketService.claimReturns(player);
+                    ok = true;
                 }
-                if (!shop.canManage(player)) {
-                    player.closeContainer();
-                    return false;
+                case DELETE -> {
+                    if (payload.offerIndex < 0 || payload.offerIndex >= menu.offers().size()) {
+                        ok = false;
+                    } else {
+                        ok = GlobalMarketService.cancel(player, menu.offers().get(payload.offerIndex).id());
+                    }
                 }
-                boolean ok;
-                if (payload.action == Action.DELETE) {
-                    ok = shop.deleteOffer(payload.offerIndex);
-                } else {
+                case SAVE -> {
                     ItemStack template = payload.template == null || payload.template.isEmpty()
                             ? menu.ghostItem()
                             : payload.template;
-                    ok = shop.saveOffer(
-                            payload.offerIndex,
-                            template,
-                            payload.count,
-                            payload.buyPrice,
-                            payload.sellPrice,
-                            player.getUUID(),
-                            player.getGameProfile().getName()
-                    );
+                    int price = payload.buyPrice > Integer.MAX_VALUE
+                            ? Integer.MAX_VALUE
+                            : (int) Math.max(0L, payload.buyPrice);
+                    ok = GlobalMarketService.create(player, template, payload.count, payload.deals, price);
                 }
-                menu.refresh(shop.ownerName(), shop.lifetimeRevenue(), PlayerShopOfferSnapshot.of(shop));
-                PacketDistributor.sendToPlayer(
-                        player,
-                        new PlayerTraderManageSyncPayload(
-                                menu.containerId,
-                                shop.ownerName(),
-                                shop.lifetimeRevenue(),
-                                PlayerShopOfferSnapshot.of(shop),
-                                ok
-                        )
-                );
-                return true;
-            }, false);
+                default -> {
+                    Action unknown = payload.action;
+                    throw new IllegalStateException("unexpected manage action " + unknown);
+                }
+            }
+            sync(player, menu, ok);
         });
+    }
+
+    private static void sync(ServerPlayer player, PlayerTraderManageMenu menu, boolean ok) {
+        GlobalMarketSavedData.SoldStats stats = GlobalMarketSavedData.get(player.server).stats(player.getUUID());
+        var offers = GlobalMarketService.ownSnapshots(player.server, player.getUUID());
+        int returns = GlobalMarketSavedData.get(player.server).returnCount(player.getUUID());
+        menu.refresh(player.getGameProfile().getName(), stats.gluons(), offers, returns);
+        PacketDistributor.sendToPlayer(
+                player,
+                new PlayerTraderManageSyncPayload(
+                        menu.containerId,
+                        player.getGameProfile().getName(),
+                        stats.gluons(),
+                        offers,
+                        ok,
+                        returns
+                )
+        );
     }
 }
