@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.invsee.client;
 
 import com.mawlee.cointcore.client.VanillaContainerSkin;
+import com.mawlee.cointcore.invsee.InvSeeScaleLayout;
 import com.mawlee.cointcore.invsee.menu.InvSeeAccessoriesMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -20,12 +21,14 @@ public final class InvSeeAccessoriesScreen extends InvSeeBaseScreen<InvSeeAccess
     @Override
     protected void initExtraWidgets() {
         int midY = topPos + 18 + (InvSeeAccessoriesMenu.ROWS * 18) / 2 - 8;
+        var prevBox = InvSeeScaleLayout.sideButton(leftPos, imageWidth, width, midY, false);
+        var nextBox = InvSeeScaleLayout.sideButton(leftPos, imageWidth, width, midY, true);
         prevButton = Button.builder(Component.literal("<"), b -> sendButton(InvSeeAccessoriesMenu.BUTTON_PREV_PAGE))
-                .bounds(leftPos - 22, midY, 18, 16)
+                .bounds(prevBox.x(), prevBox.y(), prevBox.w(), prevBox.h())
                 .tooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.page.prev")))
                 .build();
         nextButton = Button.builder(Component.literal(">"), b -> sendButton(InvSeeAccessoriesMenu.BUTTON_NEXT_PAGE))
-                .bounds(leftPos + imageWidth + 4, midY, 18, 16)
+                .bounds(nextBox.x(), nextBox.y(), nextBox.w(), nextBox.h())
                 .tooltip(Tooltip.create(Component.translatable("gui.cointcore.invsee.page.next")))
                 .build();
         addRenderableWidget(prevButton);

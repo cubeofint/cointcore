@@ -66,5 +66,16 @@ class PlayerTraderManageLayoutTest {
         assertEquals(0, PlayerTraderManageLayout.maxOfferPage(0));
         assertEquals(0, PlayerTraderManageLayout.maxOfferPage(4));
         assertEquals(1, PlayerTraderManageLayout.maxOfferPage(5));
+        assertEquals(1, PlayerTraderManageLayout.maxOfferPage(5, 4));
+        assertEquals(2, PlayerTraderManageLayout.maxOfferPage(5, 2));
+    }
+
+    @Test
+    void fittedGeometryStaysOnScaleFour() {
+        PlayerTraderManageLayout.Geom geom = PlayerTraderManageLayout.fit(480, 270);
+        assertTrue(geom.insideScreen(480, 270));
+        assertTrue(geom.listPageSize >= 1);
+        assertTrue(geom.fieldBox(2).bottom() <= geom.buttonY);
+        assertTrue(geom.playerInvLabelY >= geom.listBottom);
     }
 }

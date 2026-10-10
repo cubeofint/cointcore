@@ -63,6 +63,13 @@ repositories {
             includeGroup 'maven.modrinth'
         }
     }
+    maven {
+        name = 'BlameJared'
+        url = 'https://maven.blamejared.com/'
+        content {
+            includeGroup 'mezz.jei'
+        }
+    }
 }
 
 base {
@@ -210,12 +217,8 @@ dependencies {
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
     testImplementation "com.google.code.gson:gson:2.11.0"
 
-    // Example optional mod dependency with JEI
-    // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
-    // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
-    // compileOnly "mezz.jei:jei-${mc_version}-neoforge-api:${jei_version}"
-    // We add the full version to localRuntime, not runtimeOnly, so that we do not publish a dependency on it
-    // localRuntime "mezz.jei:jei-${mc_version}-neoforge:${jei_version}"
+    compileOnly "mezz.jei:jei-1.21.1-common-api:${jei_version}"
+    compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
 
     // Example mod dependency using a mod jar from ./libs with a flat dir repository
     // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar

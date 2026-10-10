@@ -30,6 +30,7 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
     private long lifetimeRevenue;
     private List<PlayerShopOfferSnapshot> offers;
     private int returnCount;
+    private List<MarketPriceHint> priceHints;
 
     public PlayerTraderManageMenu(
             int containerId,
@@ -38,7 +39,8 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
             String ownerName,
             long lifetimeRevenue,
             List<PlayerShopOfferSnapshot> offers,
-            int returnCount
+            int returnCount,
+            List<MarketPriceHint> priceHints
     ) {
         super(ShopMenus.PLAYER_TRADER_MANAGE.get(), containerId);
         this.access = access;
@@ -47,6 +49,7 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
         this.lifetimeRevenue = Math.max(0L, lifetimeRevenue);
         this.offers = List.copyOf(offers);
         this.returnCount = Math.max(0, returnCount);
+        this.priceHints = priceHints == null ? List.of() : List.copyOf(priceHints);
 
         addSlot(new Slot(ghost, 0, PlayerTraderManageLayout.GHOST_X, PlayerTraderManageLayout.GHOST_Y) {
             @Override
@@ -88,6 +91,7 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
         long revenue = buffer.readLong();
         int returns = ByteBufCodecs.VAR_INT.decode(buffer);
         List<PlayerShopOfferSnapshot> offers = PlayerShopOfferSnapshot.readList(buffer);
+        List<MarketPriceHint> hints = MarketPriceHint.readList(buffer);
         return new PlayerTraderManageMenu(
                 containerId,
                 playerInventory,
@@ -95,7 +99,8 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
                 ownerName,
                 revenue,
                 offers,
-                returns
+                returns,
+                hints
         );
     }
 
@@ -104,12 +109,14 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
             String ownerName,
             long revenue,
             List<PlayerShopOfferSnapshot> offers,
-            int returnCount
+            int returnCount,
+            List<MarketPriceHint> priceHints
     ) {
         ByteBufCodecs.STRING_UTF8.encode(buffer, ownerName == null ? "" : ownerName);
         buffer.writeLong(revenue);
         ByteBufCodecs.VAR_INT.encode(buffer, returnCount);
         PlayerShopOfferSnapshot.writeList(buffer, offers);
+        MarketPriceHint.writeList(buffer, priceHints);
     }
 
     ContainerLevelAccess access() {
@@ -128,6 +135,14 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
         return returnCount;
     }
 
+    public List<MarketPriceHint> priceHints() {
+        return priceHints;
+    }
+
+    public long recommendedUnitPrice(ItemStack stack) {
+        return MarketPriceHint.lookup(priceHints, GlobalMarketService.itemKey(stack));
+    }
+
     public List<PlayerShopOfferSnapshot> offers() {
         return offers;
     }
@@ -140,11 +155,18 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
         ghost.setItem(0, stack.isEmpty() ? ItemStack.EMPTY : stack.copyWithCount(1));
     }
 
-    public void refresh(String ownerName, long revenue, List<PlayerShopOfferSnapshot> offers, int returnCount) {
+    public void refresh(
+            String ownerName,
+            long revenue,
+            List<PlayerShopOfferSnapshot> offers,
+            int returnCount,
+            List<MarketPriceHint> priceHints
+    ) {
         this.ownerName = ownerName == null ? "" : ownerName;
         this.lifetimeRevenue = Math.max(0L, revenue);
         this.offers = List.copyOf(offers);
         this.returnCount = Math.max(0, returnCount);
+        this.priceHints = priceHints == null ? List.of() : List.copyOf(priceHints);
         broadcastChanges();
     }
 

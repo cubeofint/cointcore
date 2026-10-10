@@ -1,12 +1,17 @@
 package com.mawlee.cointcore.shop;
 
 import com.mawlee.cointcore.config.TraderOffersConfig;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public final class GlobalMarketService {
@@ -17,8 +22,10 @@ public final class GlobalMarketService {
         expire(server);
         long now = System.currentTimeMillis();
         double commission = TraderOffersConfig.playerShopCommissionPercent();
+        GlobalMarketSavedData data = GlobalMarketSavedData.get(server);
+        Map<String, Long> marketByKey = new HashMap<>();
         List<PlayerTraderListing> rows = new ArrayList<>();
-        for (GlobalMarketListing listing : GlobalMarketSavedData.get(server).allListings()) {
+        for (GlobalMarketListing listing : data.allListings()) {
             if (!listing.active(now)) {
                 continue;
             }
@@ -30,6 +37,8 @@ public final class GlobalMarketService {
                     0L,
                     commission
             );
+            String key = itemKey(listing.stack());
+            long market = marketByKey.computeIfAbsent(key, ignored -> recommendUnitPrice(data, listing.stack(), now));
             rows.add(new PlayerTraderListing(
                     listing.id().toString(),
                     offer,
@@ -37,7 +46,9 @@ public final class GlobalMarketService {
                     listing.sellerName(),
                     listing.sellerId().toString(),
                     listing.createdAt(),
-                    itemMod(listing.stack())
+                    itemMod(listing.stack()),
+                    listing.expiresAt(),
+                    market
             ));
         }
         return rows;
@@ -239,6 +250,11 @@ public final class GlobalMarketService {
             long credit = GlobalMarketMath.sellerCredit(row.listing.pricePerDeal(), row.deals);
             GluonWallet.add(player.server, row.listing.sellerId(), credit);
             data.recordSold(row.listing.sellerId(), row.deals, credit);
+            data.recordSale(
+                    itemKey(row.listing.stack()),
+                    GlobalMarketPriceMath.unitPrice(row.listing.pricePerDeal(), row.listing.countPerDeal()),
+                    System.currentTimeMillis()
+            );
             long buyerAfter = GluonWallet.get(player.server, player.getUUID());
             long sellerAfter = GluonWallet.get(player.server, row.listing.sellerId());
             CurrencyMovementService.record(
@@ -350,8 +366,78 @@ public final class GlobalMarketService {
         }
     }
 
+    public static String itemKey(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return "";
+        }
+        return GlobalMarketPriceMath.itemKey(
+                BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),
+                stack.getComponentsPatch().toString()
+        );
+    }
+
+    public static long recommendUnitPrice(MinecraftServer server, ItemStack stack) {
+        expire(server);
+        return recommendUnitPrice(GlobalMarketSavedData.get(server), stack, System.currentTimeMillis());
+    }
+
+    public static List<MarketPriceHint> priceHints(MinecraftServer server, Iterable<ItemStack> stacks) {
+        expire(server);
+        GlobalMarketSavedData data = GlobalMarketSavedData.get(server);
+        long now = System.currentTimeMillis();
+        Map<String, Long> unique = new LinkedHashMap<>();
+        if (stacks != null) {
+            for (ItemStack stack : stacks) {
+                if (stack == null || stack.isEmpty()) {
+                    continue;
+                }
+                String key = itemKey(stack);
+                if (key.isBlank() || unique.containsKey(key)) {
+                    continue;
+                }
+                long price = recommendUnitPrice(data, stack, now);
+                if (price > 0L) {
+                    unique.put(key, price);
+                }
+                if (unique.size() >= 64) {
+                    break;
+                }
+            }
+        }
+        List<MarketPriceHint> hints = new ArrayList<>(unique.size());
+        for (Map.Entry<String, Long> entry : unique.entrySet()) {
+            hints.add(new MarketPriceHint(entry.getKey(), entry.getValue()));
+        }
+        return hints;
+    }
+
+    private static long recommendUnitPrice(GlobalMarketSavedData data, ItemStack stack, long now) {
+        if (stack == null || stack.isEmpty()) {
+            return 0L;
+        }
+        String key = itemKey(stack);
+        return GlobalMarketPriceMath.recommend(data.recentUnitPrices(key, now), lowestListingUnitPrice(data, key, now));
+    }
+
+    private static long lowestListingUnitPrice(GlobalMarketSavedData data, String itemKey, long now) {
+        long lowest = 0L;
+        for (GlobalMarketListing listing : data.allListings()) {
+            if (!listing.active(now) || !itemKey.equals(itemKey(listing.stack()))) {
+                continue;
+            }
+            long unit = GlobalMarketPriceMath.unitPrice(listing.pricePerDeal(), listing.countPerDeal());
+            if (unit <= 0L) {
+                continue;
+            }
+            if (lowest <= 0L || unit < lowest) {
+                lowest = unit;
+            }
+        }
+        return lowest;
+    }
+
     private static String itemMod(ItemStack stack) {
-        return net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace();
+        return BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace();
     }
 
     private record Taken(GlobalMarketListing listing, int deals, ItemStack goods) {

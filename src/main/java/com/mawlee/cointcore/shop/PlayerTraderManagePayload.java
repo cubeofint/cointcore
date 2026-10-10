@@ -11,6 +11,8 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+import java.util.List;
+
 public record PlayerTraderManagePayload(
         int containerId,
         Action action,
@@ -117,7 +119,8 @@ public record PlayerTraderManagePayload(
         GlobalMarketSavedData.SoldStats stats = GlobalMarketSavedData.get(player.server).stats(player.getUUID());
         var offers = GlobalMarketService.ownSnapshots(player.server, player.getUUID());
         int returns = GlobalMarketSavedData.get(player.server).returnCount(player.getUUID());
-        menu.refresh(player.getGameProfile().getName(), stats.gluons(), offers, returns);
+        List<MarketPriceHint> hints = PlayerTraderMenus.priceHints(player, offers);
+        menu.refresh(player.getGameProfile().getName(), stats.gluons(), offers, returns, hints);
         PacketDistributor.sendToPlayer(
                 player,
                 new PlayerTraderManageSyncPayload(
@@ -126,7 +129,8 @@ public record PlayerTraderManagePayload(
                         stats.gluons(),
                         offers,
                         ok,
-                        returns
+                        returns,
+                        hints
                 )
         );
     }

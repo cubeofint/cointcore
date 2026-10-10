@@ -246,3 +246,10 @@ type="optional"
 versionRange="[1.2.0,)"
 ordering="AFTER"
 side="SERVER"
+
+[[dependencies.${mod_id}]]
+modId="jei"
+type="optional"
+versionRange="[19.0.0,)"
+ordering="NONE"
+side="CLIENT"

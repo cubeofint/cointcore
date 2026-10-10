@@ -8,7 +8,9 @@ import com.mawlee.cointcore.shop.TraderFeedbackLines;
 import com.mawlee.cointcore.shop.TraderFeedbackPayload;
 import com.mawlee.cointcore.shop.TraderMenu;
 import com.mawlee.cointcore.shop.TraderOffer;
+import com.mawlee.cointcore.shop.TraderShopLayout;
 import com.mawlee.cointcore.shop.TraderTradePayload;
+import com.mawlee.cointcore.ui.ScaledGuiLayout;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
@@ -32,6 +34,7 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
     private static final int CHART_GAP = 4;
     private static final String ELLIPSIS = "…";
 
+    private TraderShopLayout layout = TraderShopLayout.preferredTerminal();
     private int page;
     private int buttonWidth;
     private int buttonColumnX;
@@ -48,22 +51,30 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
 
     @Override
     protected void init() {
+        layout = TraderShopLayout.terminal(width, height);
+        imageWidth = layout.guiWidth();
+        imageHeight = layout.guiHeight();
+        inventoryLabelX = layout.playerInvLeft();
+        inventoryLabelY = layout.playerInvY() - 12;
+        GuiSlotMover.movePlayerInventory(menu.slots, 0, layout.playerInvLeft(), layout.playerInvY());
         super.init();
+        leftPos = ScaledGuiLayout.origin(width, imageWidth, 0, 0, ScaledGuiLayout.MARGIN);
+        topPos = ScaledGuiLayout.origin(height, imageHeight, 0, 0, ScaledGuiLayout.MARGIN);
         page = Math.min(page, maxPage());
         buttonWidth = measureButtonWidth();
         buttonColumnX = imageWidth - 8 - buttonWidth;
         int chartReserve = OfferPriceSparkline.WIDTH + CHART_GAP + GluonGuiIcon.SIZE + 2;
         textMaxWidth = Math.max(16, buttonColumnX - chartReserve - TEXT_LEFT);
         int listLeft = leftPos + 8;
-        int buttonY0 = topPos + TraderMenu.TITLE_HEIGHT + 2;
-        int start = page * TraderMenu.PAGE_SIZE;
-        for (int row = 0; row < TraderMenu.PAGE_SIZE; row++) {
+        int buttonY0 = topPos + layout.listTop();
+        int start = page * layout.pageSize();
+        for (int row = 0; row < layout.pageSize(); row++) {
             int offerIndex = start + row;
             if (offerIndex >= menu.offers().size()) {
                 break;
             }
             TraderOffer offer = menu.offers().get(offerIndex);
-            int y = buttonY0 + row * TraderMenu.ROW_HEIGHT + PRICE_BLOCK_TOP;
+            int y = buttonY0 + row * layout.rowHeight() + PRICE_BLOCK_TOP;
             int buyX = leftPos + buttonColumnX;
             Button buy = Button.builder(Component.translatable("gui.cointcore.trader.buy"), button -> trade(offerIndex, false))
                     .bounds(buyX, y, buttonWidth, BUTTON_HEIGHT)
@@ -79,7 +90,7 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
             addRenderableWidget(sell);
         }
 
-        int pagerY = topPos + TraderMenu.OFFER_PANEL_HEIGHT - TraderMenu.PAGE_BAR_HEIGHT + 1;
+        int pagerY = topPos + layout.pagerY();
         Button prev = Button.builder(Component.literal("<"), button -> changePage(-1))
                 .bounds(listLeft, pagerY, 16, 16)
                 .build();
@@ -106,20 +117,20 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, title, titleLabelX, 6, VanillaContainerSkin.LABEL_COLOR, false);
+        graphics.drawString(font, title, titleLabelX, layout.titleY(), VanillaContainerSkin.LABEL_COLOR, false);
         Component balance = Component.translatable("container.cointcore.trader.balance", menu.gluonBalance());
-        graphics.drawString(font, balance, titleLabelX, 16, VanillaContainerSkin.LABEL_COLOR, false);
-        GluonGuiIcon.blit(graphics, titleLabelX + font.width(balance) + 2, 15);
+        graphics.drawString(font, balance, titleLabelX, layout.balanceY(), VanillaContainerSkin.LABEL_COLOR, false);
+        GluonGuiIcon.blit(graphics, titleLabelX + font.width(balance) + 2, layout.balanceY() - 1);
         graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, VanillaContainerSkin.LABEL_COLOR, false);
 
-        int start = page * TraderMenu.PAGE_SIZE;
-        for (int row = 0; row < TraderMenu.PAGE_SIZE; row++) {
+        int start = page * layout.pageSize();
+        for (int row = 0; row < layout.pageSize(); row++) {
             int offerIndex = start + row;
             if (offerIndex >= menu.offers().size()) {
                 break;
             }
             TraderOffer offer = menu.offers().get(offerIndex);
-            int y = TraderMenu.TITLE_HEIGHT + 2 + row * TraderMenu.ROW_HEIGHT;
+            int y = layout.rowY(row);
             ItemStack stack = offer.display();
             graphics.drawString(
                     font,
@@ -155,7 +166,7 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
                     font,
                     empty,
                     (imageWidth - font.width(empty)) / 2,
-                    TraderMenu.TITLE_HEIGHT + 20,
+                    layout.titleHeight() + 20,
                     VanillaContainerSkin.LABEL_COLOR,
                     false
             );
@@ -163,7 +174,7 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
 
         int pages = maxPage() + 1;
         Component pageLabel = Component.translatable("gui.cointcore.trader.page", page + 1, pages);
-        int pagerY = TraderMenu.OFFER_PANEL_HEIGHT - 13;
+        int pagerY = layout.offerPanelHeight() - 13;
         graphics.drawString(
                 font,
                 pageLabel,
@@ -176,7 +187,7 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
         if (feedback != null) {
             Component line = feedbackLine(feedback);
             int color = feedback.kind().error() ? 0xAA0000 : 0x2E7D32;
-            int statusY = TraderMenu.TITLE_HEIGHT + TraderMenu.PAGE_SIZE * TraderMenu.ROW_HEIGHT + 1;
+            int statusY = layout.statusY();
             graphics.drawString(
                     font,
                     Component.literal(font.plainSubstrByWidth(line.getString(), imageWidth - 16)),
@@ -215,12 +226,12 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
         int x = leftPos;
         int y = topPos;
         VanillaContainerSkin.blitPanel(graphics, x, y, imageWidth, imageHeight);
-        int start = page * TraderMenu.PAGE_SIZE;
+        int start = page * layout.pageSize();
         int rowLeft = x + 7;
         int rowWidth = imageWidth - 14;
-        for (int row = 0; row < TraderMenu.PAGE_SIZE && start + row < menu.offers().size(); row++) {
-            int rowY = y + TraderMenu.TITLE_HEIGHT + 2 + row * TraderMenu.ROW_HEIGHT;
-            VanillaContainerSkin.blitOfferRow(graphics, rowLeft, rowY, rowWidth, TraderMenu.ROW_HEIGHT - 2);
+        for (int row = 0; row < layout.pageSize() && start + row < menu.offers().size(); row++) {
+            int rowY = y + layout.rowY(row);
+            VanillaContainerSkin.blitOfferRow(graphics, rowLeft, rowY, rowWidth, layout.rowHeight() - 2);
             VanillaContainerSkin.blitSlot(graphics, x + 7, rowY);
         }
         VanillaContainerSkin.blitMenuSlots(graphics, x, y, menu.slots);
@@ -229,8 +240,8 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (mouseX >= leftPos && mouseX < leftPos + imageWidth
-                && mouseY >= topPos + TraderMenu.TITLE_HEIGHT
-                && mouseY < topPos + TraderMenu.OFFER_PANEL_HEIGHT) {
+                && mouseY >= topPos + layout.titleHeight()
+                && mouseY < topPos + layout.offerPanelHeight()) {
             if (scrollY > 0) {
                 changePage(-1);
                 return true;
@@ -244,24 +255,24 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
     }
 
     private void renderOfferItems(GuiGraphics graphics) {
-        int start = page * TraderMenu.PAGE_SIZE;
-        for (int row = 0; row < TraderMenu.PAGE_SIZE; row++) {
+        int start = page * layout.pageSize();
+        for (int row = 0; row < layout.pageSize(); row++) {
             int offerIndex = start + row;
             if (offerIndex >= menu.offers().size()) {
                 break;
             }
             ItemStack stack = menu.offers().get(offerIndex).display();
             int itemX = leftPos + ICON_LEFT;
-            int itemY = topPos + TraderMenu.TITLE_HEIGHT + 3 + row * TraderMenu.ROW_HEIGHT;
+            int itemY = topPos + layout.rowY(row) + 1;
             graphics.renderItem(stack, itemX, itemY);
             graphics.renderItemDecorations(font, stack, itemX, itemY);
         }
     }
 
     private void renderSparklines(GuiGraphics graphics) {
-        int start = page * TraderMenu.PAGE_SIZE;
+        int start = page * layout.pageSize();
         double band = TraderOffersConfig.priceHistoryAverageBandPercent();
-        for (int row = 0; row < TraderMenu.PAGE_SIZE; row++) {
+        for (int row = 0; row < layout.pageSize(); row++) {
             int offerIndex = start + row;
             if (offerIndex >= menu.offers().size()) {
                 break;
@@ -304,7 +315,7 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
     }
 
     private int chartScreenY(int row) {
-        int blockTop = topPos + TraderMenu.TITLE_HEIGHT + 2 + row * TraderMenu.ROW_HEIGHT + PRICE_BLOCK_TOP;
+        int blockTop = topPos + layout.rowY(row) + PRICE_BLOCK_TOP;
         int blockHeight = BUTTON_HEIGHT * 2 + BUTTON_GAP;
         return blockTop + (blockHeight - OfferPriceSparkline.HEIGHT) / 2;
     }
@@ -319,9 +330,9 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
     }
 
     private int hoveredChartOffer(int mouseX, int mouseY) {
-        int start = page * TraderMenu.PAGE_SIZE;
+        int start = page * layout.pageSize();
         int chartX = chartScreenX();
-        for (int row = 0; row < TraderMenu.PAGE_SIZE; row++) {
+        for (int row = 0; row < layout.pageSize(); row++) {
             int offerIndex = start + row;
             if (offerIndex >= menu.offers().size()) {
                 break;
@@ -353,7 +364,7 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
         if (size <= 0) {
             return 0;
         }
-        return (size - 1) / TraderMenu.PAGE_SIZE;
+        return (size - 1) / layout.pageSize();
     }
 
     private int measureButtonWidth() {
@@ -375,22 +386,22 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
 
     private int hoveredOffer(int mouseX, int mouseY) {
         int localX = mouseX - leftPos;
-        int localY = mouseY - topPos - TraderMenu.TITLE_HEIGHT;
+        int localY = mouseY - topPos - layout.titleHeight();
         if (localY < 2) {
             return -1;
         }
-        int row = (localY - 2) / TraderMenu.ROW_HEIGHT;
-        if (row < 0 || row >= TraderMenu.PAGE_SIZE) {
+        int row = (localY - 2) / layout.rowHeight();
+        if (row < 0 || row >= layout.pageSize()) {
             return -1;
         }
-        int rowTop = 2 + row * TraderMenu.ROW_HEIGHT;
+        int rowTop = 2 + row * layout.rowHeight();
         if (localY < rowTop || localY >= rowTop + ICON_SIZE) {
             return -1;
         }
         if (localX < ICON_LEFT - 1 || localX >= TEXT_LEFT + textMaxWidth) {
             return -1;
         }
-        int offerIndex = page * TraderMenu.PAGE_SIZE + row;
+        int offerIndex = page * layout.pageSize() + row;
         if (offerIndex >= menu.offers().size()) {
             return -1;
         }
@@ -398,19 +409,19 @@ public class TraderScreen extends AbstractContainerScreen<TraderMenu> {
     }
 
     private boolean hoveredIcon(int mouseX, int mouseY, int offerIndex) {
-        int row = offerIndex - page * TraderMenu.PAGE_SIZE;
+        int row = offerIndex - page * layout.pageSize();
         int localX = mouseX - leftPos;
-        int localY = mouseY - topPos - TraderMenu.TITLE_HEIGHT;
-        int rowTop = 2 + row * TraderMenu.ROW_HEIGHT;
+        int localY = mouseY - topPos - layout.titleHeight();
+        int rowTop = 2 + row * layout.rowHeight();
         return localX >= ICON_LEFT - 1 && localX < ICON_LEFT + ICON_SIZE
                 && localY >= rowTop && localY < rowTop + ICON_SIZE;
     }
 
     private boolean hoveredName(int mouseX, int mouseY, int offerIndex) {
-        int row = offerIndex - page * TraderMenu.PAGE_SIZE;
+        int row = offerIndex - page * layout.pageSize();
         int localX = mouseX - leftPos;
-        int localY = mouseY - topPos - TraderMenu.TITLE_HEIGHT;
-        int rowTop = 2 + row * TraderMenu.ROW_HEIGHT + NAME_OFFSET;
+        int localY = mouseY - topPos - layout.titleHeight();
+        int rowTop = 2 + row * layout.rowHeight() + NAME_OFFSET;
         return localX >= TEXT_LEFT && localX < TEXT_LEFT + textMaxWidth
                 && localY >= rowTop && localY < rowTop + 10;
     }

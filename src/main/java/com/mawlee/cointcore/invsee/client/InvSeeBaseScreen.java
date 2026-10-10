@@ -3,8 +3,10 @@ package com.mawlee.cointcore.invsee.client;
 import com.mawlee.cointcore.client.VanillaContainerSkin;
 import com.mawlee.cointcore.invsee.InvSeeChromeLayout;
 import com.mawlee.cointcore.invsee.InvSeeOpenNestedPayload;
+import com.mawlee.cointcore.invsee.InvSeeScaleLayout;
 import com.mawlee.cointcore.invsee.InvSeeTab;
 import com.mawlee.cointcore.invsee.menu.InvSeeBaseMenu;
+import com.mawlee.cointcore.shop.client.GuiSlotMover;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
@@ -22,6 +24,9 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
     private Button editButton;
     private int tabScroll;
     private InvSeeTab hoveredTab;
+    private InvSeeScaleLayout.Fit fit;
+    private int preferredWidth = -1;
+    private int preferredHeight = -1;
 
     protected InvSeeBaseScreen(T menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -34,17 +39,35 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
 
     @Override
     protected void init() {
+        if (preferredHeight < 0) {
+            preferredWidth = imageWidth > 0 ? imageWidth : InvSeeBaseMenu.GUI_WIDTH;
+            preferredHeight = imageHeight > 0 ? imageHeight : menu.viewerInventoryY() + 82;
+        }
+        fit = InvSeeScaleLayout.fit(width, height, preferredWidth, preferredHeight);
+        imageWidth = fit.imageWidth();
+        imageHeight = fit.imageHeight();
         super.init();
+        leftPos = fit.leftPos();
+        topPos = fit.topPos();
+        int viewerStart = menu.slots.size() - 36;
+        if (viewerStart >= 0) {
+            GuiSlotMover.movePlayerInventory(
+                    menu.slots,
+                    viewerStart,
+                    InvSeeBaseMenu.SLOT_X[0],
+                    menu.viewerInventoryY() + fit.viewerYShift()
+            );
+        }
         this.titleLabelX = 8;
         this.titleLabelY = 6;
         this.inventoryLabelX = 8;
-        this.inventoryLabelY = menu.viewerInventoryY() - 12;
+        this.inventoryLabelY = menu.viewerInventoryY() + fit.viewerYShift() - 12;
 
         if (showEditToggle()) {
             editButton = Button.builder(editLabel(), button -> sendButton(InvSeeBaseMenu.BUTTON_TOGGLE_EDIT))
                     .bounds(
-                            InvSeeChromeLayout.editButtonX(leftPos, imageWidth),
-                            InvSeeChromeLayout.editButtonY(topPos),
+                            fit.editX(),
+                            fit.editY(),
                             InvSeeChromeLayout.EDIT_BUTTON_WIDTH,
                             InvSeeChromeLayout.EDIT_BUTTON_HEIGHT
                     )
@@ -60,19 +83,21 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
     private void addTabScrollButtons() {
         List<InvSeeTab> tabs = InvSeeClientChrome.tabs();
         int perRow = Math.max(1, imageWidth / VanillaContainerSkin.TAB_SHIFT);
-        if (tabs.size() <= perRow * 2) {
+        if (tabs.size() <= perRow * tabRowsAllowed()) {
             return;
         }
+        var prevBox = InvSeeScaleLayout.sideButton(leftPos, imageWidth, width, Math.max(2, topPos - 24), false);
         Button prev = Button.builder(Component.literal("<"), button -> {
             tabScroll = Math.max(0, tabScroll - 1);
             rebuildWidgets();
-        }).bounds(leftPos - 18, topPos - 24, 16, 16).build();
+        }).bounds(prevBox.x(), prevBox.y(), prevBox.w(), prevBox.h()).build();
         prev.active = tabScroll > 0;
         addRenderableWidget(prev);
+        var nextBox = InvSeeScaleLayout.sideButton(leftPos, imageWidth, width, Math.max(2, topPos - 24), true);
         Button next = Button.builder(Component.literal(">"), button -> {
             tabScroll++;
             rebuildWidgets();
-        }).bounds(leftPos + imageWidth + 2, topPos - 24, 16, 16).build();
+        }).bounds(nextBox.x(), nextBox.y(), nextBox.w(), nextBox.h()).build();
         next.active = tabScroll + perRow < tabs.size();
         addRenderableWidget(next);
     }
@@ -186,6 +211,15 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
         return button;
     }
 
+    private int tabY(int row) {
+        int y = topPos - VanillaContainerSkin.TAB_HEIGHT + 4 - row * (VanillaContainerSkin.TAB_HEIGHT - 4);
+        return Math.max(0, y);
+    }
+
+    private int tabRowsAllowed() {
+        return fit != null && !fit.tabsAbove() ? 1 : 2;
+    }
+
     private void renderCreativeTabs(GuiGraphics graphics) {
         List<InvSeeTab> tabs = visibleTabs();
         int perRow = Math.max(1, imageWidth / VanillaContainerSkin.TAB_SHIFT);
@@ -194,9 +228,8 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
             int row = i / perRow;
             int col = i % perRow;
             int x = leftPos + col * VanillaContainerSkin.TAB_SHIFT;
-            int y = topPos - VanillaContainerSkin.TAB_HEIGHT + 4 - row * (VanillaContainerSkin.TAB_HEIGHT - 4);
             boolean selected = tab.ordinal() == InvSeeClientChrome.activeTab();
-            VanillaContainerSkin.blitCreativeTab(graphics, x, y, selected, InvSeeTabIcons.icon(tab));
+            VanillaContainerSkin.blitCreativeTab(graphics, x, tabY(row), selected, InvSeeTabIcons.icon(tab));
         }
     }
 
@@ -207,7 +240,7 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
             int row = i / perRow;
             int col = i % perRow;
             int x = leftPos + col * VanillaContainerSkin.TAB_SHIFT;
-            int y = topPos - VanillaContainerSkin.TAB_HEIGHT + 4 - row * (VanillaContainerSkin.TAB_HEIGHT - 4);
+            int y = tabY(row);
             if (mouseX >= x && mouseX < x + VanillaContainerSkin.TAB_WIDTH
                     && mouseY >= y && mouseY < y + VanillaContainerSkin.TAB_HEIGHT) {
                 return tabs.get(i);
@@ -219,7 +252,7 @@ public abstract class InvSeeBaseScreen<T extends InvSeeBaseMenu> extends Abstrac
     private List<InvSeeTab> visibleTabs() {
         List<InvSeeTab> tabs = InvSeeClientChrome.tabs();
         int perRow = Math.max(1, imageWidth / VanillaContainerSkin.TAB_SHIFT);
-        if (tabs.size() <= perRow * 2) {
+        if (tabs.size() <= perRow * tabRowsAllowed()) {
             return tabs;
         }
         int start = Math.max(0, Math.min(tabScroll, Math.max(0, tabs.size() - perRow)));
