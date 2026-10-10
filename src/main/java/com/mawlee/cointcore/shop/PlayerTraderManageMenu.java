@@ -7,6 +7,7 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -154,6 +155,9 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
 
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
+        if (!stillValid(player)) {
+            return ItemStack.EMPTY;
+        }
         Slot slot = slots.get(index);
         if (!slot.hasItem()) {
             return ItemStack.EMPTY;
@@ -176,6 +180,14 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
             slot.setChanged();
         }
         return copy;
+    }
+
+    @Override
+    public void clicked(int slotId, int button, ClickType clickType, Player player) {
+        if (!stillValid(player)) {
+            return;
+        }
+        super.clicked(slotId, button, clickType, player);
     }
 
     @Override

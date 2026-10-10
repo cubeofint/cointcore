@@ -13,13 +13,29 @@ import java.util.UUID;
  */
 public final class PlayerShopOffer {
     private final String id;
+    private UUID sellerId;
+    private String sellerName;
     private ItemStack template;
     private int count;
     private long buyPrice;
     private long sellPrice;
 
     public PlayerShopOffer(String id, ItemStack template, int count, long buyPrice, long sellPrice) {
+        this(id, null, "", template, count, buyPrice, sellPrice);
+    }
+
+    public PlayerShopOffer(
+            String id,
+            UUID sellerId,
+            String sellerName,
+            ItemStack template,
+            int count,
+            long buyPrice,
+            long sellPrice
+    ) {
         this.id = id == null || id.isBlank() ? UUID.randomUUID().toString() : id;
+        this.sellerId = sellerId;
+        this.sellerName = sellerName == null ? "" : sellerName;
         this.template = template == null ? ItemStack.EMPTY : template.copy();
         this.template.setCount(1);
         this.count = PlayerShopValidation.clampCount(count);
@@ -29,6 +45,19 @@ public final class PlayerShopOffer {
 
     public String id() {
         return id;
+    }
+
+    public UUID sellerId() {
+        return sellerId;
+    }
+
+    public String sellerName() {
+        return sellerName == null ? "" : sellerName;
+    }
+
+    public void setSeller(UUID sellerId, String sellerName) {
+        this.sellerId = sellerId;
+        this.sellerName = sellerName == null ? "" : sellerName;
     }
 
     public ItemStack template() {
@@ -81,6 +110,12 @@ public final class PlayerShopOffer {
     public CompoundTag save(HolderLookup.Provider registries) {
         CompoundTag tag = new CompoundTag();
         tag.putString("id", id);
+        if (sellerId != null) {
+            tag.putUUID("seller_id", sellerId);
+        }
+        if (sellerName != null && !sellerName.isBlank()) {
+            tag.putString("seller_name", sellerName);
+        }
         tag.putInt("count", count);
         tag.putLong("buy_price", buyPrice);
         tag.putLong("sell_price", sellPrice);
@@ -96,6 +131,16 @@ public final class PlayerShopOffer {
         if (tag.contains("item")) {
             item = ItemStack.parse(registries, tag.get("item")).orElse(ItemStack.EMPTY);
         }
-        return new PlayerShopOffer(id, item, tag.getInt("count"), tag.getLong("buy_price"), tag.getLong("sell_price"));
+        UUID sellerId = tag.hasUUID("seller_id") ? tag.getUUID("seller_id") : null;
+        String sellerName = tag.getString("seller_name");
+        return new PlayerShopOffer(
+                id,
+                sellerId,
+                sellerName,
+                item,
+                tag.getInt("count"),
+                tag.getLong("buy_price"),
+                tag.getLong("sell_price")
+        );
     }
 }
