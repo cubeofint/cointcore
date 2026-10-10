@@ -1,13 +1,18 @@
 package com.mawlee.cointcore.shop;
 
+import com.mawlee.cointcore.config.TraderOffersConfig;
+import com.mojang.logging.LogUtils;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
+import org.slf4j.Logger;
 
 /**
  * Insert-only capability on {@link PlayerTraderBlockEntity}: pipes restock the
  * owner's matching global-market lot. Extract is always empty.
  */
 public final class PlayerTraderRestockHandler implements IItemHandler {
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     private final PlayerTraderBlockEntity shop;
 
     public PlayerTraderRestockHandler(PlayerTraderBlockEntity shop) {
@@ -30,6 +35,18 @@ public final class PlayerTraderRestockHandler implements IItemHandler {
             return stack == null ? ItemStack.EMPTY : stack;
         }
         int accepted = GlobalMarketService.tryRestock(shop, stack, simulate);
+        if (TraderOffersConfig.playerShopRestockDebug()) {
+            LOGGER.info(
+                    "player_trader insert slot={} simulate={} count={} accepted={} leftover={} owner={} pos={}",
+                    slot,
+                    simulate,
+                    stack.getCount(),
+                    accepted,
+                    Math.max(0, stack.getCount() - accepted),
+                    shop.ownerId(),
+                    shop.getBlockPos()
+            );
+        }
         if (accepted <= 0) {
             return stack;
         }
@@ -53,6 +70,7 @@ public final class PlayerTraderRestockHandler implements IItemHandler {
 
     @Override
     public boolean isItemValid(int slot, ItemStack stack) {
-        return slot == 0 && GlobalMarketService.tryRestock(shop, stack, true) > 0;
+        return slot == 0 && stack != null && !stack.isEmpty()
+                && GlobalMarketService.tryRestock(shop, stack, true) > 0;
     }
 }

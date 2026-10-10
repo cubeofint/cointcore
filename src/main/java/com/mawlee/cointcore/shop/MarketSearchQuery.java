@@ -99,7 +99,9 @@ public final class MarketSearchQuery {
             return true;
         }
         return switch (kind) {
-            case NAME -> contains(target.names(), needle) || contains(target.tooltip(), needle);
+            case NAME -> contains(target.names(), needle)
+                    || contains(target.tooltip(), needle)
+                    || contains(target.itemId(), needle);
             case MOD -> containsLoose(target.modId(), needle) || containsLoose(target.modName(), needle);
             case TOOLTIP -> contains(target.tooltip(), needle);
             case TAG -> matchesAny(target.tags(), needle);

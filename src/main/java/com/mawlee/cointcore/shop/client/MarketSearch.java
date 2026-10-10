@@ -1,12 +1,10 @@
 package com.mawlee.cointcore.shop.client;
 
+import com.mawlee.cointcore.shop.MarketSearchPolicy;
 import com.mawlee.cointcore.shop.MarketSearchQuery;
 import com.mawlee.cointcore.shop.MarketSearchTarget;
 import com.mawlee.cointcore.shop.jei.JeiSearchBridge;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-
-import java.util.Set;
 
 /**
  * Market listing filter: JEI ingredient search when the overlay is live,
@@ -22,14 +20,7 @@ public final class MarketSearch {
         }
         MarketSearchTarget target = MarketSearchTargets.from(stack, modId);
         boolean local = MarketSearchQuery.matches(query, target);
-        Set<Item> visible = JeiSearchBridge.filteredItems();
-        if (visible == null) {
-            return local;
-        }
-        boolean jei = !stack.isEmpty() && visible.contains(stack.getItem());
-        if (MarketSearchQuery.hasNegation(query)) {
-            return jei && local;
-        }
-        return jei || local;
+        Boolean jei = JeiSearchBridge.matchesListing(query, stack);
+        return MarketSearchPolicy.decide(local, jei, MarketSearchQuery.hasNegation(query));
     }
 }

@@ -1,13 +1,9 @@
 package com.mawlee.cointcore.shop.jei;
 
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLEnvironment;
-
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Optional JEI overlay filter access. Never references JEI types so the rest of
@@ -17,16 +13,13 @@ public final class JeiSearchBridge {
     public static final String JEI_MOD_ID = "jei";
     private static final String PLUGIN_CLASS = "com.mawlee.cointcore.shop.jei.CointJeiPlugin";
 
-    private static String cachedText;
-    private static Set<Item> cachedItems;
-
     private JeiSearchBridge() {
     }
 
     public static boolean available() {
         return FMLEnvironment.dist == Dist.CLIENT
                 && ModList.get().isLoaded(JEI_MOD_ID)
-                && filter() != null;
+                && runtime() != null;
     }
 
     public static String getFilterText() {
@@ -49,39 +42,23 @@ public final class JeiSearchBridge {
         }
         try {
             filter.getClass().getMethod("setFilterText", String.class).invoke(filter, text == null ? "" : text);
-            cachedText = null;
-            cachedItems = null;
         } catch (ReflectiveOperationException | RuntimeException ignored) {
         }
     }
 
-    public static Set<Item> filteredItems() {
+    /**
+     * {@code true}/{@code false} when JEI filtered the current query; {@code null} to fall back.
+     */
+    public static Boolean matchesListing(String query, ItemStack stack) {
         if (!available()) {
             return null;
         }
-        String text = getFilterText();
-        if (text != null && text.equals(cachedText) && cachedItems != null) {
-            return cachedItems;
-        }
-        Object filter = filter();
-        if (filter == null) {
-            return null;
-        }
         try {
-            Object list = filter.getClass().getMethod("getFilteredItemStacks").invoke(filter);
-            if (!(list instanceof Iterable<?> stacks)) {
-                return Set.of();
-            }
-            Set<Item> items = new HashSet<>();
-            for (Object entry : stacks) {
-                if (entry instanceof ItemStack stack && !stack.isEmpty()) {
-                    items.add(stack.getItem());
-                }
-            }
-            cachedText = text;
-            cachedItems = items;
-            return items;
-        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            Object hit = Class.forName(PLUGIN_CLASS)
+                    .getMethod("matchesListing", String.class, ItemStack.class)
+                    .invoke(null, query, stack);
+            return hit instanceof Boolean value ? value : null;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
             return null;
         }
     }

@@ -72,6 +72,10 @@ public final class TraderOffersConfig {
         return loaded.playerShopMaxStockPerLot;
     }
 
+    public static boolean playerShopRestockDebug() {
+        return loaded.playerShopRestockDebug;
+    }
+
     public static int priceHistoryCapacity() {
         return loaded.priceHistoryCapacity;
     }
@@ -162,6 +166,7 @@ public final class TraderOffersConfig {
         long maxStockPerLot = data.playerShopMaxStockPerLot == null
                 ? com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_MAX_STOCK_PER_LOT
                 : com.mawlee.cointcore.shop.GlobalMarketMath.clampMaxStockPerLot(data.playerShopMaxStockPerLot);
+        boolean restockDebug = Boolean.TRUE.equals(data.playerShopRestockDebug);
         List<TraderOffer> offers = new ArrayList<>();
         if (data.offers != null) {
             for (OfferData entry : data.offers) {
@@ -192,6 +197,7 @@ public final class TraderOffersConfig {
                 listingFee,
                 blacklist,
                 maxStockPerLot,
+                restockDebug,
                 historyCapacity,
                 sampleTicks,
                 band,
@@ -245,6 +251,7 @@ public final class TraderOffersConfig {
             long playerShopListingFee,
             List<String> playerShopItemBlacklist,
             long playerShopMaxStockPerLot,
+            boolean playerShopRestockDebug,
             int priceHistoryCapacity,
             int priceHistorySampleIntervalTicks,
             double priceHistoryAverageBandPercent,
@@ -262,6 +269,7 @@ public final class TraderOffersConfig {
                     0L,
                     List.of("#minecraft:shulker_boxes"),
                     com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_MAX_STOCK_PER_LOT,
+                    false,
                     OfferBuyPriceHistory.DEFAULT_CAPACITY,
                     1200,
                     5.0d,
@@ -289,6 +297,8 @@ public final class TraderOffersConfig {
         List<String> playerShopItemBlacklist;
         @SerializedName("player_shop_max_stock_per_lot")
         Long playerShopMaxStockPerLot;
+        @SerializedName("player_shop_restock_debug")
+        Boolean playerShopRestockDebug;
         @SerializedName("price_history_capacity")
         Integer priceHistoryCapacity;
         @SerializedName("price_history_sample_interval_ticks")

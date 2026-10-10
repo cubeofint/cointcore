@@ -29,10 +29,13 @@ public final class MarketSearchTargets {
         }
         String itemId = stack.getItemHolder().getRegisteredName();
         String namespace = namespace(itemId);
+        String path = path(itemId);
         String modId = listingModId == null || listingModId.isBlank() ? namespace : listingModId;
         String modName = modName(modId);
         String hover = stack.getHoverName().getString();
         String baseName = stack.getItem().getName(stack).getString();
+        String descriptionId = stack.getItem().getDescriptionId();
+        String descriptionTail = tail(descriptionId);
         List<String> tooltipLines = tooltip(stack);
         List<String> tags = new ArrayList<>();
         stack.getTags().forEach(tag -> {
@@ -40,7 +43,7 @@ public final class MarketSearchTargets {
             tags.add(tag.location().getPath());
         });
         return new MarketSearchTarget(
-                hover + "\n" + baseName,
+                hover + "\n" + baseName + "\n" + itemId + "\n" + path + "\n" + descriptionId + "\n" + descriptionTail,
                 String.join("\n", tooltipLines),
                 modId,
                 modName,
@@ -54,6 +57,19 @@ public final class MarketSearchTargets {
     private static String namespace(String itemId) {
         int colon = itemId.indexOf(':');
         return colon < 0 ? itemId : itemId.substring(0, colon);
+    }
+
+    private static String path(String itemId) {
+        int colon = itemId.indexOf(':');
+        return colon < 0 ? itemId : itemId.substring(colon + 1);
+    }
+
+    private static String tail(String descriptionId) {
+        if (descriptionId == null || descriptionId.isBlank()) {
+            return "";
+        }
+        int dot = descriptionId.lastIndexOf('.');
+        return dot < 0 ? descriptionId : descriptionId.substring(dot + 1);
     }
 
     private static String modName(String modId) {

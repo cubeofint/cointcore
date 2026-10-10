@@ -2,11 +2,13 @@ package com.mawlee.cointcore.shop;
 
 import com.mawlee.cointcore.config.TraderOffersConfig;
 import com.mawlee.cointcore.lang.CointCoreMessages;
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -17,6 +19,8 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class GlobalMarketService {
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     private GlobalMarketService() {
     }
 
@@ -85,22 +89,24 @@ public final class GlobalMarketService {
     ) {
         expire(player.server);
         int count = PlayerShopValidation.clampCount(countPerDeal);
-        long safeDeals = GlobalMarketMath.clampDeals(deals);
+        long items = Math.max(0L, deals);
+        if (items < (long) count && GlobalMarketMath.clampDeals(deals) >= 1L) {
+            items = GlobalMarketMath.itemsForDeals(count, deals);
+        }
         int safePrice = GlobalMarketMath.clampPrice(price);
         ItemStack sample = GhostTemplate.sanitize(template);
-        if (sample.isEmpty() || safeDeals < 1L || safePrice < 1) {
+        if (sample.isEmpty() || items < count || safePrice < 1) {
             return false;
         }
         GlobalMarketSavedData data = GlobalMarketSavedData.get(player.server);
         if (!GlobalMarketMath.canCreateListing(
                 data.listingCount(player.getUUID()),
                 TraderOffersConfig.playerShopMaxListings(),
-                safeDeals,
+                GlobalMarketMath.dealsFromStock(items, count),
                 safePrice
         )) {
             return false;
         }
-        long items = GlobalMarketMath.itemsForDeals(count, safeDeals);
         if (TraderInventory.countMatchingLong(player.getInventory(), sample) < items) {
             return false;
         }
@@ -208,14 +214,21 @@ public final class GlobalMarketService {
      * Simulate never mutates. Off-thread / client / no match / blacklist / cap → 0.
      */
     public static int tryRestock(PlayerTraderBlockEntity shop, ItemStack stack, boolean simulate) {
-        if (shop == null || stack == null || stack.isEmpty() || shop.ownerId() == null) {
+        if (shop == null || stack == null || stack.isEmpty()) {
+            logRestock("empty_input", shop, stack, simulate, 0);
+            return 0;
+        }
+        if (shop.ownerId() == null) {
+            logRestock("no_owner", shop, stack, simulate, 0);
             return 0;
         }
         net.minecraft.world.level.Level level = shop.getLevel();
         if (level == null || level.isClientSide || level.getServer() == null || !level.getServer().isSameThread()) {
+            logRestock("not_server_thread", shop, stack, simulate, 0);
             return 0;
         }
         if (GlobalMarketBlacklist.forbidden(stack, TraderOffersConfig.playerShopItemBlacklist())) {
+            logRestock("blacklist", shop, stack, simulate, 0);
             return 0;
         }
         expire(level.getServer());
@@ -224,13 +237,17 @@ public final class GlobalMarketService {
         long cap = TraderOffersConfig.playerShopMaxStockPerLot();
         UUID owner = shop.ownerId();
         GlobalMarketListing target = null;
+        int seenOwnerLots = 0;
+        int seenItemLots = 0;
         for (GlobalMarketListing listing : data.allListings()) {
             if (!owner.equals(listing.sellerId()) || GlobalMarketMath.expired(now, listing.expiresAt())) {
                 continue;
             }
+            seenOwnerLots++;
             if (!MarketRestock.matchesTemplate(listing.template(), stack)) {
                 continue;
             }
+            seenItemLots++;
             if (MarketRestock.acceptCount(listing.stockItems(), cap, stack.getCount()) < 1) {
                 continue;
             }
@@ -239,15 +256,66 @@ public final class GlobalMarketService {
             }
         }
         if (target == null) {
+            String reason = seenOwnerLots == 0 ? "no_lots" : seenItemLots == 0 ? "no_match" : "cap";
+            logRestock(reason, shop, stack, simulate, 0);
             return 0;
         }
         int accepted = MarketRestock.acceptCount(target.stockItems(), cap, stack.getCount());
-        if (accepted < 1 || simulate) {
+        if (accepted < 1) {
+            logRestock("cap", shop, stack, simulate, 0);
+            return 0;
+        }
+        if (simulate) {
+            logRestock("simulate", shop, stack, true, accepted);
             return accepted;
         }
+        long before = target.stockItems();
         target.addStock(accepted);
         data.put(target);
+        logRestock("commit stock=" + before + "->" + target.stockItems(), shop, stack, false, accepted);
+        refreshOpenViewers(level.getServer());
         return accepted;
+    }
+
+    public static void refreshOpenViewers(MinecraftServer server) {
+        if (server == null) {
+            return;
+        }
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (player.containerMenu instanceof PlayerTraderMenu menu) {
+                List<PlayerTraderListing> listings = catalog(server);
+                long balance = GluonWallet.get(player);
+                menu.refresh(balance, menu.ownerName(), listings);
+                PacketDistributor.sendToPlayer(
+                        player,
+                        new PlayerTraderCatalogPayload(menu.containerId, balance, menu.ownerName(), listings)
+                );
+            } else if (player.containerMenu instanceof PlayerTraderManageMenu menu) {
+                PlayerTraderManagePayload.syncOpen(player, menu, true);
+            }
+        }
+    }
+
+    private static void logRestock(
+            String reason,
+            PlayerTraderBlockEntity shop,
+            ItemStack stack,
+            boolean simulate,
+            int accepted
+    ) {
+        if (!TraderOffersConfig.playerShopRestockDebug()) {
+            return;
+        }
+        LOGGER.info(
+                "player_trader restock reason={} simulate={} accepted={} owner={} item={} count={} pos={}",
+                reason,
+                simulate,
+                accepted,
+                shop == null ? null : shop.ownerId(),
+                stack == null || stack.isEmpty() ? "-" : BuiltInRegistries.ITEM.getKey(stack.getItem()),
+                stack == null ? 0 : stack.getCount(),
+                shop == null ? null : shop.getBlockPos()
+        );
     }
 
     public static void claimReturns(ServerPlayer player) {
@@ -414,6 +482,9 @@ public final class GlobalMarketService {
     public static void tick(MinecraftServer server) {
         if (server.getTickCount() % 200 == 0) {
             expire(server);
+        }
+        if (server.getTickCount() % 20 == 0) {
+            refreshOpenViewers(server);
         }
     }
 
