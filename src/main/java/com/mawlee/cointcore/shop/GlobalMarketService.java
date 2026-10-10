@@ -326,19 +326,49 @@ public final class GlobalMarketService {
     }
 
     public static void buy(ServerPlayer player, PlayerTraderMenu menu, String listingId, long requestedDeals) {
+        buy(player, menu, listingId, requestedDeals, 0L, true);
+    }
+
+    public static void buy(
+            ServerPlayer player,
+            PlayerTraderMenu menu,
+            String listingId,
+            long requestedDeals,
+            long expectedUnitPrice,
+            boolean cheapest
+    ) {
         expire(player.server);
         UUID id = parseId(listingId);
-        if (id == null) {
-            fail(player, menu, TraderFeedbackKind.OFFER_UNAVAILABLE, "unavailable");
-            return;
-        }
         GlobalMarketSavedData data = GlobalMarketSavedData.get(player.server);
-        GlobalMarketListing first = data.listing(id);
-        if (first == null || !first.active(System.currentTimeMillis())) {
+        GlobalMarketListing first = id == null ? null : data.listing(id);
+        long now = System.currentTimeMillis();
+        boolean own = first != null && GlobalMarketMath.canBuyOwn(
+                player.getUUID().toString(),
+                first.sellerId() == null ? "" : first.sellerId().toString()
+        );
+        MarketLotPurchase.Snapshot snapshot = first == null
+                ? MarketLotPurchase.Snapshot.missing()
+                : new MarketLotPurchase.Snapshot(
+                        true,
+                        first.active(now),
+                        own,
+                        first.unitPrice(),
+                        first.dealsLeft()
+                );
+        if (!cheapest) {
+            MarketLotPurchase.Decision decision = MarketLotPurchase.validate(
+                    snapshot,
+                    expectedUnitPrice,
+                    requestedDeals
+            );
+            if (!decision.ok()) {
+                failPurchase(player, menu, decision.reason());
+                return;
+            }
+        } else if (first == null || !first.active(now)) {
             fail(player, menu, TraderFeedbackKind.OFFER_UNAVAILABLE, "unavailable");
             return;
-        }
-        if (GlobalMarketMath.canBuyOwn(player.getUUID().toString(), first.sellerId().toString())) {
+        } else if (own) {
             fail(player, menu, TraderFeedbackKind.OWN_SHOP, "own");
             return;
         }
@@ -347,9 +377,15 @@ public final class GlobalMarketService {
             fail(player, menu, TraderFeedbackKind.CANNOT_FILL, "stock");
             return;
         }
-        List<GlobalMarketListing> chain = matchingAtOrBelow(data, first, player.getUUID());
+        if (expectedUnitPrice > 0L && first.unitPrice() > expectedUnitPrice) {
+            fail(player, menu, TraderFeedbackKind.CANNOT_FILL, "price_up");
+            return;
+        }
+        List<GlobalMarketListing> chain = cheapest
+                ? matchingAtOrBelow(data, first, player.getUUID())
+                : List.of(first);
         if (chain.isEmpty()) {
-            fail(player, menu, TraderFeedbackKind.CANNOT_FILL, "price");
+            fail(player, menu, TraderFeedbackKind.CANNOT_FILL, cheapest ? "price" : "unavailable");
             return;
         }
         long available = 0L;
@@ -575,11 +611,23 @@ public final class GlobalMarketService {
         notify(player, menu, kind, 0, reason, 0L, 0L, chatKey);
     }
 
+    private static void failPurchase(ServerPlayer player, PlayerTraderMenu menu, MarketLotPurchase.Reason reason) {
+        switch (reason) {
+            case MISSING, INACTIVE -> fail(player, menu, TraderFeedbackKind.OFFER_UNAVAILABLE, "unavailable");
+            case OWN_SHOP -> fail(player, menu, TraderFeedbackKind.OWN_SHOP, "own");
+            case PRICE_UP -> fail(player, menu, TraderFeedbackKind.CANNOT_FILL, "price_up");
+            case NO_STOCK, BAD_QTY -> fail(player, menu, TraderFeedbackKind.CANNOT_FILL, "stock");
+            case OK -> {
+            }
+        }
+    }
+
     private static String cannotFillChat(String reason) {
         return switch (reason == null ? "" : reason) {
             case "stock" -> CointCoreMessages.PLAYER_SHOP_CANNOT_FILL_STOCK;
             case "money" -> CointCoreMessages.PLAYER_SHOP_CANNOT_FILL_MONEY;
             case "price" -> CointCoreMessages.PLAYER_SHOP_CANNOT_FILL_PRICE;
+            case "price_up" -> CointCoreMessages.PLAYER_SHOP_CANNOT_FILL_PRICE_UP;
             default -> CointCoreMessages.PLAYER_SHOP_CANNOT_FILL;
         };
     }

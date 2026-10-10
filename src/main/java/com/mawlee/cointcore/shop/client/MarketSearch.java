@@ -2,6 +2,7 @@ package com.mawlee.cointcore.shop.client;
 
 import com.mawlee.cointcore.shop.MarketSearchPolicy;
 import com.mawlee.cointcore.shop.MarketSearchQuery;
+import com.mawlee.cointcore.shop.MarketSearchSeller;
 import com.mawlee.cointcore.shop.MarketSearchTarget;
 import com.mawlee.cointcore.shop.jei.JeiSearchBridge;
 import net.minecraft.world.item.ItemStack;
@@ -15,12 +16,24 @@ public final class MarketSearch {
     }
 
     public static boolean matches(String query, ItemStack stack, String modId) {
+        return matches(query, stack, modId, "");
+    }
+
+    public static boolean matches(String query, ItemStack stack, String modId, String sellerName) {
         if (query == null || query.isBlank()) {
             return true;
         }
-        MarketSearchTarget target = MarketSearchTargets.from(stack, modId);
-        boolean local = MarketSearchQuery.matches(query, target);
-        Boolean jei = JeiSearchBridge.matchesListing(query, stack);
-        return MarketSearchPolicy.decide(local, jei, MarketSearchQuery.hasNegation(query));
+        String itemQuery = MarketSearchSeller.strip(query);
+        MarketSearchTarget itemTarget = MarketSearchTargets.from(stack, modId);
+        MarketSearchTarget fullTarget = itemTarget.withSeller(sellerName);
+        boolean localItem = itemQuery.isBlank() || MarketSearchQuery.matches(itemQuery, itemTarget);
+        boolean localFull = MarketSearchQuery.matches(query, fullTarget);
+        Boolean jei = itemQuery.isBlank() ? Boolean.TRUE : JeiSearchBridge.matchesListing(itemQuery, stack);
+        boolean itemHit = itemQuery.isBlank()
+                || MarketSearchPolicy.decide(localItem, jei, MarketSearchQuery.hasNegation(itemQuery));
+        if (!MarketSearchSeller.hasTerms(query)) {
+            return itemHit;
+        }
+        return itemHit && localFull;
     }
 }

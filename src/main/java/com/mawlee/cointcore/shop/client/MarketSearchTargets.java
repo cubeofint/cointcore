@@ -25,7 +25,7 @@ public final class MarketSearchTargets {
 
     public static MarketSearchTarget from(ItemStack stack, String listingModId) {
         if (stack == null || stack.isEmpty()) {
-            return MarketSearchTarget.of("", "", listingModId, "", List.of(), "", "");
+            return MarketSearchTarget.of("", "", listingModId, "", List.of(), "", "", "");
         }
         String itemId = stack.getItemHolder().getRegisteredName();
         String namespace = namespace(itemId);
@@ -50,8 +50,13 @@ public final class MarketSearchTargets {
                 tags,
                 colors(stack, hover, tooltipLines),
                 itemId,
-                modName
+                modName,
+                ""
         );
+    }
+
+    public static MarketSearchTarget from(ItemStack stack, String listingModId, String sellerName) {
+        return from(stack, listingModId).withSeller(sellerName);
     }
 
     private static String namespace(String itemId) {

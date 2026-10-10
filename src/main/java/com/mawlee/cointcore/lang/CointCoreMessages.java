@@ -241,6 +241,7 @@ public final class CointCoreMessages {
     public static final String PLAYER_SHOP_CANNOT_FILL_STOCK = "message.cointcore.player_trader.cannot_fill.stock";
     public static final String PLAYER_SHOP_CANNOT_FILL_MONEY = "message.cointcore.player_trader.cannot_fill.money";
     public static final String PLAYER_SHOP_CANNOT_FILL_PRICE = "message.cointcore.player_trader.cannot_fill.price";
+    public static final String PLAYER_SHOP_CANNOT_FILL_PRICE_UP = "message.cointcore.player_trader.cannot_fill.price_up";
     public static final String PLAYER_SHOP_PULL_ON = "message.cointcore.player_trader.pull.on";
     public static final String PLAYER_SHOP_PULL_OFF = "message.cointcore.player_trader.pull.off";
 

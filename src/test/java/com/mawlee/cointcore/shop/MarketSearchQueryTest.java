@@ -157,6 +157,33 @@ class MarketSearchQueryTest {
     }
 
     @Test
+    void sellerPrefixesMatchNickname() {
+        MarketSearchTarget listed = MarketSearchTarget.of(
+                "Алмаз",
+                "Алмаз",
+                "minecraft",
+                "Minecraft",
+                List.of("gems"),
+                "light_blue",
+                "minecraft:diamond",
+                "Mawlee"
+        );
+        assertTrue(MarketSearchQuery.matches("by:mawlee", listed));
+        assertTrue(MarketSearchQuery.matches("%maw", listed));
+        assertTrue(MarketSearchQuery.matches("~lee", listed));
+        assertTrue(MarketSearchQuery.matches("diamond by:maw", listed));
+        assertFalse(MarketSearchQuery.matches("by:bob", listed));
+        assertFalse(MarketSearchQuery.matches("-by:mawlee", listed));
+        assertTrue(MarketSearchSeller.hasTerms("diamond %nick"));
+        assertEquals("diamond", MarketSearchSeller.strip("diamond by:Mawlee"));
+        assertEquals("diamond", MarketSearchSeller.strip("diamond %Mawlee"));
+        assertEquals("diamond", MarketSearchSeller.strip("diamond ~Mawlee"));
+        assertEquals("by:mawlee", MarketSearchSeller.fragment("diamond by:Mawlee"));
+        assertEquals("emerald by:mawlee", MarketSearchSeller.merge("emerald", "by:mawlee"));
+        assertEquals("", MarketSearchSeller.strip("%mawlee"));
+    }
+
+    @Test
     void parseSplitsOrAndPrefixes() {
         List<List<MarketSearchQuery.Term>> groups = MarketSearchQuery.parse("sword| -@ae2 #tip");
         assertEquals(2, groups.size());

@@ -38,6 +38,15 @@ class GlobalMarketRowsTest {
         assertTrue(row.multiSeller());
         assertEquals("Mawlee", row.cheapestSeller());
         assertEquals(List.of("Mawlee", "Ann", "Bob"), row.sellers());
+        assertEquals(3, row.offers().size());
+        assertEquals("cheap", row.offers().getFirst().listingId());
+        assertEquals("Mawlee", row.offers().getFirst().sellerName());
+        assertEquals(82L, row.offers().getFirst().unitPrice());
+        assertEquals(6L, row.offers().getFirst().stockItems());
+        assertEquals(3, row.offers().getFirst().countPerDeal());
+        assertEquals("mid", row.offers().get(1).listingId());
+        assertEquals("dear", row.offers().get(2).listingId());
+        assertEquals("mid", row.offer("mid").listingId());
     }
 
     @Test

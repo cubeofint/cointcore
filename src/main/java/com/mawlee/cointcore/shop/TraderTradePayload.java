@@ -12,9 +12,18 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 /**
  * Client request to buy or sell. For the NPC terminal, {@code stack} fills one item stack.
  * For the global market, {@code deals} is the requested deal count (all-or-nothing).
+ * {@code listingId} + {@code cheapest=false} buys only that lot after price/stock checks.
  */
-public record TraderTradePayload(int containerId, int offerIndex, boolean sell, boolean stack, long deals)
-        implements CustomPacketPayload {
+public record TraderTradePayload(
+        int containerId,
+        int offerIndex,
+        boolean sell,
+        boolean stack,
+        long deals,
+        String listingId,
+        long expectedUnitPrice,
+        boolean cheapest
+) implements CustomPacketPayload {
     public static final Type<TraderTradePayload> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(CointCore.MOD_ID, "trader_trade")
     );
@@ -22,8 +31,17 @@ public record TraderTradePayload(int containerId, int offerIndex, boolean sell, 
     public static final StreamCodec<RegistryFriendlyByteBuf, TraderTradePayload> STREAM_CODEC =
             StreamCodec.of(TraderTradePayload::encode, TraderTradePayload::decode);
 
+    public TraderTradePayload {
+        listingId = listingId == null ? "" : listingId;
+        expectedUnitPrice = Math.max(0L, expectedUnitPrice);
+    }
+
     public TraderTradePayload(int containerId, int offerIndex, boolean sell, boolean stack) {
-        this(containerId, offerIndex, sell, stack, 0L);
+        this(containerId, offerIndex, sell, stack, 0L, "", 0L, true);
+    }
+
+    public TraderTradePayload(int containerId, int offerIndex, boolean sell, boolean stack, long deals) {
+        this(containerId, offerIndex, sell, stack, deals, "", 0L, true);
     }
 
     private static void encode(RegistryFriendlyByteBuf buffer, TraderTradePayload payload) {
@@ -32,6 +50,9 @@ public record TraderTradePayload(int containerId, int offerIndex, boolean sell, 
         ByteBufCodecs.BOOL.encode(buffer, payload.sell);
         ByteBufCodecs.BOOL.encode(buffer, payload.stack);
         buffer.writeLong(payload.deals);
+        ByteBufCodecs.STRING_UTF8.encode(buffer, payload.listingId);
+        buffer.writeLong(payload.expectedUnitPrice);
+        ByteBufCodecs.BOOL.encode(buffer, payload.cheapest);
     }
 
     private static TraderTradePayload decode(RegistryFriendlyByteBuf buffer) {
@@ -40,7 +61,10 @@ public record TraderTradePayload(int containerId, int offerIndex, boolean sell, 
                 ByteBufCodecs.VAR_INT.decode(buffer),
                 ByteBufCodecs.BOOL.decode(buffer),
                 ByteBufCodecs.BOOL.decode(buffer),
-                buffer.readLong()
+                buffer.readLong(),
+                ByteBufCodecs.STRING_UTF8.decode(buffer),
+                buffer.readLong(),
+                ByteBufCodecs.BOOL.decode(buffer)
         );
     }
 
@@ -78,14 +102,20 @@ public record TraderTradePayload(int containerId, int offerIndex, boolean sell, 
                 if (payload.sell()) {
                     return false;
                 }
-                if (payload.offerIndex() < 0 || payload.offerIndex() >= menu.listings().size()) {
-                    return false;
+                String listingId = payload.listingId();
+                if (listingId.isBlank()) {
+                    if (payload.offerIndex() < 0 || payload.offerIndex() >= menu.listings().size()) {
+                        return false;
+                    }
+                    listingId = menu.listings().get(payload.offerIndex()).listingId();
                 }
                 GlobalMarketService.buy(
                         player,
                         menu,
-                        menu.listings().get(payload.offerIndex()).listingId(),
-                        payload.deals()
+                        listingId,
+                        payload.deals(),
+                        payload.expectedUnitPrice(),
+                        payload.cheapest()
                 );
                 return true;
             }, false);
