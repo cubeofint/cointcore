@@ -9,6 +9,7 @@ import com.mawlee.cointcore.command.IgnoreCommand;
 import com.mawlee.cointcore.command.ModCommands;
 import com.mawlee.cointcore.command.NightVisionCommand;
 import com.mawlee.cointcore.command.VanishCommand;
+import com.mawlee.cointcore.claim.BossClaimGuardService;
 import com.mawlee.cointcore.claim.ClaimBufferService;
 import com.mawlee.cointcore.claim.ClaimFlagEditNetwork;
 import com.mawlee.cointcore.chunklimit.ClaimLimitSync;
@@ -46,6 +47,7 @@ public class CointCore {
 
         FtbTeamPropertyRegistration.register();
         ClaimBufferService.register();
+        BossClaimGuardService.register();
         ClaimLimitSync.register();
 
         NeoForge.EVENT_BUS.addListener(VanishCommand::register);

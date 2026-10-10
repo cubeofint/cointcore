@@ -8,7 +8,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 /**
- * Owns {@code config/cointcore/claims.json} with sections {@code buffer} and {@code bonus}.
+ * Owns {@code config/cointcore/claims.json} with sections {@code buffer}, {@code bonus}
+ * and {@code bossClaimGuard}.
  */
 public final class ClaimsConfigs {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -28,6 +29,7 @@ public final class ClaimsConfigs {
             LOGGER.error("Failed to load {}; using defaults", FILE_NAME, exception);
             ClaimBufferConfig.applySection(ClaimBufferConfig.defaultFileData());
             ChunkBonusConfig.applySection(ChunkBonusConfig.defaultFileData());
+            BossClaimGuardConfig.applySection(BossClaimGuardConfig.defaultFileData());
         }
     }
 
@@ -58,6 +60,7 @@ public final class ClaimsConfigs {
         JsonObject root = new JsonObject();
         root.add("buffer", ConfigMergeSupport.toJsonObject(ClaimBufferConfig.defaultFileData()));
         root.add("bonus", ConfigMergeSupport.toJsonObject(ChunkBonusConfig.defaultFileData()));
+        root.add("bossClaimGuard", ConfigMergeSupport.toJsonObject(BossClaimGuardConfig.defaultFileData()));
         return root;
     }
 
@@ -68,9 +71,16 @@ public final class ClaimsConfigs {
         ChunkBonusConfig.applySection(ConfigMergeSupport.sectionOrDefault(
                 root, "bonus", ChunkBonusConfig.FileData.class, ChunkBonusConfig::defaultFileData
         ));
+        BossClaimGuardConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root,
+                "bossClaimGuard",
+                BossClaimGuardConfig.FileData.class,
+                BossClaimGuardConfig::defaultFileData
+        ));
         if (logReload) {
             ClaimBufferConfig.logReload();
             ChunkBonusConfig.logReload();
+            BossClaimGuardConfig.logReload();
         }
     }
 }

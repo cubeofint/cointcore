@@ -137,6 +137,7 @@ public final class CointCoreMessages {
     public static final String CLAIM_MOB_DAMAGE_BLOCKED = "message.cointcore.claim.mob_damage.blocked";
     public static final String CLAIM_FIRE_BLOCKED = "message.cointcore.claim.fire.blocked";
     public static final String CLAIM_ENTRY_DENIED = "message.cointcore.claim.entry.denied";
+    public static final String CLAIM_BOSS_ARENA = "message.cointcore.claim.boss_arena";
     public static final String KIT_CREDIT_CLAIMED = "message.cointcore.kit.credit.claimed";
     public static final String KIT_CREDIT_ADDED = "message.cointcore.kit.credit.added";
     public static final String KIT_CREDIT_SET = "message.cointcore.kit.credit.set";

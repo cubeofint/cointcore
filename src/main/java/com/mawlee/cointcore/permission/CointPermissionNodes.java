@@ -327,6 +327,13 @@ public final class CointPermissionNodes {
             Component.translatable("permission.desc.cointcore.claim.buffer.bypass")
     );
 
+    public static final PermissionNode<Boolean> CLAIM_BOSS_ARENA_BYPASS = new PermissionNode<>(
+            CointCore.MOD_ID, "claim.boss_arena.bypass", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.claim.boss_arena.bypass"),
+            Component.translatable("permission.desc.cointcore.claim.boss_arena.bypass")
+    );
+
     public static final PermissionNode<Boolean> WATCHDOG = new PermissionNode<>(
             CointCore.MOD_ID, "watchdog", PermissionTypes.BOOLEAN, OP_ONLY
     ).setInformation(
