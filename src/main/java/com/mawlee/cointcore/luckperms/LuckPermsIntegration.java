@@ -340,7 +340,7 @@ public final class LuckPermsIntegration {
         return PublicApiMethodResolver.invoke(owner, target, methodName, args);
     }
 
-    static Object invoke(Class<?> owner, Object target, String methodName, Class<?>[] parameterTypes, Object... args)
+    static Object invokeExact(Class<?> owner, Object target, String methodName, Class<?>[] parameterTypes, Object... args)
             throws ReflectiveOperationException {
         return PublicApiMethodResolver.resolve(owner, methodName, parameterTypes).invoke(target, args);
     }

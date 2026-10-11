@@ -462,7 +462,7 @@ public final class LuckPermsUsers {
     private static Object buildPrefixNode(String prefixRaw, String group, PrefixConfig.Settings settings)
             throws ReflectiveOperationException {
         Class<?> prefixNode = Class.forName("net.luckperms.api.node.types.PrefixNode");
-        Object builder = LuckPermsIntegration.invoke(
+        Object builder = LuckPermsIntegration.invokeExact(
                 prefixNode,
                 null,
                 "builder",
@@ -490,7 +490,7 @@ public final class LuckPermsUsers {
     private static Object buildMetaNode(String key, String value, PrefixConfig.Settings settings)
             throws ReflectiveOperationException {
         Class<?> metaNode = Class.forName("net.luckperms.api.node.types.MetaNode");
-        Object builder = LuckPermsIntegration.invoke(
+        Object builder = LuckPermsIntegration.invokeExact(
                 metaNode,
                 null,
                 "builder",
@@ -518,7 +518,7 @@ public final class LuckPermsUsers {
 
     private static Object buildInheritanceNode(String group) throws ReflectiveOperationException {
         Class<?> inheritance = Class.forName("net.luckperms.api.node.types.InheritanceNode");
-        Object builder = LuckPermsIntegration.invoke(
+        Object builder = LuckPermsIntegration.invokeExact(
                 inheritance,
                 null,
                 "builder",
