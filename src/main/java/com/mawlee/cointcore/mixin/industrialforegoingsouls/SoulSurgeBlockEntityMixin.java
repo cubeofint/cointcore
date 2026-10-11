@@ -4,6 +4,8 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mawlee.cointcore.config.SoulSurgePerfConfig;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeAccelerationClaim;
+import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeClaimTracker;
+import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeFacing;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeTarget;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -18,7 +20,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -28,22 +29,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
 
 /**
- * Soul Surge accelerates only the single attached block entity (facing.opposite)
- * at the mod's {@code ACCELERATION_TICK}. A target may be claimed by at most
- * one surge per game tick (sticky owner). No deny lists, no chunk-limit gate,
- * no entity / random-tick / neighbour scans.
+ * Soul Surge accelerates only the single attached block entity
+ * ({@code pos.relative(facing.opposite)}) at the mod's {@code ACCELERATION_TICK}.
+ * Facing is read by property name {@code facing} (Titanium
+ * {@code RotatableBlock.FACING_ALL}), not {@code BlockStateProperties} identity.
+ * A target may be claimed by at most one surge per game tick (sticky owner).
+ * No deny lists, no chunk-limit gate, no entity / random-tick / neighbour scans.
  */
 @Mixin(targets = "com.buuz135.industrialforegoingsouls.block.tile.SoulSurgeBlockEntity", remap = false)
 public abstract class SoulSurgeBlockEntityMixin {
     private static final String SERVER_TICK =
             "serverTick(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lcom/buuz135/industrialforegoingsouls/block/tile/SoulSurgeBlockEntity;)V";
-
-    @Unique
-    private static final Map<Level, SoulSurgeAccelerationClaim> cointcore$claimsByLevel = new WeakHashMap<>();
 
     @Unique
     private long cointcore$claimedTargetPacked;
@@ -245,7 +243,7 @@ public abstract class SoulSurgeBlockEntityMixin {
 
     @Unique
     private static SoulSurgeAccelerationClaim cointcore$claimsFor(Level level) {
-        return cointcore$claimsByLevel.computeIfAbsent(level, ignored -> new SoulSurgeAccelerationClaim());
+        return SoulSurgeClaimTracker.forLevel(level);
     }
 
     @Unique
@@ -257,19 +255,7 @@ public abstract class SoulSurgeBlockEntityMixin {
     @Unique
     private BlockPos cointcore$attachedPos() {
         BlockEntity surge = (BlockEntity) (Object) this;
-        SoulSurgeTarget.Offset offset = SoulSurgeTarget.attachedOffset(cointcore$facingName(surge.getBlockState()));
-        return surge.getBlockPos().offset(offset.x(), offset.y(), offset.z());
-    }
-
-    @Unique
-    private static String cointcore$facingName(BlockState state) {
-        if (state.hasProperty(BlockStateProperties.FACING)) {
-            return state.getValue(BlockStateProperties.FACING).getSerializedName();
-        }
-        if (state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
-            return state.getValue(BlockStateProperties.HORIZONTAL_FACING).getSerializedName();
-        }
-        return null;
+        return SoulSurgeFacing.target(surge.getBlockPos(), surge.getBlockState());
     }
 
     @Unique

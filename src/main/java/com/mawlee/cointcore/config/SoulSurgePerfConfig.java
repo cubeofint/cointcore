@@ -19,9 +19,13 @@ import java.nio.file.Path;
 /**
  * Soul Surge intervention flags ({@code config/cointcore/soul-surge-perf.json}).
  * When {@code enabled}, each surge accelerates only its attached block entity
- * at the mod's {@code ACCELERATION_TICK} (default 4). Obsolete keys such as
- * {@code maxAccelerationTicks}, {@code denyBlockIds} and {@code denyBlockTags}
- * are ignored so old files keep loading.
+ * at the mod's {@code ACCELERATION_TICK} (default 4 extra ticks). Acceleration
+ * is not configurable here.
+ * <p>
+ * Unused / obsolete keys are not bound: {@code maxAccelerationTicks} never
+ * capped the IF Souls tick count and is ignored if present, as are
+ * {@code denyBlockIds}, {@code denyBlockTags} and {@code respectChunkLimits}.
+ * Old files keep loading.
  */
 public final class SoulSurgePerfConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -119,6 +123,10 @@ public final class SoulSurgePerfConfig {
         }
     }
 
+    /**
+     * On-disk shape. {@code maxAccelerationTicks} is intentionally absent so
+     * new files do not write it; Gson drops the leftover key on load.
+     */
     static final class FileData {
         @SerializedName("enabled")
         Boolean enabled;

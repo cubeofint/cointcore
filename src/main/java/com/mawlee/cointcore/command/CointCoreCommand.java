@@ -114,6 +114,7 @@ public final class CointCoreCommand {
                                 .executes(CointCoreCommand::cataclysmSpotsForce)))
                 .then(ChunkLimitCommand.chunkLimitCommand())
                 .then(WatchdogCommand.branch())
+                .then(SoulSurgeCommand.branch())
                 .then(GluonWalletCommand.branch())
                 .then(SpeedrunnerCommand.branch())
                 .then(PrefixAdminCommand.branch());

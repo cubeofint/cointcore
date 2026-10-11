@@ -199,6 +199,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/cointcore claim flag ...` | Флаги чанков FTB (если FTB Chunks установлен) |
 | `/cointcore kit balance\|add\|set\|take\|list\|clear` | Кредиты на киты (не сгорают). `add` — ник, UUID (с дефисами или 32 hex) или ник, которого ещё не было на сервере (usercache / Mojang). `list` / `clear [кит]` — админский просмотр и сброс |
 | `/cointcore watchdog ...` | Tick watchdog: отчёт, топ, телепорт к виновнику |
+| `/cointcore soulsurge debug <pos>` | Админ (уровень 2): у сёрджа — facing и цель; у машины — владелец claim |
 | `/cointcore gluons get\|set\|add` | Админ-кошелёк глюонов (`cointcore.gluons.admin`) |
 | `/cointcore speedrunner info\|reset\|set` | Рекорд спидранера (`cointcore.speedrunner.admin`) |
 | `/cointcore prefixes export` | Выгрузить полный каталог квестовых префиксов на сайт (`cointcore.prefix.admin`) |
@@ -856,7 +857,9 @@ ServerEvents.recipes(event => {
 
 Industrial Foregoing Souls: каждый Soul Surge ускоряет **ровно один** блок — тот, на который он надет.
 
-В IF Souls блок направленный: Titanium `RotatableBlock.FACING_ALL` = ванильный `facing` (сторона, куда смотрит «спина»/пайп). Сопло смотрит в `facing.opposite`, цель = `surgePos.relative(facing.opposite)` — клетка, к которой сёрдж приставлен. Если у блока нет `facing`, берётся `up` (цель — блок снизу), как у сёрджа, поставленного сверху на машину.
+В IF Souls блок направленный: Titanium `RotatableBlock.FACING_ALL` — отдельный `DirectionProperty` с именем `facing` (не тот же объект, что `BlockStateProperties.FACING`; сравнение `hasProperty` по identity его не видит). Направление читается по имени свойства. Сопло смотрит в `facing.opposite`, цель = `surgePos.relative(facing.opposite)` — клетка, к которой сёрдж приставлен. Если у блока нет `facing`, берётся `up` (цель — блок снизу), как у сёрджа, поставленного сверху на машину.
+
+Админ-команда `/cointcore soulsurge debug <pos>` (permission 2): для позиции сёрджа показывает resolved facing и клетку-цель; для позиции машины — какой сёрдж держит per-tick claim.
 
 - Полная скорость мода: `ACCELERATION_TICK` из конфига IF Souls (по умолчанию 4 лишних тика).
 - Ограничений по типу машины нет: deny-списки, block tag (`cointcore:soul_surge_no_accelerate`, `industrialforegoingsouls:cant_accelerate`) и лимиты на чанк для Soul Surge не применяются. Общий `tick-acceleration-deny.json` (Time Wand и др.) **не** читается.
@@ -874,7 +877,7 @@ Industrial Foregoing Souls: каждый Soul Surge ускоряет **ровн�
 }
 ```
 
-`enabled: false` полностью отдаёт тик ванильному IF Souls (теги мода, random-tick, сущности). `singleTarget` — режим «одна цель»; при `enabled` mixin всегда держит одну присоединённую клетку. Устаревшие ключи (`maxAccelerationTicks`, `denyBlockIds`, `denyBlockTags`, `respectChunkLimits`) игнорируются.
+`enabled: false` полностью отдаёт тик ванильному IF Souls (теги мода, random-tick, сущности). `singleTarget` — режим «одна цель»; при `enabled` mixin всегда держит одну присоединённую клетку. Скорость не задаётся в этом файле: используется `ACCELERATION_TICK` мода (по умолчанию 4). Ключ `maxAccelerationTicks` не используется и при наличии в старом файле игнорируется вместе с `denyBlockIds`, `denyBlockTags`, `respectChunkLimits`.
 
 `soul-surge-deny.json` помечен как deprecated/unused: файл по-прежнему читается при старте и `/cointcore reload`, чтобы старые списки не роняли сервер, но на ускорение не влияет.
 

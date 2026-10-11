@@ -6,9 +6,12 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SoulSurgeTargetTest {
@@ -44,6 +47,48 @@ class SoulSurgeTargetTest {
     void missingFacingTargetsBlockBelow(String facing) {
         assertEquals("up", SoulSurgeTarget.normalizeFacing(facing));
         assertArrayEquals(new int[]{8, 63, -2}, SoulSurgeTarget.attachedCoordinates(8, 64, -2, facing));
+    }
+
+    @Test
+    void facingIsReadByPropertyNameNotObjectIdentity() {
+        List<SoulSurgeTarget.NamedProperty> titaniumStyle = List.of(
+                new SoulSurgeTarget.NamedProperty("waterlogged", "false"),
+                new SoulSurgeTarget.NamedProperty("facing", "east")
+        );
+        assertEquals("east", SoulSurgeTarget.facingFromProperties(titaniumStyle));
+        assertArrayEquals(
+                new int[]{3, 10, 7},
+                SoulSurgeTarget.attachedCoordinates(
+                        4, 10, 7,
+                        SoulSurgeTarget.facingFromProperties(titaniumStyle)
+                )
+        );
+    }
+
+    @Test
+    void missingFacingPropertyIsNullThenFallsBackToUp() {
+        assertNull(SoulSurgeTarget.facingFromProperties(List.of(
+                new SoulSurgeTarget.NamedProperty("axis", "y")
+        )));
+        assertNull(SoulSurgeTarget.facingFromProperties(List.of()));
+        assertArrayEquals(
+                new int[]{0, -1, 0},
+                SoulSurgeTarget.attachedCoordinates(
+                        0, 0, 0,
+                        SoulSurgeTarget.facingFromProperties(List.of())
+                )
+        );
+    }
+
+    @Test
+    void sideAndBelowSurgesTargetTheMachine() {
+        int[] machine = {4, 64, 7};
+        assertArrayEquals(machine, SoulSurgeTarget.attachedCoordinates(4, 65, 7, "up"));
+        assertArrayEquals(machine, SoulSurgeTarget.attachedCoordinates(4, 63, 7, "down"));
+        assertArrayEquals(machine, SoulSurgeTarget.attachedCoordinates(4, 64, 6, "north"));
+        assertArrayEquals(machine, SoulSurgeTarget.attachedCoordinates(4, 64, 8, "south"));
+        assertArrayEquals(machine, SoulSurgeTarget.attachedCoordinates(3, 64, 7, "west"));
+        assertArrayEquals(machine, SoulSurgeTarget.attachedCoordinates(5, 64, 7, "east"));
     }
 
     @Test
