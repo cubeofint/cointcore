@@ -3,6 +3,7 @@ package com.mawlee.cointcore.command;
 import com.mawlee.cointcore.kit.KitCreditService;
 import com.mawlee.cointcore.lang.CointCoreMessages;
 import com.mawlee.cointcore.mute.MuteService;
+import com.mawlee.cointcore.player.PlayerIdentityResolve;
 import com.mawlee.cointcore.permission.CointPermissionNodes;
 import com.mawlee.cointcore.permission.PermissionService;
 import com.mojang.brigadier.Command;
@@ -81,7 +82,26 @@ public final class KitCreditCommand {
                                 .then(Commands.argument("kit", StringArgumentType.word())
                                         .suggests((context, builder) -> suggestKitNames(builder))
                                         .then(Commands.argument("amount", StringArgumentType.word())
-                                                .executes(KitCreditCommand::takeCredits)))));
+                                                .executes(KitCreditCommand::takeCredits)))))
+                .then(Commands.literal("list")
+                        .requires(KitCreditCommand::canManageCredits)
+                        .then(Commands.argument("target", StringArgumentType.word())
+                                .suggests((context, builder) -> SharedSuggestionProvider.suggest(
+                                        suggestPlayerNames(context.getSource()),
+                                        builder
+                                ))
+                                .executes(KitCreditCommand::showTargetBalance)))
+                .then(Commands.literal("clear")
+                        .requires(KitCreditCommand::canManageCredits)
+                        .then(Commands.argument("target", StringArgumentType.word())
+                                .suggests((context, builder) -> SharedSuggestionProvider.suggest(
+                                        suggestPlayerNames(context.getSource()),
+                                        builder
+                                ))
+                                .executes(KitCreditCommand::clearAllCredits)
+                                .then(Commands.argument("kit", StringArgumentType.word())
+                                        .suggests((context, builder) -> suggestKitNames(builder))
+                                        .executes(KitCreditCommand::clearKitCredits))));
     }
 
     public static LiteralArgumentBuilder<CommandSourceStack> playerKitBalanceCommand() {
@@ -177,6 +197,44 @@ public final class KitCreditCommand {
         return Command.SINGLE_SUCCESS;
     }
 
+    private static int clearAllCredits(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ensureFtbLoaded();
+        CommandSourceStack source = context.getSource();
+        ResolvedTarget target = resolveTarget(source, StringArgumentType.getString(context, "target"));
+        Map<String, Integer> previous = KitCreditService.clearAll(source.getServer(), target.id());
+        if (previous.isEmpty()) {
+            source.sendSuccess(
+                    () -> messageFor(source, CointCoreMessages.KIT_CREDIT_CLEARED_EMPTY, target.name()),
+                    true
+            );
+            return Command.SINGLE_SUCCESS;
+        }
+        source.sendSuccess(
+                () -> messageFor(source, CointCoreMessages.KIT_CREDIT_CLEARED, target.name(), previous.size()),
+                true
+        );
+        previous.entrySet().stream()
+                .sorted(Comparator.comparing(Map.Entry::getKey))
+                .forEach(entry -> source.sendSuccess(
+                        () -> messageFor(source, CointCoreMessages.KIT_CREDIT_BALANCE_ENTRY, entry.getKey(), entry.getValue()),
+                        false
+                ));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int clearKitCredits(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ensureFtbLoaded();
+        CommandSourceStack source = context.getSource();
+        ResolvedTarget target = resolveTarget(source, StringArgumentType.getString(context, "target"));
+        String kitName = StringArgumentType.getString(context, "kit");
+        int previous = KitCreditService.clearKit(source.getServer(), target.id(), kitName);
+        source.sendSuccess(
+                () -> messageFor(source, CointCoreMessages.KIT_CREDIT_CLEARED_KIT, kitName, target.name(), previous),
+                true
+        );
+        return Command.SINGLE_SUCCESS;
+    }
+
     private static int parseAmount(CommandContext<CommandSourceStack> context, int min) throws CommandSyntaxException {
         String raw = StringArgumentType.getString(context, "amount");
         int end = 0;
@@ -195,7 +253,7 @@ public final class KitCreditCommand {
     }
 
     private static ResolvedTarget resolveTarget(CommandSourceStack source, String targetName) throws CommandSyntaxException {
-        Optional<UUID> targetId = MuteService.resolvePlayerId(source.getServer(), targetName);
+        Optional<UUID> targetId = PlayerIdentityResolve.resolvePlayerIdAllowingLookup(source.getServer(), targetName);
         if (targetId.isEmpty()) {
             throw playerNotFound(targetName);
         }

@@ -146,6 +146,9 @@ public final class CointCoreMessages {
     public static final String KIT_CREDIT_BALANCE_HEADER = "message.cointcore.kit.credit.balance.header";
     public static final String KIT_CREDIT_BALANCE_ENTRY = "message.cointcore.kit.credit.balance.entry";
     public static final String KIT_CREDIT_PLAYER_NOT_FOUND = "message.cointcore.kit.credit.player_not_found";
+    public static final String KIT_CREDIT_CLEARED = "message.cointcore.kit.credit.cleared";
+    public static final String KIT_CREDIT_CLEARED_KIT = "message.cointcore.kit.credit.cleared.kit";
+    public static final String KIT_CREDIT_CLEARED_EMPTY = "message.cointcore.kit.credit.cleared.empty";
     public static final String KIT_UPDATED = "message.cointcore.kit.updated";
     public static final String VOTE_STARTED = "message.cointcore.vote.started";
     public static final String VOTE_PROGRESS = "message.cointcore.vote.progress";

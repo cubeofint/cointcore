@@ -11,7 +11,8 @@ import java.util.UUID;
 
 /**
  * Resolves player UUID/name for moderation commands.
- * Order: online → usercache ({@code GameProfileCache}) → NeoForge {@code usernamecache.json}.
+ * Order: UUID (dashed or 32-hex) → online → usercache ({@code GameProfileCache})
+ * → NeoForge {@code usernamecache.json}.
  */
 public final class PlayerIdentityResolve {
     private PlayerIdentityResolve() {
@@ -23,9 +24,9 @@ public final class PlayerIdentityResolve {
         }
 
         String trimmed = name.trim();
-        Optional<UUID> asUuid = tryParseUuid(trimmed);
-        if (asUuid.isPresent()) {
-            return asUuid;
+        UUID asUuid = PlayerIds.parse(trimmed);
+        if (asUuid != null) {
+            return Optional.of(asUuid);
         }
 
         ServerPlayer onlineMatch = null;
@@ -50,6 +51,21 @@ public final class PlayerIdentityResolve {
         }
 
         return resolveFromUsernameCache(server, trimmed);
+    }
+
+    /**
+     * Same as {@link #resolvePlayerId}, then a cheap Mojang name lookup for never-seen players.
+     * Used by kit-credit admin commands so {@code /cointcore kit add} works before first join.
+     */
+    public static Optional<UUID> resolvePlayerIdAllowingLookup(MinecraftServer server, String name) {
+        Optional<UUID> known = resolvePlayerId(server, name);
+        if (known.isPresent()) {
+            return known;
+        }
+        if (name == null || name.isBlank()) {
+            return Optional.empty();
+        }
+        return PlayerProfileLookup.lookupByName(server, name.trim());
     }
 
     public static Optional<String> resolveName(MinecraftServer server, UUID playerId) {
@@ -117,13 +133,5 @@ public final class PlayerIdentityResolve {
             // Cache write is best-effort; ban still works with UUID+name.
         }
         return Optional.of(resolved);
-    }
-
-    private static Optional<UUID> tryParseUuid(String value) {
-        try {
-            return Optional.of(UUID.fromString(value));
-        } catch (IllegalArgumentException ignored) {
-            return Optional.empty();
-        }
     }
 }

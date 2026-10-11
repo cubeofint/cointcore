@@ -16,7 +16,7 @@ public final class KitCreditSavedData extends SavedData {
     private static final String DATA_ID = CointCore.MOD_ID + "_kit_credits";
     private static final String PLAYERS_KEY = "players";
 
-    private final Map<UUID, Map<String, Integer>> creditsByPlayer = new HashMap<>();
+    private final KitCreditStore store = new KitCreditStore();
 
     private KitCreditSavedData() {
     }
@@ -28,63 +28,45 @@ public final class KitCreditSavedData extends SavedData {
     }
 
     public int getCredits(UUID playerId, String kitName) {
-        Map<String, Integer> kits = creditsByPlayer.get(playerId);
-        if (kits == null) {
-            return 0;
-        }
-
-        return Math.max(0, kits.getOrDefault(normalizeKitName(kitName), 0));
+        return store.get(playerId, kitName);
     }
 
     public int setCredits(UUID playerId, String kitName, int amount) {
-        int normalized = Math.max(0, amount);
-        Map<String, Integer> kits = creditsByPlayer.computeIfAbsent(playerId, ignored -> new HashMap<>());
-        String key = normalizeKitName(kitName);
-
-        if (normalized == 0) {
-            kits.remove(key);
-            cleanupPlayer(playerId, kits);
-        } else {
-            kits.put(key, normalized);
-        }
-
+        int total = store.set(playerId, kitName, amount);
         setDirty();
-        return normalized;
+        return total;
     }
 
     public int addCredits(UUID playerId, String kitName, int amount) {
-        if (amount <= 0) {
-            return getCredits(playerId, kitName);
-        }
-
-        return setCredits(playerId, kitName, getCredits(playerId, kitName) + amount);
+        int total = store.add(playerId, kitName, amount);
+        setDirty();
+        return total;
     }
 
     public int takeCredits(UUID playerId, String kitName, int amount) {
-        if (amount <= 0) {
-            return getCredits(playerId, kitName);
-        }
-
-        return setCredits(playerId, kitName, Math.max(0, getCredits(playerId, kitName) - amount));
+        int total = store.take(playerId, kitName, amount);
+        setDirty();
+        return total;
     }
 
     public Map<String, Integer> getAllCredits(UUID playerId) {
-        Map<String, Integer> kits = creditsByPlayer.get(playerId);
-        if (kits == null || kits.isEmpty()) {
-            return Map.of();
-        }
-
-        return Map.copyOf(kits);
+        return store.all(playerId);
     }
 
-    private void cleanupPlayer(UUID playerId, Map<String, Integer> kits) {
-        if (kits.isEmpty()) {
-            creditsByPlayer.remove(playerId);
+    public Map<String, Integer> clearAll(UUID playerId) {
+        Map<String, Integer> previous = store.clearAll(playerId);
+        if (!previous.isEmpty()) {
+            setDirty();
         }
+        return previous;
     }
 
-    private static String normalizeKitName(String kitName) {
-        return kitName.toLowerCase();
+    public int clearKit(UUID playerId, String kitName) {
+        int previous = store.clearKit(playerId, kitName);
+        if (previous > 0) {
+            setDirty();
+        }
+        return previous;
     }
 
     private static KitCreditSavedData load(CompoundTag tag, HolderLookup.Provider provider) {
@@ -93,6 +75,7 @@ public final class KitCreditSavedData extends SavedData {
             return data;
         }
 
+        Map<UUID, Map<String, Integer>> loaded = new HashMap<>();
         ListTag players = tag.getList(PLAYERS_KEY, Tag.TAG_COMPOUND);
         for (Tag entryTag : players) {
             CompoundTag entry = (CompoundTag) entryTag;
@@ -107,17 +90,17 @@ public final class KitCreditSavedData extends SavedData {
                 for (String kitName : kitsTag.getAllKeys()) {
                     int amount = kitsTag.getInt(kitName);
                     if (amount > 0) {
-                        kits.put(normalizeKitName(kitName), amount);
+                        kits.put(kitName, amount);
                     }
                 }
 
                 if (!kits.isEmpty()) {
-                    data.creditsByPlayer.put(playerId, kits);
+                    loaded.put(playerId, kits);
                 }
             } catch (IllegalArgumentException ignored) {
             }
         }
-
+        data.store.replaceAll(loaded);
         return data;
     }
 
@@ -125,7 +108,7 @@ public final class KitCreditSavedData extends SavedData {
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
         ListTag players = new ListTag();
 
-        for (Map.Entry<UUID, Map<String, Integer>> entry : creditsByPlayer.entrySet()) {
+        for (Map.Entry<UUID, Map<String, Integer>> entry : store.snapshot().entrySet()) {
             if (entry.getValue().isEmpty()) {
                 continue;
             }
