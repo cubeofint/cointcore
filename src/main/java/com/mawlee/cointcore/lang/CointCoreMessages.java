@@ -244,6 +244,36 @@ public final class CointCoreMessages {
     public static final String PLAYER_SHOP_CANNOT_FILL_PRICE_UP = "message.cointcore.player_trader.cannot_fill.price_up";
     public static final String PLAYER_SHOP_PULL_ON = "message.cointcore.player_trader.pull.on";
     public static final String PLAYER_SHOP_PULL_OFF = "message.cointcore.player_trader.pull.off";
+    public static final String PREFIX_HEADER = "message.cointcore.prefix.header";
+    public static final String PREFIX_CURRENT = "message.cointcore.prefix.current";
+    public static final String PREFIX_CURRENT_AUTO = "message.cointcore.prefix.current.auto";
+    public static final String PREFIX_ENTRY = "message.cointcore.prefix.entry";
+    public static final String PREFIX_ENTRY_SELECTED = "message.cointcore.prefix.entry.selected";
+    public static final String PREFIX_ENTRY_AUTO = "message.cointcore.prefix.entry.auto";
+    public static final String PREFIX_OPEN_GUI = "message.cointcore.prefix.open_gui";
+    public static final String PREFIX_HOVER_SET = "message.cointcore.prefix.hover.set";
+    public static final String PREFIX_HOVER_AUTO = "message.cointcore.prefix.hover.auto";
+    public static final String PREFIX_HOVER_GUI = "message.cointcore.prefix.hover.gui";
+    public static final String PREFIX_SET = "message.cointcore.prefix.set";
+    public static final String PREFIX_AUTO = "message.cointcore.prefix.auto";
+    public static final String PREFIX_STAFF_LOCKED = "message.cointcore.prefix.staff_locked";
+    public static final String PREFIX_NOT_AVAILABLE = "message.cointcore.prefix.not_available";
+    public static final String PREFIX_UNAVAILABLE = "message.cointcore.prefix.unavailable";
+    public static final String PREFIX_UNCHANGED = "message.cointcore.prefix.unchanged";
+    public static final String PREFIX_GUI_DISABLED = "message.cointcore.prefix.gui.disabled";
+    public static final String PREFIX_GUI_TITLE = "gui.cointcore.prefix.title";
+    public static final String PREFIX_GUI_AUTO = "gui.cointcore.prefix.auto";
+    public static final String PREFIX_GUI_AUTO_LORE = "gui.cointcore.prefix.auto.lore";
+    public static final String PREFIX_GUI_CATEGORY = "gui.cointcore.prefix.category";
+    public static final String PREFIX_GUI_CURRENT = "gui.cointcore.prefix.current";
+    public static final String PREFIX_GUI_CLICK = "gui.cointcore.prefix.click";
+    public static final String SPEEDRUNNER_BROADCAST = "message.cointcore.speedrunner.broadcast";
+    public static final String SPEEDRUNNER_INFO = "message.cointcore.speedrunner.info";
+    public static final String SPEEDRUNNER_NONE = "message.cointcore.speedrunner.none";
+    public static final String SPEEDRUNNER_RESET = "message.cointcore.speedrunner.reset";
+    public static final String SPEEDRUNNER_SET = "message.cointcore.speedrunner.set";
+    public static final String SPEEDRUNNER_SET_NEEDS_TICKS = "message.cointcore.speedrunner.set.needs_ticks";
+    public static final String SPEEDRUNNER_PLAYER_NOT_FOUND = "message.cointcore.speedrunner.player_not_found";
 
     private CointCoreMessages() {
     }

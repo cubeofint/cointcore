@@ -383,6 +383,20 @@ public final class CointPermissionNodes {
             Component.translatable("permission.desc.cointcore.playershop.admin")
     );
 
+    public static final PermissionNode<Boolean> PREFIX = new PermissionNode<>(
+            CointCore.MOD_ID, "prefix", PermissionTypes.BOOLEAN, EVERYONE
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.prefix"),
+            Component.translatable("permission.desc.cointcore.prefix")
+    );
+
+    public static final PermissionNode<Boolean> SPEEDRUNNER_ADMIN = new PermissionNode<>(
+            CointCore.MOD_ID, "speedrunner.admin", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.speedrunner.admin"),
+            Component.translatable("permission.desc.cointcore.speedrunner.admin")
+    );
+
     public static PermissionNode<?>[] invSeeNodes() {
         return new PermissionNode<?>[] {
                 INVSEE,

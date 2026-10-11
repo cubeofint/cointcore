@@ -266,9 +266,12 @@ public final class LuckPermsIntegration {
         }
     }
 
-    private static Object getUser(UUID playerId) throws ReflectiveOperationException {
-        Object provider = invokeStatic(PROVIDER_CLASS, "get");
-        Object userManager = invoke(provider, "getUserManager");
+    static Object provider() throws ReflectiveOperationException {
+        return invokeStatic(PROVIDER_CLASS, "get");
+    }
+
+    static Object getUser(UUID playerId) throws ReflectiveOperationException {
+        Object userManager = invoke(provider(), "getUserManager");
         return invoke(userManager, "getUser", new Class<?>[]{UUID.class}, playerId);
     }
 
@@ -284,32 +287,32 @@ public final class LuckPermsIntegration {
         return Boolean.TRUE.equals(invoke(result, "asBoolean"));
     }
 
-    private static Object getNodeType(String name) throws ReflectiveOperationException {
+    static Object getNodeType(String name) throws ReflectiveOperationException {
         Class<?> nodeTypeClass = Class.forName("net.luckperms.api.node.NodeType");
         return nodeTypeClass.getField(name).get(null);
     }
 
-    private static Class<?> queryOptionsClass() throws ClassNotFoundException {
+    static Class<?> queryOptionsClass() throws ClassNotFoundException {
         return Class.forName("net.luckperms.api.query.QueryOptions");
     }
 
-    private static Object invokeStatic(String className, String methodName, Object... args)
+    static Object invokeStatic(String className, String methodName, Object... args)
             throws ReflectiveOperationException {
         Class<?> owner = Class.forName(className);
         return invoke(owner, null, methodName, args);
     }
 
-    private static Object invoke(Object target, String methodName, Object... args)
+    static Object invoke(Object target, String methodName, Object... args)
             throws ReflectiveOperationException {
         return invoke(target.getClass(), target, methodName, args);
     }
 
-    private static Object invoke(Object target, String methodName, Class<?>[] parameterTypes, Object... args)
+    static Object invoke(Object target, String methodName, Class<?>[] parameterTypes, Object... args)
             throws ReflectiveOperationException {
         return target.getClass().getMethod(methodName, parameterTypes).invoke(target, args);
     }
 
-    private static Object invoke(Class<?> owner, Object target, String methodName, Object... args)
+    static Object invoke(Class<?> owner, Object target, String methodName, Object... args)
             throws ReflectiveOperationException {
         if (args.length == 0) {
             return owner.getMethod(methodName).invoke(target);

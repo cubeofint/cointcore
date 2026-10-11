@@ -52,7 +52,9 @@ public final class PermissionRegistration {
                 CointPermissionNodes.GLUONS_PAY,
                 CointPermissionNodes.PLAYER_SHOP_PLACE,
                 CointPermissionNodes.PLAYER_SHOP_USE,
-                CointPermissionNodes.PLAYER_SHOP_ADMIN
+                CointPermissionNodes.PLAYER_SHOP_ADMIN,
+                CointPermissionNodes.PREFIX,
+                CointPermissionNodes.SPEEDRUNNER_ADMIN
         );
         event.addNodes(CointPermissionNodes.invSeeNodes());
     }

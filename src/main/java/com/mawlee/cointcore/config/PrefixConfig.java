@@ -1,0 +1,281 @@
+package com.mawlee.cointcore.config;
+
+import com.google.gson.annotations.SerializedName;
+import com.mawlee.cointcore.CointCore;
+import com.mojang.logging.LogUtils;
+import net.neoforged.fml.loading.FMLPaths;
+import org.slf4j.Logger;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+/**
+ * File: {@code config/cointcore/prefixes.json}.
+ * Prefix picker, site sync, and ATM Star speedrunner settings.
+ */
+public final class PrefixConfig {
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final String FILE_NAME = "prefixes.json";
+    public static final String DEFAULT_STAFF_TRACK = "staff";
+    public static final String DEFAULT_RANKS_TRACK = "ranks";
+    public static final String DEFAULT_META_KEY = "cointcore-prefix-select";
+    public static final int DEFAULT_PREFIX_PRIORITY = 1000;
+    public static final String DEFAULT_SPEEDRUNNER_GROUP = "speedrunner";
+    public static final String DEFAULT_SPEEDRUNNER_ITEM = "allthetweaks:atm_star";
+
+    private static Settings settings = Settings.defaults();
+
+    private PrefixConfig() {
+    }
+
+    public static Settings get() {
+        return settings;
+    }
+
+    public static Path getConfigPath() {
+        return FMLPaths.CONFIGDIR.get().resolve(CointCore.MOD_ID).resolve(FILE_NAME);
+    }
+
+    public static void load() {
+        apply(loadFromDisk(false));
+    }
+
+    public static boolean reload() {
+        Settings loaded = loadFromDisk(true);
+        if (loaded == null) {
+            return false;
+        }
+        apply(loaded);
+        LOGGER.info("Reloaded prefix config from {}", getConfigPath());
+        return true;
+    }
+
+    private static void apply(Settings loaded) {
+        settings = loaded != null ? loaded : Settings.defaults();
+    }
+
+    private static Settings loadFromDisk(boolean reloading) {
+        Path path = getConfigPath();
+        try {
+            Files.createDirectories(path.getParent());
+            if (!Files.exists(path)) {
+                FileData defaults = FileData.defaults();
+                try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+                    ConfigMergeSupport.GSON.toJson(defaults, writer);
+                }
+                LOGGER.info("Created default prefix config at {}", path);
+                return Settings.from(defaults);
+            }
+            try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+                FileData data = ConfigMergeSupport.GSON.fromJson(reader, FileData.class);
+                Settings parsed = Settings.from(data);
+                if (!reloading) {
+                    LOGGER.info("Loaded prefix config from {}", path);
+                }
+                return parsed;
+            }
+        } catch (IOException | RuntimeException exception) {
+            LOGGER.error("Failed to load prefix config from {}", path, exception);
+            return reloading ? null : Settings.defaults();
+        }
+    }
+
+    public record Settings(
+            boolean enabled,
+            String staffTrack,
+            List<String> staffGroups,
+            String ranksTrack,
+            List<String> excludeGroups,
+            List<String> donationGroups,
+            List<String> mediaGroups,
+            List<String> builderGroups,
+            String defaultGroup,
+            Map<String, String> categoryOverrides,
+            String unmatchedCategory,
+            int prefixPriority,
+            String prefixMetaKey,
+            boolean siteSyncEnabled,
+            int siteReportDebounceTicks,
+            int sitePollSeconds,
+            boolean guiEnabled,
+            boolean speedrunnerEnabled,
+            String speedrunnerGroup,
+            String speedrunnerItem
+    ) {
+        static Settings defaults() {
+            return from(FileData.defaults());
+        }
+
+        static Settings from(FileData data) {
+            if (data == null) {
+                data = FileData.defaults();
+            }
+            FileData speedrunner = data.speedrunner != null ? data.speedrunner : FileData.defaultSpeedrunner();
+            return new Settings(
+                    data.enabled == null || data.enabled,
+                    normalizeName(data.staffTrack, DEFAULT_STAFF_TRACK),
+                    normalizeList(data.staffGroups, FileData.defaultStaffGroups()),
+                    normalizeName(data.ranksTrack, DEFAULT_RANKS_TRACK),
+                    normalizeList(data.excludeGroups, List.of()),
+                    normalizeList(data.donationGroups, List.of()),
+                    normalizeList(data.mediaGroups, FileData.defaultMediaGroups()),
+                    normalizeList(data.builderGroups, FileData.defaultBuilderGroups()),
+                    normalizeName(data.defaultGroup, "default"),
+                    normalizeOverrides(data.categoryOverrides),
+                    normalizeName(data.unmatchedCategory, "donation"),
+                    data.prefixPriority == null || data.prefixPriority <= 0
+                            ? DEFAULT_PREFIX_PRIORITY
+                            : data.prefixPriority,
+                    normalizeName(data.prefixMetaKey, DEFAULT_META_KEY),
+                    data.siteSyncEnabled == null || data.siteSyncEnabled,
+                    clamp(data.siteReportDebounceTicks, 1, 400, 40),
+                    clamp(data.sitePollSeconds, 1, 300, 15),
+                    data.guiEnabled == null || data.guiEnabled,
+                    speedrunner.enabled == null || speedrunner.enabled,
+                    normalizeName(speedrunner.group, DEFAULT_SPEEDRUNNER_GROUP),
+                    normalizeItem(speedrunner.item, DEFAULT_SPEEDRUNNER_ITEM)
+            );
+        }
+    }
+
+    private static List<String> normalizeList(List<String> values, List<String> fallback) {
+        List<String> source = values == null ? fallback : values;
+        List<String> result = new ArrayList<>();
+        for (String value : source) {
+            String normalized = normalizeName(value, null);
+            if (normalized != null && !result.contains(normalized)) {
+                result.add(normalized);
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    private static Map<String, String> normalizeOverrides(Map<String, String> values) {
+        if (values == null || values.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> result = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            String group = normalizeName(entry.getKey(), null);
+            String category = normalizeName(entry.getValue(), null);
+            if (group != null && category != null) {
+                result.put(group, category);
+            }
+        }
+        return Map.copyOf(result);
+    }
+
+    private static String normalizeName(String value, String fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static String normalizeItem(String value, String fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static int clamp(Integer value, int min, int max, int fallback) {
+        int parsed = value == null || value <= 0 ? fallback : value;
+        return Math.max(min, Math.min(max, parsed));
+    }
+
+    static final class FileData {
+        Boolean enabled;
+        @SerializedName("staff_track")
+        String staffTrack;
+        @SerializedName("staff_groups")
+        List<String> staffGroups;
+        @SerializedName("ranks_track")
+        String ranksTrack;
+        @SerializedName("exclude_groups")
+        List<String> excludeGroups;
+        @SerializedName("donation_groups")
+        List<String> donationGroups;
+        @SerializedName("media_groups")
+        List<String> mediaGroups;
+        @SerializedName("builder_groups")
+        List<String> builderGroups;
+        @SerializedName("default_group")
+        String defaultGroup;
+        @SerializedName("category_overrides")
+        Map<String, String> categoryOverrides;
+        @SerializedName("unmatched_category")
+        String unmatchedCategory;
+        @SerializedName("prefix_priority")
+        Integer prefixPriority;
+        @SerializedName("prefix_meta_key")
+        String prefixMetaKey;
+        @SerializedName("site_sync_enabled")
+        Boolean siteSyncEnabled;
+        @SerializedName("site_report_debounce_ticks")
+        Integer siteReportDebounceTicks;
+        @SerializedName("site_poll_seconds")
+        Integer sitePollSeconds;
+        @SerializedName("gui_enabled")
+        Boolean guiEnabled;
+        SpeedrunnerData speedrunner;
+
+        static FileData defaults() {
+            FileData data = new FileData();
+            data.enabled = true;
+            data.staffTrack = DEFAULT_STAFF_TRACK;
+            data.staffGroups = defaultStaffGroups();
+            data.ranksTrack = DEFAULT_RANKS_TRACK;
+            data.excludeGroups = List.of();
+            data.donationGroups = List.of();
+            data.mediaGroups = defaultMediaGroups();
+            data.builderGroups = defaultBuilderGroups();
+            data.defaultGroup = "default";
+            data.categoryOverrides = Map.of();
+            data.unmatchedCategory = "donation";
+            data.prefixPriority = DEFAULT_PREFIX_PRIORITY;
+            data.prefixMetaKey = DEFAULT_META_KEY;
+            data.siteSyncEnabled = true;
+            data.siteReportDebounceTicks = 40;
+            data.sitePollSeconds = 15;
+            data.guiEnabled = true;
+            data.speedrunner = defaultSpeedrunner();
+            return data;
+        }
+
+        static SpeedrunnerData defaultSpeedrunner() {
+            SpeedrunnerData data = new SpeedrunnerData();
+            data.enabled = true;
+            data.group = DEFAULT_SPEEDRUNNER_GROUP;
+            data.item = DEFAULT_SPEEDRUNNER_ITEM;
+            return data;
+        }
+
+        static List<String> defaultStaffGroups() {
+            return List.of("stazher", "helper", "moderator", "hmod", "admin", "hadmin");
+        }
+
+        static List<String> defaultMediaGroups() {
+            return List.of("media", "youtube", "twitch", "tiktok");
+        }
+
+        static List<String> defaultBuilderGroups() {
+            return List.of("builder");
+        }
+    }
+
+    static final class SpeedrunnerData {
+        Boolean enabled;
+        String group;
+        String item;
+    }
+}
