@@ -6,7 +6,6 @@ import com.google.gson.JsonSyntaxException;
 import com.google.gson.annotations.SerializedName;
 import com.mawlee.cointcore.CointCore;
 import com.mojang.logging.LogUtils;
-import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.fml.loading.FMLPaths;
 import org.slf4j.Logger;
 
@@ -18,50 +17,31 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Caps / toggles for Industrial Foregoing Souls Soul Surge acceleration.
- * Denylist lives in {@link SoulSurgeDenyConfig} ({@code soul-surge-deny.json}).
+ * Soul Surge intervention flags ({@code config/cointcore/soul-surge-perf.json}).
+ * When {@code enabled}, each surge accelerates only its attached block entity
+ * at the mod's {@code ACCELERATION_TICK} (default 4). Obsolete keys such as
+ * {@code maxAccelerationTicks}, {@code denyBlockIds} and {@code denyBlockTags}
+ * are ignored so old files keep loading.
  */
 public final class SoulSurgePerfConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    private static final int MIN_ACCELERATION_TICKS = 0;
-    private static final int MAX_ACCELERATION_TICKS = 16;
-
-    private static boolean enabled = true;
-    private static int maxAccelerationTicks = 1;
-    private static boolean respectChunkLimits = true;
-    private static boolean allowEntityAcceleration = false;
-    private static boolean allowBlockRandomTickAcceleration = false;
+    private static Settings settings = Settings.defaults();
 
     private SoulSurgePerfConfig() {
     }
 
     public static boolean isEnabled() {
-        return enabled;
+        return settings.enabled();
     }
 
-    public static int getMaxAccelerationTicks() {
-        return maxAccelerationTicks;
+    public static boolean isSingleTarget() {
+        return settings.singleTarget();
     }
 
-    public static boolean respectChunkLimits() {
-        return respectChunkLimits;
-    }
-
-    public static boolean allowEntityAcceleration() {
-        return allowEntityAcceleration;
-    }
-
-    public static boolean allowBlockRandomTickAcceleration() {
-        return allowBlockRandomTickAcceleration;
-    }
-
-    public static boolean isDenied(BlockState state) {
-        if (!enabled) {
-            return false;
-        }
-        return SoulSurgeDenyConfig.isDenied(state);
+    public static Settings get() {
+        return settings;
     }
 
     public static Path getConfigPath() {
@@ -73,81 +53,45 @@ public final class SoulSurgePerfConfig {
     }
 
     public static boolean reload() {
-        LoadedConfig loaded = loadFromDisk(true);
+        Settings loaded = loadFromDisk(true);
         if (loaded == null) {
             return false;
         }
         apply(loaded);
         LOGGER.info(
-                "Reloaded soul surge perf config (enabled={} maxTicks={} respectChunkLimits={} "
-                        + "entityAccel={} randomTickAccel={})",
-                enabled,
-                maxAccelerationTicks,
-                respectChunkLimits,
-                allowEntityAcceleration,
-                allowBlockRandomTickAcceleration
+                "Reloaded soul surge perf config (enabled={} singleTarget={})",
+                settings.enabled(),
+                settings.singleTarget()
         );
         return true;
     }
 
-    private static void apply(LoadedConfig loaded) {
-        enabled = loaded.enabled();
-        maxAccelerationTicks = loaded.maxAccelerationTicks();
-        respectChunkLimits = loaded.respectChunkLimits();
-        allowEntityAcceleration = loaded.allowEntityAcceleration();
-        allowBlockRandomTickAcceleration = loaded.allowBlockRandomTickAcceleration();
+    private static void apply(Settings loaded) {
+        settings = loaded != null ? loaded : Settings.defaults();
     }
 
-    private static LoadedConfig loadFromDisk(boolean reloading) {
+    private static Settings loadFromDisk(boolean reloading) {
         try {
             Path path = configPath();
             Files.createDirectories(path.getParent());
             if (!Files.exists(path)) {
-                FileData defaults = defaultFileData();
+                FileData defaults = FileData.defaults();
                 save(defaults, path);
                 LOGGER.info("Created default soul surge perf config at {}", path);
-                return parse(defaults);
+                return Settings.from(defaults);
             }
 
             try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
                 FileData data = GSON.fromJson(reader, FileData.class);
-                return parse(data != null ? data : defaultFileData());
+                return Settings.from(data);
             }
         } catch (IOException | JsonSyntaxException exception) {
             LOGGER.error("Failed to load soul surge perf config from {}", configPath(), exception);
-            return reloading ? null : parse(defaultFileData());
+            return reloading ? null : Settings.defaults();
         } catch (RuntimeException exception) {
             LOGGER.error("Unexpected error while loading soul surge perf config from {}", configPath(), exception);
-            return reloading ? null : parse(defaultFileData());
+            return reloading ? null : Settings.defaults();
         }
-    }
-
-    private static LoadedConfig parse(FileData data) {
-        boolean on = data.enabled == null || data.enabled;
-        int maxTicks = clamp(
-                data.maxAccelerationTicks != null ? data.maxAccelerationTicks : 1,
-                MIN_ACCELERATION_TICKS,
-                MAX_ACCELERATION_TICKS
-        );
-        boolean respectLimits = data.respectChunkLimits == null || data.respectChunkLimits;
-        boolean entityAccel = Boolean.TRUE.equals(data.allowEntityAcceleration);
-        boolean randomTickAccel = Boolean.TRUE.equals(data.allowBlockRandomTickAcceleration);
-
-        return new LoadedConfig(on, maxTicks, respectLimits, entityAccel, randomTickAccel);
-    }
-
-    private static int clamp(int value, int min, int max) {
-        return Math.max(min, Math.min(max, value));
-    }
-
-    private static FileData defaultFileData() {
-        FileData data = new FileData();
-        data.enabled = true;
-        data.maxAccelerationTicks = 1;
-        data.respectChunkLimits = true;
-        data.allowEntityAcceleration = false;
-        data.allowBlockRandomTickAcceleration = false;
-        return data;
     }
 
     private static void save(FileData data, Path path) throws IOException {
@@ -160,29 +104,33 @@ public final class SoulSurgePerfConfig {
         return FMLPaths.CONFIGDIR.get().resolve(CointCore.MOD_ID).resolve("soul-surge-perf.json");
     }
 
-    private record LoadedConfig(
-            boolean enabled,
-            int maxAccelerationTicks,
-            boolean respectChunkLimits,
-            boolean allowEntityAcceleration,
-            boolean allowBlockRandomTickAcceleration
-    ) {
+    public record Settings(boolean enabled, boolean singleTarget) {
+        public static Settings defaults() {
+            return new Settings(true, true);
+        }
+
+        public static Settings from(FileData data) {
+            if (data == null) {
+                return defaults();
+            }
+            boolean on = data.enabled == null || data.enabled;
+            boolean single = data.singleTarget == null || data.singleTarget;
+            return new Settings(on, single);
+        }
     }
 
-    private static final class FileData {
+    static final class FileData {
         @SerializedName("enabled")
-        private Boolean enabled;
+        Boolean enabled;
 
-        @SerializedName("maxAccelerationTicks")
-        private Integer maxAccelerationTicks;
+        @SerializedName("singleTarget")
+        Boolean singleTarget;
 
-        @SerializedName("respectChunkLimits")
-        private Boolean respectChunkLimits;
-
-        @SerializedName("allowEntityAcceleration")
-        private Boolean allowEntityAcceleration;
-
-        @SerializedName("allowBlockRandomTickAcceleration")
-        private Boolean allowBlockRandomTickAcceleration;
+        static FileData defaults() {
+            FileData data = new FileData();
+            data.enabled = true;
+            data.singleTarget = true;
+            return data;
+        }
     }
 }

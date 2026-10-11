@@ -34,7 +34,7 @@ import java.util.Set;
 
 /**
  * Editable tick-acceleration denylist ({@code config/cointcore/tick-acceleration-deny.json}).
- * Used by Time Wand (and Soul Surge gate). Defaults copied from bundled resource on first create.
+ * Used by Time Wand and similar accelerators (not Soul Surge). Defaults copied from bundled resource on first create.
  */
 public final class TickAccelerationDenyConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
