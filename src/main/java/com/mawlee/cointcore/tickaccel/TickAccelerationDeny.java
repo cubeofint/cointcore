@@ -4,7 +4,8 @@ import com.mawlee.cointcore.config.TickAccelerationDenyConfig;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Shared deny for tick accelerators (Time Wand, Soul Surge gate).
+ * Shared deny for tick accelerators (Time Wand and similar). Soul Surge does
+ * not consult this list.
  * Rules live in {@link TickAccelerationDenyConfig} ({@code config/cointcore/tick-acceleration-deny.json}).
  */
 public final class TickAccelerationDeny {

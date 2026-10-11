@@ -23,6 +23,7 @@
 - [Tick watchdog](#tick-watchdog)
 - [Глюоны и торговец](#глюоны-и-торговец)
 - [Лаг-фиксы ATM10 8.2](#лаг-фиксы-atm10-82)
+- [Soul Surge](#soul-surge)
 - [Интеграции](#интеграции)
   - [Мост FTB Ranks → LuckPerms](#мост-ftb-ranks--luckperms)
 - [Структура проекта](#структура-проекта)
@@ -451,6 +452,9 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/me-unique-filter.json` | Уникальные фильтры ME (AE2) |
 | `config/cointcore/storage-perf.json` | Кэш AE2 fuzzy search, RS importer idle-skip |
 | `config/cointcore/tick-throttles.json` | Throttle машин (MGU Saw, RFTools Builder и др.) |
+| `config/cointcore/soul-surge-perf.json` | Soul Surge: `enabled` + `singleTarget` (один присоединённый блок, полная скорость) |
+| `config/cointcore/soul-surge-deny.json` | Устарел и не используется; старые файлы читаются без ошибки |
+| `config/cointcore/tick-acceleration-deny.json` | Deny для Time Wand и прочих ускорителей (**не** Soul Surge) |
 | `config/cointcore/lag-fixes.json` | Лаг-фиксы ATM10 8.2 (см. ниже) |
 | `config/relpchatprefix/config.json` | Префиксы relay-чата |
 
@@ -652,6 +656,31 @@ ServerEvents.recipes(event => {
 ### Что не трогали
 
 Секция `machine` в `tick-throttles.json` (MGU Saw / RFTools Builder budgets) **сохранена** — это отдельный generic machine throttle. AE2 AdvancedAE / ae2wtlib magnet throttle удалён как неэффективный по spark-профилям.
+
+## Soul Surge
+
+Industrial Foregoing Souls: каждый Soul Surge ускоряет **ровно один** блок — тот, на который он надет.
+
+В IF Souls блок направленный: Titanium `RotatableBlock.FACING_ALL` = ванильный `facing` (сторона, куда смотрит «спина»/пайп). Сопло смотрит в `facing.opposite`, цель = `surgePos.relative(facing.opposite)` — клетка, к которой сёрдж приставлен. Если у блока нет `facing`, берётся `up` (цель — блок снизу), как у сёрджа, поставленного сверху на машину.
+
+- Полная скорость мода: `ACCELERATION_TICK` из конфига IF Souls (по умолчанию 4 лишних тика).
+- Ограничений по типу машины нет: deny-списки, block tag (`cointcore:soul_surge_no_accelerate`, `industrialforegoingsouls:cant_accelerate`) и лимиты на чанк для Soul Surge не применяются. Общий `tick-acceleration-deny.json` (Time Wand и др.) **не** читается.
+- Исключение: другой `industrialforegoingsouls:soul_surge` не ускоряется (античейн). Воздух и блок без Block Entity — ничего не делают, души не тратятся.
+- Сущности и random-tick соседей не ускоряются. Area-сканов за тик нет.
+- Души списываются как в моде: только пока реально крутится валидный Block Entity.
+
+`config/cointcore/soul-surge-perf.json`:
+
+```json
+{
+  "enabled": true,
+  "singleTarget": true
+}
+```
+
+`enabled: false` полностью отдаёт тик ванильному IF Souls (теги мода, random-tick, сущности). `singleTarget` — режим «одна цель»; при `enabled` mixin всегда держит одну присоединённую клетку. Устаревшие ключи (`maxAccelerationTicks`, `denyBlockIds`, `denyBlockTags`, `respectChunkLimits`) игнорируются.
+
+`soul-surge-deny.json` помечен как deprecated/unused: файл по-прежнему читается при старте и `/cointcore reload`, чтобы старые списки не роняли сервер, но на ускорение не влияет.
 
 ## Интеграции
 
