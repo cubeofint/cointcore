@@ -3,6 +3,7 @@ package com.mawlee.cointcore.mixin.industrialforegoingsouls;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mawlee.cointcore.config.SoulSurgePerfConfig;
+import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeAccelerationClaim;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeTarget;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -22,13 +23,18 @@ import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 /**
  * Soul Surge accelerates only the single attached block entity (facing.opposite)
- * at the mod's {@code ACCELERATION_TICK}. No deny lists, no chunk-limit gate,
+ * at the mod's {@code ACCELERATION_TICK}. A target may be claimed by at most
+ * one surge per game tick (sticky owner). No deny lists, no chunk-limit gate,
  * no entity / random-tick / neighbour scans.
  */
 @Mixin(targets = "com.buuz135.industrialforegoingsouls.block.tile.SoulSurgeBlockEntity", remap = false)
@@ -36,10 +42,20 @@ public abstract class SoulSurgeBlockEntityMixin {
     private static final String SERVER_TICK =
             "serverTick(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lcom/buuz135/industrialforegoingsouls/block/tile/SoulSurgeBlockEntity;)V";
 
+    @Unique
+    private static final Map<Level, SoulSurgeAccelerationClaim> cointcore$claimsByLevel = new WeakHashMap<>();
+
+    @Unique
+    private long cointcore$claimedTargetPacked;
+
+    @Unique
+    private boolean cointcore$hasClaim;
+
     /**
      * IF Souls reads the target via {@code level.getBlockState(attached)}.
-     * Invalid targets (not the attached cell, air, no BE, another surge) become
-     * air so the vanilla method skips BE ticks, random ticks, and soul spend.
+     * Invalid targets (not the attached cell, air, no BE, another surge) and
+     * surges that lost the per-tick claim become air so the vanilla method
+     * skips BE ticks, random ticks, and soul spend.
      */
     @WrapOperation(
             method = SERVER_TICK,
@@ -67,6 +83,10 @@ public abstract class SoulSurgeBlockEntityMixin {
                 level.getBlockEntity(queryPos) != null,
                 cointcore$blockId(queried)
         )) {
+            cointcore$releaseClaim(level);
+            return Blocks.AIR.defaultBlockState();
+        }
+        if (!cointcore$tryClaim(level, queryPos)) {
             return Blocks.AIR.defaultBlockState();
         }
         return queried;
@@ -121,6 +141,10 @@ public abstract class SoulSurgeBlockEntityMixin {
                 blockEntity != null,
                 cointcore$blockId(targetState)
         )) {
+            cointcore$releaseClaim(level);
+            return;
+        }
+        if (!cointcore$tryClaim(level, targetPos)) {
             return;
         }
         original.call(ticker, level, targetPos, targetState, blockEntity);
@@ -183,6 +207,51 @@ public abstract class SoulSurgeBlockEntityMixin {
             return;
         }
         original.call(entity);
+    }
+
+    @Inject(method = "setRemoved()V", at = @At("HEAD"), require = 0)
+    private void cointcore$releaseClaimOnRemoved(CallbackInfo ci) {
+        BlockEntity surge = (BlockEntity) (Object) this;
+        Level level = surge.getLevel();
+        if (level != null && SoulSurgePerfConfig.isEnabled()) {
+            cointcore$releaseClaim(level);
+        }
+    }
+
+    @Unique
+    private boolean cointcore$tryClaim(Level level, BlockPos targetPos) {
+        long targetPacked = SoulSurgeAccelerationClaim.pack(targetPos.getX(), targetPos.getY(), targetPos.getZ());
+        long surgePacked = cointcore$selfPacked();
+        if (cointcore$hasClaim && cointcore$claimedTargetPacked != targetPacked) {
+            cointcore$claimsFor(level).release(cointcore$claimedTargetPacked, surgePacked, level.getGameTime());
+            cointcore$hasClaim = false;
+        }
+        boolean claimed = cointcore$claimsFor(level).tryClaim(targetPacked, surgePacked, level.getGameTime());
+        cointcore$hasClaim = claimed;
+        if (claimed) {
+            cointcore$claimedTargetPacked = targetPacked;
+        }
+        return claimed;
+    }
+
+    @Unique
+    private void cointcore$releaseClaim(Level level) {
+        if (!cointcore$hasClaim) {
+            return;
+        }
+        cointcore$claimsFor(level).release(cointcore$claimedTargetPacked, cointcore$selfPacked(), level.getGameTime());
+        cointcore$hasClaim = false;
+    }
+
+    @Unique
+    private static SoulSurgeAccelerationClaim cointcore$claimsFor(Level level) {
+        return cointcore$claimsByLevel.computeIfAbsent(level, ignored -> new SoulSurgeAccelerationClaim());
+    }
+
+    @Unique
+    private long cointcore$selfPacked() {
+        BlockPos pos = ((BlockEntity) (Object) this).getBlockPos();
+        return SoulSurgeAccelerationClaim.pack(pos.getX(), pos.getY(), pos.getZ());
     }
 
     @Unique
