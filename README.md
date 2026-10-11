@@ -679,7 +679,7 @@ TAB — без изменений, `%luckperms-prefix%` уже содержит 
 | Игра → сайт | `POST /api/azlink/prefixes/report` | `{players:[{uuid,name,available:[{group,prefix_raw,category}],selected,locked_staff}]}` |
 | Игра → сайт | `POST /api/azlink/prefixes/catalog` | `{schema:1,hash,full:true,groups:[{group,prefix_raw,priority,track_index,display_name,category}]}` |
 | Сайт → игра | `GET /api/azlink/prefixes/operations` | `{operations:[{op_id,uuid,group\|null}]}` тип `prefix_select` |
-| Ack | `POST /api/azlink/prefixes/ack` | `{op_id,status:applied\|rejected,reason,selected}` |
+| Ack | `POST /api/azlink/prefixes/ack` | `{op_id,status:applied\|rejected\|failed,reason,selected}` (`failed` + `retryable` — сбой записи LP, сайт может повторить; не идемпотентный ledger) |
 
 В `available` только квестовые группы; `locked_staff` всегда `false`. Репорт уходит при входе, при пересчёте LP и после `/prefix` (debounce `site_report_debounce_ticks`). Операции с сайта идемпотентны по `op_id` (SavedData `cointcore_prefix_operations`) и работают для офлайн-игроков через `UserManager.modifyUser`.
 

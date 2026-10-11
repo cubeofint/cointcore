@@ -114,7 +114,7 @@ public final class PrefixSelectionService {
         LuckPermsUsers.loadSnapshot(playerId).whenComplete((snapshot, error) -> {
             if (error != null) {
                 LOGGER.warn("Prefix select load failed for {}", playerId, error);
-                minecraftServer.execute(() -> callback.accept(PrefixSelectionRules.Decision.unavailable(requestedGroup)));
+                minecraftServer.execute(() -> callback.accept(PrefixSelectionRules.Decision.failed()));
                 return;
             }
             minecraftServer.execute(() -> applySelect(minecraftServer, playerId, snapshot, requestedGroup, callback));
@@ -148,15 +148,16 @@ public final class PrefixSelectionService {
                 }
                 yield LuckPermsUsers.syncQuestPrefix(playerId, option.group(), option.prefixRaw());
             }
-            case UNAVAILABLE, UNCHANGED -> CompletableFuture.completedFuture(null);
+            case UNAVAILABLE, UNCHANGED, FAILED -> CompletableFuture.completedFuture(null);
         };
         mutation.whenComplete((ignored, error) -> minecraftServer.execute(() -> {
             if (error != null) {
                 LOGGER.warn("Prefix mutation failed for {}", playerId, error);
-                callback.accept(PrefixSelectionRules.Decision.unavailable(requestedGroup));
+                callback.accept(PrefixSelectionRules.Decision.failed());
                 return;
             }
-            if (decision.kind() != PrefixSelectionRules.Kind.UNAVAILABLE) {
+            if (decision.kind() != PrefixSelectionRules.Kind.UNAVAILABLE
+                    && decision.kind() != PrefixSelectionRules.Kind.FAILED) {
                 PrefixReportScheduler.request(minecraftServer, playerId);
             }
             callback.accept(decision);

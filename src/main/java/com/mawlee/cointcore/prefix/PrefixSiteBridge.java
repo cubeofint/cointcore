@@ -126,18 +126,13 @@ public final class PrefixSiteBridge {
             PrefixSiteOperation op
     ) {
         PrefixSelectionService.select(server, op.playerId(), op.group(), decision -> {
-            String status = switch (decision.kind()) {
-                case APPLIED, AUTO, UNCHANGED -> "applied";
-                case UNAVAILABLE -> "rejected";
-            };
-            String selected = switch (decision.kind()) {
-                case APPLIED, UNCHANGED -> decision.selectedGroup();
-                case AUTO, UNAVAILABLE -> null;
-            };
-            handled.mark(op.opId(), status, decision.reason(), selected);
-            AzLinkHttp.ackPrefix(op.opId(), status, decision.reason(), selected);
+            PrefixSiteAck ack = PrefixSiteAck.from(decision);
+            if (ack.persist()) {
+                handled.mark(op.opId(), ack.status(), ack.reason(), ack.selected());
+            }
+            AzLinkHttp.ackPrefix(op.opId(), ack.status(), ack.reason(), ack.selected());
             LOGGER.info("Site prefix_select {} for {} group={} -> {} {}",
-                    op.opId(), op.playerId(), op.group(), status, decision.reason());
+                    op.opId(), op.playerId(), op.group(), ack.status(), ack.reason());
         });
     }
 

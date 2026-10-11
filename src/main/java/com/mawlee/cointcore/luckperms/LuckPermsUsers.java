@@ -158,7 +158,12 @@ public final class LuckPermsUsers {
         try {
             Object userManager = LuckPermsIntegration.invoke(LuckPermsIntegration.provider(), "getUserManager");
             Class<?> userClass = Class.forName("net.luckperms.api.model.user.User");
-            Object future = userManager.getClass().getMethod("saveUser", userClass).invoke(userManager, user);
+            Object future = LuckPermsIntegration.invoke(
+                    userManager,
+                    "saveUser",
+                    new Class<?>[]{userClass},
+                    user
+            );
             if (future instanceof CompletableFuture<?> completable) {
                 return completable.thenApply(ignored -> null);
             }
@@ -215,9 +220,13 @@ public final class LuckPermsUsers {
         try {
             Object userManager = LuckPermsIntegration.invoke(LuckPermsIntegration.provider(), "getUserManager");
             @SuppressWarnings("unchecked")
-            CompletableFuture<Void> future = (CompletableFuture<Void>) userManager.getClass()
-                    .getMethod("modifyUser", UUID.class, Consumer.class)
-                    .invoke(userManager, playerId, (Consumer<Object>) mutator::accept);
+            CompletableFuture<Void> future = (CompletableFuture<Void>) LuckPermsIntegration.invoke(
+                    userManager,
+                    "modifyUser",
+                    new Class<?>[]{UUID.class, Consumer.class},
+                    playerId,
+                    (Consumer<Object>) mutator::accept
+            );
             return future;
         } catch (ReflectiveOperationException exception) {
             return CompletableFuture.failedFuture(exception);
@@ -272,7 +281,7 @@ public final class LuckPermsUsers {
         try {
             Object userManager = LuckPermsIntegration.invoke(LuckPermsIntegration.provider(), "getUserManager");
             Class<?> userClass = Class.forName("net.luckperms.api.model.user.User");
-            userManager.getClass().getMethod("cleanupUser", userClass).invoke(userManager, user);
+            LuckPermsIntegration.invoke(userManager, "cleanupUser", new Class<?>[]{userClass}, user);
         } catch (ReflectiveOperationException ignored) {
         }
     }
@@ -453,23 +462,42 @@ public final class LuckPermsUsers {
     private static Object buildPrefixNode(String prefixRaw, String group, PrefixConfig.Settings settings)
             throws ReflectiveOperationException {
         Class<?> prefixNode = Class.forName("net.luckperms.api.node.types.PrefixNode");
-        Object builder = prefixNode.getMethod("builder", String.class, int.class)
-                .invoke(null, prefixRaw, settings.prefixPriority());
-        builder = builder.getClass()
-                .getMethod("withMetadata", String.class, String.class)
-                .invoke(builder, settings.renderMetaKey(), "1");
-        builder = builder.getClass()
-                .getMethod("withMetadata", String.class, String.class)
-                .invoke(builder, settings.prefixMetaKey(), PrefixSnapshot.normalize(group) == null
-                        ? "auto"
-                        : PrefixSnapshot.normalize(group));
+        Object builder = LuckPermsIntegration.invokeExact(
+                prefixNode,
+                null,
+                "builder",
+                new Class<?>[]{String.class, int.class},
+                prefixRaw,
+                settings.prefixPriority()
+        );
+        builder = LuckPermsIntegration.invoke(
+                builder,
+                "withMetadata",
+                new Class<?>[]{String.class, String.class},
+                settings.renderMetaKey(),
+                "1"
+        );
+        builder = LuckPermsIntegration.invoke(
+                builder,
+                "withMetadata",
+                new Class<?>[]{String.class, String.class},
+                settings.prefixMetaKey(),
+                PrefixSnapshot.normalize(group) == null ? "auto" : PrefixSnapshot.normalize(group)
+        );
         return applyServerContext(builder, settings);
     }
 
     private static Object buildMetaNode(String key, String value, PrefixConfig.Settings settings)
             throws ReflectiveOperationException {
         Class<?> metaNode = Class.forName("net.luckperms.api.node.types.MetaNode");
-        Object builder = metaNode.getMethod("builder", String.class, String.class).invoke(null, key, value);
+        Object builder = LuckPermsIntegration.invokeExact(
+                metaNode,
+                null,
+                "builder",
+                new Class<?>[]{String.class, String.class},
+                key,
+                value
+        );
         return applyServerContext(builder, settings);
     }
 
@@ -477,16 +505,26 @@ public final class LuckPermsUsers {
             throws ReflectiveOperationException {
         String server = serverName();
         if (server != null && !GLOBAL_SERVER.equals(server)) {
-            builder = builder.getClass()
-                    .getMethod("withContext", String.class, String.class)
-                    .invoke(builder, "server", server);
+            builder = LuckPermsIntegration.invoke(
+                    builder,
+                    "withContext",
+                    new Class<?>[]{String.class, String.class},
+                    "server",
+                    server
+            );
         }
-        return builder.getClass().getMethod("build").invoke(builder);
+        return LuckPermsIntegration.invoke(builder, "build");
     }
 
     private static Object buildInheritanceNode(String group) throws ReflectiveOperationException {
         Class<?> inheritance = Class.forName("net.luckperms.api.node.types.InheritanceNode");
-        Object builder = inheritance.getMethod("builder", String.class).invoke(null, group);
+        Object builder = LuckPermsIntegration.invokeExact(
+                inheritance,
+                null,
+                "builder",
+                new Class<?>[]{String.class},
+                group
+        );
         return applyServerContext(builder, PrefixConfig.get());
     }
 
