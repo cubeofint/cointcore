@@ -30,9 +30,11 @@ public final class TickWatchdogConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private static boolean enabled = true;
-    private static double slowTickThresholdMs = 100.0D;
+    private static double slowTickThresholdMs = 50.0D;
     private static int sustainedSlowTicks = 3;
     private static int windowSeconds = 60;
+    private static double sustainedAverageMs = 40.0D;
+    private static int sustainedAverageWindowSeconds = 60;
     private static String detailedTimingMode = "auto";
     private static int autoDetailedAfterSlowTicks = 1;
     private static int samplingIntervalMs = 1;
@@ -67,6 +69,18 @@ public final class TickWatchdogConfig {
 
     public static int getWindowSeconds() {
         return windowSeconds;
+    }
+
+    public static double getSustainedAverageMs() {
+        return sustainedAverageMs;
+    }
+
+    public static int getSustainedAverageWindowSeconds() {
+        return sustainedAverageWindowSeconds;
+    }
+
+    public static int getSustainedAverageMinTicks() {
+        return Math.max(20, sustainedAverageWindowSeconds * 20);
     }
 
     public static String getDetailedTimingMode() {
@@ -154,6 +168,8 @@ public final class TickWatchdogConfig {
         slowTickThresholdMs = loaded.slowTickThresholdMs();
         sustainedSlowTicks = loaded.sustainedSlowTicks();
         windowSeconds = loaded.windowSeconds();
+        sustainedAverageMs = loaded.sustainedAverageMs();
+        sustainedAverageWindowSeconds = loaded.sustainedAverageWindowSeconds();
         detailedTimingMode = loaded.detailedTimingMode();
         autoDetailedAfterSlowTicks = loaded.autoDetailedAfterSlowTicks();
         samplingIntervalMs = loaded.samplingIntervalMs();
@@ -200,9 +216,11 @@ public final class TickWatchdogConfig {
         }
         return new LoadedConfig(
                 data.enabled,
-                clamp(data.slowTickThresholdMs, 1.0D, 10_000.0D, 100.0D),
+                clamp(data.slowTickThresholdMs, 1.0D, 10_000.0D, 50.0D),
                 clampInt(data.sustainedSlowTicks, 1, 200, 3),
                 clampInt(data.windowSeconds, 10, 3600, 60),
+                clamp(data.sustainedAverageMs, 1.0D, 10_000.0D, 40.0D),
+                clampInt(data.sustainedAverageWindowSeconds, 10, 3600, 60),
                 mode,
                 clampInt(data.autoDetailedAfterSlowTicks, 1, 50, 1),
                 clampInt(data.samplingIntervalMs, 1, 50, 1),
@@ -245,9 +263,11 @@ public final class TickWatchdogConfig {
     private static FileData defaultFileData() {
         FileData data = new FileData();
         data.enabled = true;
-        data.slowTickThresholdMs = 100.0D;
+        data.slowTickThresholdMs = 50.0D;
         data.sustainedSlowTicks = 3;
         data.windowSeconds = 60;
+        data.sustainedAverageMs = 40.0D;
+        data.sustainedAverageWindowSeconds = 60;
         data.detailedTimingMode = "auto";
         data.autoDetailedAfterSlowTicks = 1;
         data.samplingIntervalMs = 1;
@@ -268,6 +288,8 @@ public final class TickWatchdogConfig {
             double slowTickThresholdMs,
             int sustainedSlowTicks,
             int windowSeconds,
+            double sustainedAverageMs,
+            int sustainedAverageWindowSeconds,
             String detailedTimingMode,
             int autoDetailedAfterSlowTicks,
             int samplingIntervalMs,
@@ -284,18 +306,24 @@ public final class TickWatchdogConfig {
     }
 
     @SuppressWarnings("unused")
-    private static final class FileData {
+    static final class FileData {
         @SerializedName("enabled")
         private boolean enabled = true;
 
         @SerializedName("slowTickThresholdMs")
-        private double slowTickThresholdMs = 100.0D;
+        double slowTickThresholdMs = 50.0D;
 
         @SerializedName("sustainedSlowTicks")
         private int sustainedSlowTicks = 3;
 
         @SerializedName("windowSeconds")
         private int windowSeconds = 60;
+
+        @SerializedName("sustainedAverageMs")
+        double sustainedAverageMs = 40.0D;
+
+        @SerializedName("sustainedAverageWindowSeconds")
+        int sustainedAverageWindowSeconds = 60;
 
         @SerializedName("detailedTimingMode")
         private String detailedTimingMode = "auto";

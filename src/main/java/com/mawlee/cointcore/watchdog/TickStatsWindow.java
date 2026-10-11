@@ -62,6 +62,22 @@ public final class TickStatsWindow {
         return sum / (double) count / 1_000_000.0D;
     }
 
+    public double recentAverageMillis(int lookback) {
+        if (count == 0 || lookback <= 0) {
+            return 0.0D;
+        }
+        int checked = Math.min(lookback, count);
+        long sum = 0L;
+        for (int i = 1; i <= checked; i++) {
+            int index = writeIndex - i;
+            if (index < 0) {
+                index += samples.length;
+            }
+            sum += samples[index];
+        }
+        return sum / (double) checked / 1_000_000.0D;
+    }
+
     public double maxMillis() {
         if (count == 0) {
             return 0.0D;

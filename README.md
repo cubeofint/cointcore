@@ -421,9 +421,11 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | Ключ | Дефолт | Смысл |
 |------|--------|--------|
 | `enabled` | `true` | Главный выключатель |
-| `slowTickThresholdMs` | `100` | Тик считается медленным |
+| `slowTickThresholdMs` | `50` | Тик считается медленным |
 | `sustainedSlowTicks` | `3` | Подряд медленных тиков для варнинга |
 | `windowSeconds` | `60` | Окно агрегации / размер кольца тиков |
+| `sustainedAverageMs` | `40` | Средний MSPT за окно, выше которого пишется отчёт |
+| `sustainedAverageWindowSeconds` | `60` | Окно среднего MSPT (тики ≈ секунды×20) |
 | `detailedTimingMode` | `auto` | `auto` / `always` / `off` — nanoTime вокруг BE/entity |
 | `autoDetailedAfterSlowTicks` | `1` | В `auto` включать детализацию после N медленных |
 | `samplingIntervalMs` | `1` | Интервал семплов стека Server thread |

@@ -1,17 +1,38 @@
 package com.mawlee.cointcore.luckperms;
 
+import net.luckperms.api.model.PermissionHolder;
+import net.luckperms.api.model.group.Group;
+import net.luckperms.api.model.user.User;
+import net.luckperms.api.node.Node;
+import net.luckperms.api.node.NodeType;
+import net.luckperms.api.query.QueryOptions;
 import net.neoforged.fml.ModList;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public final class LuckPermsIntegration {
     private static final String PROVIDER_CLASS = "net.luckperms.api.LuckPermsProvider";
+    private static final ConcurrentHashMap<UUID, TemporaryGrantSnapshot> GRANT_CACHE = new ConcurrentHashMap<>();
 
     private LuckPermsIntegration() {
+    }
+
+    public static void invalidateTemporaryGrantCache(UUID playerId) {
+        if (playerId != null) {
+            GRANT_CACHE.remove(playerId);
+        }
+    }
+
+    static void clearTemporaryGrantCache() {
+        GRANT_CACHE.clear();
     }
 
     public static boolean isAvailable() {
@@ -31,7 +52,7 @@ public final class LuckPermsIntegration {
     }
 
     public static boolean hadTemporaryGrantExpire(UUID playerId, String permission) {
-        if (!isAvailable()) {
+        if (!isAvailable() || playerId == null) {
             return false;
         }
 
@@ -40,51 +61,14 @@ public final class LuckPermsIntegration {
             if (user == null) {
                 return false;
             }
-
-            Object queryOptions = invoke(user, "getQueryOptions");
-            if (queryOptions == null) {
-                return false;
-            }
-
-            Object permissionNodeType = getNodeType("PERMISSION");
-            Object inheritanceNodeType = getNodeType("INHERITANCE");
-            Iterable<?> nodes = (Iterable<?>) invoke(
-                    user,
-                    "resolveDistinctInheritedNodes",
-                    new Class<?>[]{queryOptionsClass()},
-                    queryOptions
-            );
-
-            if (nodes == null) {
-                return false;
-            }
-
-            for (Object node : nodes) {
-                Object type = invoke(node, "getType");
-                boolean expiredGrant = Boolean.TRUE.equals(invoke(node, "hasExpiry"))
-                        && Boolean.TRUE.equals(invoke(node, "hasExpired"))
-                        && Boolean.TRUE.equals(invoke(node, "getValue"));
-
-                if (!expiredGrant) {
-                    continue;
-                }
-
-                if (permissionNodeType.equals(type) && permission.equals(invoke(node, "getKey"))) {
-                    return true;
-                }
-
-                if (inheritanceNodeType.equals(type)) {
-                    return true;
-                }
-            }
+            return grantSnapshot(playerId, user).hadExpired(permission);
         } catch (ReflectiveOperationException ignored) {
+            return false;
         }
-
-        return false;
     }
 
     public static Optional<Instant> earliestActiveTemporaryGrantExpiry(UUID playerId, String permission) {
-        if (!isAvailable()) {
+        if (!isAvailable() || playerId == null || permission == null || permission.isBlank()) {
             return Optional.empty();
         }
 
@@ -93,52 +77,7 @@ public final class LuckPermsIntegration {
             if (user == null || !hasPermission(user, permission)) {
                 return Optional.empty();
             }
-
-            Object queryOptions = invoke(user, "getQueryOptions");
-            if (queryOptions == null) {
-                return Optional.empty();
-            }
-
-            Object permissionNodeType = getNodeType("PERMISSION");
-            Object inheritanceNodeType = getNodeType("INHERITANCE");
-            Iterable<?> nodes = (Iterable<?>) invoke(
-                    user,
-                    "resolveDistinctInheritedNodes",
-                    new Class<?>[]{queryOptionsClass()},
-                    queryOptions
-            );
-
-            if (nodes == null) {
-                return Optional.empty();
-            }
-
-            Instant earliest = null;
-            for (Object node : nodes) {
-                if (!Boolean.TRUE.equals(invoke(node, "hasExpiry"))
-                        || Boolean.TRUE.equals(invoke(node, "hasExpired"))
-                        || !Boolean.TRUE.equals(invoke(node, "getValue"))) {
-                    continue;
-                }
-
-                Object type = invoke(node, "getType");
-                boolean matches = permissionNodeType.equals(type) && permission.equals(invoke(node, "getKey"))
-                        || inheritanceNodeType.equals(type);
-
-                if (!matches) {
-                    continue;
-                }
-
-                Instant expiry = (Instant) invoke(node, "getExpiry");
-                if (expiry == null) {
-                    continue;
-                }
-
-                if (earliest == null || expiry.isBefore(earliest)) {
-                    earliest = expiry;
-                }
-            }
-
-            return Optional.ofNullable(earliest);
+            return grantSnapshot(playerId, user).earliestActive(permission);
         } catch (ReflectiveOperationException ignored) {
             return Optional.empty();
         }
@@ -248,10 +187,64 @@ public final class LuckPermsIntegration {
             try {
                 Object user = invoke(event, "getUser");
                 UUID playerId = (UUID) invoke(user, "getUniqueId");
+                invalidateTemporaryGrantCache(playerId);
                 listener.accept(playerId);
             } catch (ReflectiveOperationException ignored) {
             }
         });
+    }
+
+    private static TemporaryGrantSnapshot grantSnapshot(UUID playerId, Object user) {
+        return GRANT_CACHE.computeIfAbsent(playerId, ignored -> scanTemporaryGrants(user));
+    }
+
+    /**
+     * Own user nodes plus each inherited group's own nodes. Avoids
+     * {@code resolveDistinctInheritedNodes} (copy + sort of the full node set).
+     */
+    static TemporaryGrantSnapshot scanTemporaryGrants(Object holder) {
+        if (!(holder instanceof User user)) {
+            return TemporaryGrantSnapshot.EMPTY;
+        }
+        List<TemporaryGrantSnapshot.Grant> grants = new ArrayList<>();
+        collectTemporaryGrants(user, grants);
+        QueryOptions queryOptions = user.getQueryOptions();
+        if (queryOptions != null) {
+            Collection<Group> groups = user.getInheritedGroups(queryOptions);
+            if (groups != null) {
+                for (Group group : groups) {
+                    collectTemporaryGrants(group, grants);
+                }
+            }
+        }
+        return TemporaryGrantSnapshot.collect(grants);
+    }
+
+    private static void collectTemporaryGrants(PermissionHolder holder, List<TemporaryGrantSnapshot.Grant> grants) {
+        if (holder == null) {
+            return;
+        }
+        Collection<Node> nodes = holder.getNodes();
+        if (nodes == null) {
+            return;
+        }
+        for (Node node : nodes) {
+            if (node == null || !node.hasExpiry() || !node.getValue()) {
+                continue;
+            }
+            NodeType<?> type = node.getType();
+            boolean permission = NodeType.PERMISSION.equals(type);
+            boolean inheritance = NodeType.INHERITANCE.equals(type);
+            if (!permission && !inheritance) {
+                continue;
+            }
+            grants.add(new TemporaryGrantSnapshot.Grant(
+                    permission ? node.getKey() : null,
+                    inheritance,
+                    node.hasExpired(),
+                    node.getExpiry()
+            ));
+        }
     }
 
     /**

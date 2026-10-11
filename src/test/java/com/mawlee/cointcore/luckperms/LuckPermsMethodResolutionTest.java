@@ -43,6 +43,22 @@ class LuckPermsMethodResolutionTest {
     }
 
     @Test
+    void cachesResolvedMethodWithoutRepeatedLookup() throws Exception {
+        PublicApiMethodResolver.clearCache();
+        HiddenHolder impl = new HiddenHolder(List.of("prefix.100.vip"));
+        Method first = PublicApiMethodResolver.resolve(impl.getClass(), "getNodes");
+        int sizeAfterFirst = PublicApiMethodResolver.cacheSize();
+        Method second = PublicApiMethodResolver.resolve(impl.getClass(), "getNodes");
+        Method byCount = PublicApiMethodResolver.resolveByCount(impl.getClass(), "getNodes", 0);
+
+        assertTrue(first == second);
+        assertEquals(PublicHolder.class, first.getDeclaringClass());
+        assertEquals(PublicHolder.class, byCount.getDeclaringClass());
+        assertTrue(PublicApiMethodResolver.cacheSize() >= sizeAfterFirst);
+        assertTrue(sizeAfterFirst >= 1);
+    }
+
+    @Test
     void getNodesResolvesOnPublicHolder() throws Exception {
         HiddenHolder impl = new HiddenHolder(List.of("prefix.100.vip"));
         Object nodes = PublicApiMethodResolver.invoke(impl, "getNodes");

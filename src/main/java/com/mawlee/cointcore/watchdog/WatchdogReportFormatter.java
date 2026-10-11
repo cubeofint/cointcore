@@ -30,6 +30,39 @@ public final class WatchdogReportFormatter {
             long stackSamples,
             java.util.function.Function<OffenderAggregator.OffenderSnapshot, ChunkContext> chunkContextLookup
     ) {
+        return format(
+                now,
+                stats,
+                blockEntities,
+                entities,
+                chunks,
+                dimensions,
+                methods,
+                stackSamples,
+                chunkContextLookup,
+                List.of()
+        );
+    }
+
+    public record ExtraSection(String title, List<String> lines) {
+        public ExtraSection {
+            title = title == null ? "" : title;
+            lines = lines == null ? List.of() : List.copyOf(lines);
+        }
+    }
+
+    public static String format(
+            Instant now,
+            TickStatsWindow stats,
+            List<OffenderAggregator.OffenderSnapshot> blockEntities,
+            List<OffenderAggregator.OffenderSnapshot> entities,
+            List<OffenderAggregator.OffenderSnapshot> chunks,
+            List<OffenderAggregator.OffenderSnapshot> dimensions,
+            List<StackSampleAggregator.MethodStat> methods,
+            long stackSamples,
+            java.util.function.Function<OffenderAggregator.OffenderSnapshot, ChunkContext> chunkContextLookup,
+            List<ExtraSection> extras
+    ) {
         StringBuilder sb = new StringBuilder(4096);
         sb.append("=== CointCore Tick Watchdog ===").append('\n');
         sb.append("Время: ").append(TIME.format(now)).append('\n');
@@ -110,6 +143,22 @@ public final class WatchdogReportFormatter {
                         method.modId(),
                         method.selfPercent()
                 ));
+            }
+        }
+        if (extras != null) {
+            for (ExtraSection extra : extras) {
+                if (extra == null) {
+                    continue;
+                }
+                sb.append('\n');
+                sb.append("--- ").append(extra.title()).append(" ---").append('\n');
+                if (extra.lines().isEmpty()) {
+                    sb.append("(нет данных)").append('\n');
+                    continue;
+                }
+                for (String line : extra.lines()) {
+                    sb.append(line).append('\n');
+                }
             }
         }
         return sb.toString();

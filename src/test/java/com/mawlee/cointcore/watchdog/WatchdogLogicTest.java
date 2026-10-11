@@ -12,6 +12,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ClassToModMapperTest {
@@ -92,6 +93,61 @@ class OffenderAggregatorTest {
     }
 }
 
+class WatchdogTriggersTest {
+    @Test
+    void consecutiveSlowKeepsExistingCondition() {
+        assertTrue(WatchdogTriggers.consecutiveSlowTicks(true, 3, 3));
+        assertFalse(WatchdogTriggers.consecutiveSlowTicks(false, 3, 3));
+        assertFalse(WatchdogTriggers.consecutiveSlowTicks(true, 2, 3));
+    }
+
+    @Test
+    void sustainedAverageRequiresFullWindowAboveThreshold() {
+        assertFalse(WatchdogTriggers.sustainedAverage(45.0D, 40.0D, 100, 1200));
+        assertTrue(WatchdogTriggers.sustainedAverage(41.0D, 40.0D, 1200, 1200));
+        assertFalse(WatchdogTriggers.sustainedAverage(40.0D, 40.0D, 1200, 1200));
+    }
+}
+
+class MainThreadAttributionTest {
+    @Test
+    void groupsTopFramesByModAndPackage() {
+        StackTraceElement[] stack = new StackTraceElement[] {
+                new StackTraceElement("java.lang.Thread", "run", "Thread.java", 1),
+                new StackTraceElement("net.luckperms.common.event.EventDispatcher", "post", "EventDispatcher.java", 10),
+                new StackTraceElement("com.mawlee.cointcore.privilege.DonorPrivilegeService", "checkFly", "DonorPrivilegeService.java", 20),
+                new StackTraceElement("net.minecraft.server.MinecraftServer", "tickServer", "MinecraftServer.java", 30)
+        };
+        ClassToModMapper mapper = ClassToModMapper.fromPackageMap(Map.of(
+                "com.mawlee.cointcore", "cointcore",
+                "net.luckperms", "luckperms"
+        ));
+        var frames = MainThreadAttribution.topFrames(stack, mapper, 8);
+        assertEquals("luckperms", frames.getFirst().modId());
+        assertTrue(frames.getFirst().eventLike());
+        var packages = MainThreadAttribution.byPackage(frames, 5);
+        assertTrue(packages.stream().anyMatch(hit -> "luckperms".equals(hit.modId()) && hit.eventLike()));
+        assertTrue(packages.stream().anyMatch(hit -> "cointcore".equals(hit.modId())));
+    }
+}
+
+class ServerTaskQueueProbeTest {
+    @Test
+    void countsPendingRunnablesField() {
+        DummyLoop loop = new DummyLoop();
+        loop.pendingRunnables.add(() -> {
+        });
+        loop.pendingRunnables.add(() -> {
+        });
+        assertEquals(2, ServerTaskQueueProbe.pendingCount(loop));
+        assertEquals(-1, ServerTaskQueueProbe.pendingCount(new Object()));
+    }
+
+    static final class DummyLoop {
+        private final java.util.Queue<Runnable> pendingRunnables = new java.util.ArrayDeque<>();
+    }
+}
+
 class TickStatsWindowTest {
     @Test
     void computesAverageP95MaxAndTps() {
@@ -107,6 +163,7 @@ class TickStatsWindowTest {
         assertTrue(window.percentile95Millis() >= 12.0D);
         assertTrue(window.estimatedTps() < 20.0D);
         assertEquals(2, window.recentSlowCount(4));
+        assertTrue(window.recentAverageMillis(2) > 80.0D);
     }
 }
 

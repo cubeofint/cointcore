@@ -6,6 +6,7 @@ import com.mawlee.cointcore.prefix.PrefixCatalogEntry;
 import com.mawlee.cointcore.prefix.PrefixOption;
 import com.mawlee.cointcore.prefix.PrefixSelectionRules;
 import com.mawlee.cointcore.prefix.PrefixSnapshot;
+import com.mawlee.cointcore.prefix.QuestPrefixState;
 import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
@@ -117,30 +118,53 @@ public final class LuckPermsUsers {
         }
         PrefixOption highest = snapshot.highestQuest();
         try {
-            applyQuestNodes(user, null, highest == null ? null : highest.prefixRaw());
+            if (!applyQuestNodesIfChanged(user, null, highest == null ? null : highest.prefixRaw())) {
+                return CompletableFuture.completedFuture(null);
+            }
         } catch (ReflectiveOperationException exception) {
             return CompletableFuture.failedFuture(exception);
         }
+        markOwnWrite(user);
         return saveUser(user);
     }
 
     /**
      * Writes user meta {@code cointcore-quest-prefix} (when selected) and a user-level PrefixNode
      * that LuckPerms stacking can render via {@code highest_own}.
+     * No-ops (no {@code saveUser}) when own prefix/meta already match.
      */
     public static CompletableFuture<Void> syncQuestPrefix(UUID playerId, String selectedGroup, String prefixRaw) {
-        return modifyUser(playerId, user -> {
+        return loadUser(playerId).thenCompose(user -> {
             try {
-                applyQuestNodes(user, selectedGroup, prefixRaw);
+                if (!applyQuestNodesIfChanged(user, selectedGroup, prefixRaw)) {
+                    return CompletableFuture.completedFuture(null);
+                }
             } catch (ReflectiveOperationException exception) {
-                throw new IllegalStateException("Failed to sync quest prefix", exception);
+                return CompletableFuture.failedFuture(exception);
             }
+            RecalcSuppressor.markOwnWrite(playerId, System.currentTimeMillis());
+            return saveUser(user);
         });
     }
 
-    private static void applyQuestNodes(Object user, String selectedGroup, String prefixRaw)
+    static boolean applyQuestNodesIfChanged(Object user, String selectedGroup, String prefixRaw)
             throws ReflectiveOperationException {
         PrefixConfig.Settings settings = PrefixConfig.get();
+        QuestPrefixState desired = QuestPrefixState.desired(selectedGroup, prefixRaw);
+        QuestPrefixState current = readOwnQuestState(user, settings);
+        if (!current.needsWrite(desired)) {
+            return false;
+        }
+        applyQuestNodes(user, selectedGroup, prefixRaw, settings);
+        return true;
+    }
+
+    private static void applyQuestNodes(
+            Object user,
+            String selectedGroup,
+            String prefixRaw,
+            PrefixConfig.Settings settings
+    ) throws ReflectiveOperationException {
         clearOwnOverrideNodes(user, settings);
         String group = PrefixSnapshot.normalize(selectedGroup);
         if (group != null) {
@@ -148,6 +172,14 @@ public final class LuckPermsUsers {
         }
         if (prefixRaw != null && !prefixRaw.isBlank()) {
             addNode(user, buildPrefixNode(prefixRaw, group == null ? "auto" : group, settings));
+        }
+    }
+
+    private static void markOwnWrite(Object user) {
+        try {
+            UUID playerId = (UUID) LuckPermsIntegration.invoke(user, "getUniqueId");
+            RecalcSuppressor.markOwnWrite(playerId, System.currentTimeMillis());
+        } catch (ReflectiveOperationException ignored) {
         }
     }
 
@@ -356,6 +388,52 @@ public final class LuckPermsUsers {
             LOGGER.debug("Failed to resolve inherited groups", exception);
         }
         return result;
+    }
+
+    static QuestPrefixState readOwnQuestState(Object user, PrefixConfig.Settings settings) {
+        if (user == null || settings == null) {
+            return QuestPrefixState.current(null, null, 0, 0);
+        }
+        try {
+            Object prefixType = LuckPermsIntegration.getNodeType("PREFIX");
+            Object metaType = LuckPermsIntegration.getNodeType("META");
+            String server = serverName();
+            Iterable<?> nodes = nodesOf(user);
+            String selected = null;
+            String prefixRaw = null;
+            int prefixCount = 0;
+            int metaCount = 0;
+            if (nodes != null) {
+                for (Object node : nodes) {
+                    if (Boolean.TRUE.equals(LuckPermsIntegration.invoke(node, "hasExpired"))) {
+                        continue;
+                    }
+                    Object type = LuckPermsIntegration.invoke(node, "getType");
+                    if (prefixType.equals(type)) {
+                        if (isOurPrefixNode(node, settings) && matchesThisServer(node, server)) {
+                            prefixCount++;
+                            if (prefixRaw == null) {
+                                String value = (String) LuckPermsIntegration.invoke(node, "getMetaValue");
+                                prefixRaw = value == null || value.isBlank() ? null : value;
+                            }
+                        }
+                    } else if (metaType.equals(type)) {
+                        String key = (String) LuckPermsIntegration.invoke(node, "getMetaKey");
+                        if (settings.prefixMetaKey().equalsIgnoreCase(key) && matchesThisServer(node, server)) {
+                            metaCount++;
+                            if (selected == null) {
+                                selected = PrefixSnapshot.normalize(
+                                        (String) LuckPermsIntegration.invoke(node, "getMetaValue")
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            return QuestPrefixState.current(selected, prefixRaw, prefixCount, metaCount);
+        } catch (ReflectiveOperationException ignored) {
+            return QuestPrefixState.current(null, null, 0, 0);
+        }
     }
 
     private static String selectedOverride(Object user, PrefixConfig.Settings settings) {
