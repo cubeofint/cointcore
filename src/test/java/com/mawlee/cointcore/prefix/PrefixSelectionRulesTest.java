@@ -61,6 +61,11 @@ class PrefixSelectionRulesTest {
         PrefixSelectionRules.Decision missing = PrefixSelectionRules.decideSet(Set.of("titan"), "explorer");
         assertEquals(PrefixSelectionRules.Kind.UNAVAILABLE, missing.kind());
         assertEquals(PrefixSelectionRules.REASON_UNAVAILABLE, missing.reason());
+
+        PrefixSelectionRules.Decision failed = PrefixSelectionRules.Decision.failed();
+        assertEquals(PrefixSelectionRules.Kind.FAILED, failed.kind());
+        assertEquals(PrefixSelectionRules.REASON_RETRYABLE, failed.reason());
+        assertEquals(PrefixSelectionRules.REASON_RETRYABLE, PrefixSelectionRules.describe(failed.kind()));
     }
 
     @Test

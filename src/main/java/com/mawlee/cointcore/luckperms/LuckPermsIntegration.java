@@ -284,9 +284,7 @@ public final class LuckPermsIntegration {
             Object provider = invokeStatic(PROVIDER_CLASS, "get");
             Object eventBus = invoke(provider, "getEventBus");
             Class<?> eventClass = Class.forName(eventClassName);
-            eventBus.getClass()
-                    .getMethod("subscribe", Class.class, Consumer.class)
-                    .invoke(eventBus, eventClass, listener);
+            invoke(eventBus, "subscribe", new Class<?>[]{Class.class, Consumer.class}, eventClass, listener);
         } catch (ReflectiveOperationException ignored) {
         }
     }
@@ -329,28 +327,21 @@ public final class LuckPermsIntegration {
 
     static Object invoke(Object target, String methodName, Object... args)
             throws ReflectiveOperationException {
-        return invoke(target.getClass(), target, methodName, args);
+        return PublicApiMethodResolver.invoke(target, methodName, args);
     }
 
     static Object invoke(Object target, String methodName, Class<?>[] parameterTypes, Object... args)
             throws ReflectiveOperationException {
-        return target.getClass().getMethod(methodName, parameterTypes).invoke(target, args);
+        return PublicApiMethodResolver.invoke(target, methodName, parameterTypes, args);
     }
 
     static Object invoke(Class<?> owner, Object target, String methodName, Object... args)
             throws ReflectiveOperationException {
-        if (args.length == 0) {
-            return owner.getMethod(methodName).invoke(target);
-        }
+        return PublicApiMethodResolver.invoke(owner, target, methodName, args);
+    }
 
-        for (java.lang.reflect.Method method : owner.getMethods()) {
-            if (!method.getName().equals(methodName) || method.getParameterCount() != args.length) {
-                continue;
-            }
-
-            return method.invoke(target, args);
-        }
-
-        throw new NoSuchMethodException(owner.getName() + "#" + methodName);
+    static Object invoke(Class<?> owner, Object target, String methodName, Class<?>[] parameterTypes, Object... args)
+            throws ReflectiveOperationException {
+        return PublicApiMethodResolver.resolve(owner, methodName, parameterTypes).invoke(target, args);
     }
 }

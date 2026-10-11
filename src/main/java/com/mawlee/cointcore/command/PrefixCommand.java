@@ -144,6 +144,7 @@ public final class PrefixCommand {
                     decision.selectedGroup() == null ? "" : decision.selectedGroup()
             );
             case UNCHANGED -> CointCoreMessages.forPlayer(player, CointCoreMessages.PREFIX_UNCHANGED);
+            case FAILED -> CointCoreMessages.forPlayer(player, CointCoreMessages.PREFIX_UNAVAILABLE);
         };
     }
 

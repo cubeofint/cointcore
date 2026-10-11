@@ -17,12 +17,14 @@ public final class PrefixSelectionRules {
     public static final String REASON_APPLIED = "applied";
     public static final String REASON_UNCHANGED = "unchanged";
     public static final String REASON_GROUP_LOST = "group_lost";
+    public static final String REASON_RETRYABLE = "retryable";
 
     public enum Kind {
         APPLIED,
         AUTO,
         UNAVAILABLE,
-        UNCHANGED
+        UNCHANGED,
+        FAILED
     }
 
     public record Decision(Kind kind, String selectedGroup, boolean clearOverride, String reason) {
@@ -52,6 +54,13 @@ public final class PrefixSelectionRules {
 
         public static Decision unchanged(String selected) {
             return new Decision(Kind.UNCHANGED, selected, false, REASON_UNCHANGED);
+        }
+
+        /**
+         * Transient LuckPerms mutation/load failure. Site should retry, not treat as rejected.
+         */
+        public static Decision failed() {
+            return new Decision(Kind.FAILED, null, false, REASON_RETRYABLE);
         }
     }
 
@@ -187,6 +196,7 @@ public final class PrefixSelectionRules {
             case AUTO -> REASON_AUTO;
             case UNAVAILABLE -> REASON_UNAVAILABLE;
             case UNCHANGED -> REASON_UNCHANGED;
+            case FAILED -> REASON_RETRYABLE;
         };
     }
 }
