@@ -38,6 +38,7 @@ public final class TickWatchdogService {
     private TickStatsWindow stats = new TickStatsWindow(1200, TickWatchdogConfig.getSlowTickThresholdNanos());
     private long lastReportAtMs;
     private long lastNotifyAtMs;
+    private long lastSustainedAverageAtMs;
     private int consecutiveSlow;
     private boolean detailedArmed;
     private volatile boolean running;
@@ -136,8 +137,22 @@ public final class TickWatchdogService {
             writeReport(server);
             lastReportAtMs = now;
         }
-        if (slow && consecutiveSlow >= TickWatchdogConfig.getSustainedSlowTicks()) {
+        if (WatchdogTriggers.consecutiveSlowTicks(
+                slow,
+                consecutiveSlow,
+                TickWatchdogConfig.getSustainedSlowTicks()
+        )) {
             warnSustainedLag(server, tickNanos);
+        }
+        int averageLookback = TickWatchdogConfig.getSustainedAverageMinTicks();
+        double recentAverage = stats.recentAverageMillis(averageLookback);
+        if (WatchdogTriggers.sustainedAverage(
+                recentAverage,
+                TickWatchdogConfig.getSustainedAverageMs(),
+                Math.min(stats.size(), averageLookback),
+                averageLookback
+        )) {
+            warnSustainedAverage(server, recentAverage);
         }
     }
 
@@ -209,6 +224,10 @@ public final class TickWatchdogService {
     }
 
     private String writeReport(MinecraftServer server) {
+        return writeReport(server, List.of());
+    }
+
+    private String writeReport(MinecraftServer server, List<WatchdogReportFormatter.ExtraSection> extras) {
         int top = TickWatchdogConfig.getTopEntries();
         List<OffenderAggregator.OffenderSnapshot> be = aggregator.top(OffenderAggregator.Kind.BLOCK_ENTITY, top);
         List<OffenderAggregator.OffenderSnapshot> entities = aggregator.top(OffenderAggregator.Kind.ENTITY, top);
@@ -234,7 +253,8 @@ public final class TickWatchdogService {
                 dims,
                 methods,
                 sampler.sampleCount(),
-                snapshot -> lookupChunk(server, snapshot)
+                snapshot -> lookupChunk(server, snapshot),
+                extras
         );
 
         Path dir = WatchdogRetention.watchdogReportDir(server);
@@ -303,5 +323,89 @@ public final class TickWatchdogService {
                 player.sendSystemMessage(message);
             }
         }
+    }
+
+    private void warnSustainedAverage(MinecraftServer server, double averageMs) {
+        long now = System.currentTimeMillis();
+        if (now - lastSustainedAverageAtMs < TickWatchdogConfig.getNotifyCooldownSeconds() * 1000L) {
+            return;
+        }
+        lastSustainedAverageAtMs = now;
+        List<WatchdogReportFormatter.ExtraSection> extras = attributionExtras(server);
+        String text = writeReport(server, extras);
+        LOGGER.warn(String.format(
+                Locale.ROOT,
+                "CointCore watchdog: sustained average MSPT %.2f > %.1f over %ds. Queue + handler attribution attached.",
+                averageMs,
+                TickWatchdogConfig.getSustainedAverageMs(),
+                TickWatchdogConfig.getSustainedAverageWindowSeconds()
+        ));
+        LOGGER.warn(text);
+    }
+
+    private List<WatchdogReportFormatter.ExtraSection> attributionExtras(MinecraftServer server) {
+        List<WatchdogReportFormatter.ExtraSection> extras = new ArrayList<>();
+        int queue = ServerTaskQueueProbe.pendingCount(server);
+        extras.add(new WatchdogReportFormatter.ExtraSection(
+                "Очередь server.execute / runnables",
+                List.of(queue < 0
+                        ? "очередь недоступна (нет поля pending*)"
+                        : "pending=" + queue)
+        ));
+
+        List<MainThreadAttribution.Frame> frames = MainThreadAttribution.topFrames(
+                Thread.currentThread().getStackTrace(),
+                WatchdogModIndex.mapper(),
+                16
+        );
+        List<MainThreadAttribution.PackageHit> packages = MainThreadAttribution.byPackage(frames, 8);
+        List<String> handlerLines = new ArrayList<>();
+        if (packages.isEmpty()) {
+            handlerLines.add("нет кадров приложения в текущем стеке");
+        } else {
+            int rank = 1;
+            for (MainThreadAttribution.PackageHit hit : packages) {
+                handlerLines.add(String.format(
+                        Locale.ROOT,
+                        "%d) мод=%s пакет=%s кадров=%d%s",
+                        rank++,
+                        hit.modId(),
+                        hit.packageName(),
+                        hit.frames(),
+                        hit.eventLike() ? " [event/handler]" : ""
+                ));
+            }
+        }
+        extras.add(new WatchdogReportFormatter.ExtraSection(
+                "Стек server thread по моду/пакету",
+                handlerLines
+        ));
+
+        List<String> frameLines = new ArrayList<>();
+        int rank = 1;
+        for (MainThreadAttribution.Frame frame : frames) {
+            frameLines.add(String.format(
+                    Locale.ROOT,
+                    "%d) %s#%s мод=%s%s",
+                    rank++,
+                    shortClass(frame.className()),
+                    frame.methodName(),
+                    frame.modId(),
+                    frame.eventLike() ? " [event/handler]" : ""
+            ));
+            if (rank > 8) {
+                break;
+            }
+        }
+        extras.add(new WatchdogReportFormatter.ExtraSection("Верх стека server thread", frameLines));
+        return extras;
+    }
+
+    private static String shortClass(String className) {
+        if (className == null) {
+            return "?";
+        }
+        int dot = className.lastIndexOf('.');
+        return dot >= 0 ? className.substring(dot + 1) : className;
     }
 }

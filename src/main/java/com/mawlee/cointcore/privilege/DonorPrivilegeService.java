@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class DonorPrivilegeService {
     private static final Map<UUID, DonorGrantState> STATES = new ConcurrentHashMap<>();
+    private static final RecalcCoalescer COALESCER = new RecalcCoalescer();
 
     private DonorPrivilegeService() {
     }
@@ -26,9 +27,24 @@ public final class DonorPrivilegeService {
 
         LuckPermsIntegration.registerUserDataRecalculateListener(playerId -> {
             ServerPlayer player = server.getPlayerList().getPlayer(playerId);
-            if (player != null) {
-                server.execute(() -> onPermissionsRecalculated(player));
+            if (player == null) {
+                return;
             }
+            if (!COALESCER.tryQueue(playerId)) {
+                return;
+            }
+            server.execute(() -> {
+                try {
+                    ServerPlayer online = server.getPlayerList().getPlayer(playerId);
+                    boolean shouldRun = COALESCER.finishAndShouldRun(playerId, server.getTickCount());
+                    if (online != null && shouldRun) {
+                        onPermissionsRecalculated(online);
+                    }
+                } catch (RuntimeException exception) {
+                    COALESCER.clear(playerId);
+                    throw exception;
+                }
+            });
         });
     }
 
@@ -37,7 +53,10 @@ public final class DonorPrivilegeService {
     }
 
     public static void onPlayerLeave(ServerPlayer player) {
-        STATES.remove(player.getUUID());
+        UUID playerId = player.getUUID();
+        STATES.remove(playerId);
+        COALESCER.clear(playerId);
+        LuckPermsIntegration.invalidateTemporaryGrantCache(playerId);
     }
 
     public static void onPermissionsRecalculated(ServerPlayer player) {

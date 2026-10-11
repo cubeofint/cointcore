@@ -3,6 +3,7 @@ package com.mawlee.cointcore.prefix;
 import com.mawlee.cointcore.config.PrefixConfig;
 import com.mawlee.cointcore.luckperms.LuckPermsIntegration;
 import com.mawlee.cointcore.luckperms.LuckPermsUsers;
+import com.mawlee.cointcore.luckperms.RecalcSuppressor;
 import com.mojang.logging.LogUtils;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -33,7 +34,14 @@ public final class PrefixSelectionService {
             if (current == null) {
                 return;
             }
-            current.execute(() -> reconcile(current, playerId, true));
+            long now = System.currentTimeMillis();
+            if (RecalcSuppressor.shouldIgnoreRecalc(playerId, now)) {
+                return;
+            }
+            if (!RecalcSuppressor.tryBegin(playerId)) {
+                return;
+            }
+            current.execute(() -> reconcile(current, playerId, true, true));
         });
         LOGGER.info("Prefix selection ready (ranks track={}, priority={})",
                 PrefixConfig.get().ranksTrack(), PrefixConfig.get().prefixPriority());
@@ -47,15 +55,39 @@ public final class PrefixSelectionService {
     }
 
     public static void reconcile(MinecraftServer minecraftServer, UUID playerId, boolean report) {
+        reconcile(minecraftServer, playerId, report, false);
+    }
+
+    private static void reconcile(
+            MinecraftServer minecraftServer,
+            UUID playerId,
+            boolean report,
+            boolean releaseGuard
+    ) {
         if (!PrefixConfig.get().enabled() || !LuckPermsIntegration.isAvailable() || playerId == null) {
+            if (releaseGuard) {
+                RecalcSuppressor.end(playerId);
+            }
             return;
         }
         LuckPermsUsers.loadSnapshot(playerId).whenComplete((snapshot, error) -> {
             if (error != null) {
                 LOGGER.debug("Prefix reconcile load failed for {}: {}", playerId, error.toString());
+                if (releaseGuard) {
+                    RecalcSuppressor.end(playerId);
+                }
                 return;
             }
-            minecraftServer.execute(() -> applyReconcile(minecraftServer, playerId, snapshot, report));
+            minecraftServer.execute(() -> {
+                try {
+                    applyReconcile(minecraftServer, playerId, snapshot, report, releaseGuard);
+                } catch (RuntimeException exception) {
+                    if (releaseGuard) {
+                        RecalcSuppressor.end(playerId);
+                    }
+                    throw exception;
+                }
+            });
         });
     }
 
@@ -63,7 +95,8 @@ public final class PrefixSelectionService {
             MinecraftServer minecraftServer,
             UUID playerId,
             PrefixSnapshot snapshot,
-            boolean report
+            boolean report,
+            boolean releaseGuard
     ) {
         PrefixSelectionRules.Decision decision = PrefixSelectionRules.reconcile(
                 snapshot.selected(),
@@ -71,29 +104,44 @@ public final class PrefixSelectionService {
         );
         if (decision.clearOverride()) {
             applyAutoRender(playerId, snapshot).whenComplete((ignored, error) -> {
-                if (error != null) {
-                    LOGGER.warn("Failed to drop quest prefix override for {}", playerId, error);
-                    return;
-                }
-                if (report) {
-                    PrefixReportScheduler.request(minecraftServer, playerId);
+                try {
+                    if (error != null) {
+                        LOGGER.warn("Failed to drop quest prefix override for {}", playerId, error);
+                        return;
+                    }
+                    if (report) {
+                        PrefixReportScheduler.request(minecraftServer, playerId);
+                    }
+                } finally {
+                    if (releaseGuard) {
+                        RecalcSuppressor.end(playerId);
+                    }
                 }
             });
             return;
         }
         if (snapshot.selected() == null) {
             applyAutoRender(playerId, snapshot).whenComplete((ignored, error) -> {
-                if (error != null) {
-                    LOGGER.debug("Failed to refresh auto quest prefix for {}", playerId, error);
-                }
-                if (report) {
-                    PrefixReportScheduler.request(minecraftServer, playerId);
+                try {
+                    if (error != null) {
+                        LOGGER.debug("Failed to refresh auto quest prefix for {}", playerId, error);
+                    }
+                    if (report) {
+                        PrefixReportScheduler.request(minecraftServer, playerId);
+                    }
+                } finally {
+                    if (releaseGuard) {
+                        RecalcSuppressor.end(playerId);
+                    }
                 }
             });
             return;
         }
         if (report) {
             PrefixReportScheduler.request(minecraftServer, playerId);
+        }
+        if (releaseGuard) {
+            RecalcSuppressor.end(playerId);
         }
     }
 

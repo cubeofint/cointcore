@@ -8,12 +8,18 @@ import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Looks up reflective methods on a public API type (interface or superclass)
  * so JPMS can invoke them on non-public LuckPerms implementation classes.
+ *
+ * <p>Resolved {@link Method}s are cached; {@code setAccessible} runs only on the
+ * first fallback lookup for a key.
  */
 public final class PublicApiMethodResolver {
+    private static final ConcurrentHashMap<CacheKey, Method> CACHE = new ConcurrentHashMap<>();
+
     private PublicApiMethodResolver() {
     }
 
@@ -22,15 +28,14 @@ public final class PublicApiMethodResolver {
         if (runtimeType == null) {
             throw new NoSuchMethodException(methodName);
         }
-        for (Class<?> type : publicTypes(runtimeType)) {
-            try {
-                return type.getMethod(methodName, parameterTypes);
-            } catch (NoSuchMethodException ignored) {
-            }
+        CacheKey key = new CacheKey(runtimeType, methodName, typesKey(parameterTypes));
+        Method cached = CACHE.get(key);
+        if (cached != null) {
+            return cached;
         }
-        Method fallback = runtimeType.getMethod(methodName, parameterTypes);
-        fallback.setAccessible(true);
-        return fallback;
+        Method resolved = resolveUncached(runtimeType, methodName, parameterTypes);
+        Method raced = CACHE.putIfAbsent(key, resolved);
+        return raced != null ? raced : resolved;
     }
 
     public static Method resolveByCount(Class<?> runtimeType, String methodName, int parameterCount)
@@ -38,18 +43,14 @@ public final class PublicApiMethodResolver {
         if (runtimeType == null) {
             throw new NoSuchMethodException(methodName);
         }
-        for (Class<?> type : publicTypes(runtimeType)) {
-            Method match = firstMatching(type, methodName, parameterCount);
-            if (match != null) {
-                return match;
-            }
+        CacheKey key = new CacheKey(runtimeType, methodName, countKey(parameterCount));
+        Method cached = CACHE.get(key);
+        if (cached != null) {
+            return cached;
         }
-        Method fallback = firstMatching(runtimeType, methodName, parameterCount);
-        if (fallback != null) {
-            fallback.setAccessible(true);
-            return fallback;
-        }
-        throw new NoSuchMethodException(runtimeType.getName() + "#" + methodName);
+        Method resolved = resolveByCountUncached(runtimeType, methodName, parameterCount);
+        Method raced = CACHE.putIfAbsent(key, resolved);
+        return raced != null ? raced : resolved;
     }
 
     public static Object invoke(Object target, String methodName, Object... args)
@@ -69,6 +70,43 @@ public final class PublicApiMethodResolver {
                 ? resolve(type, methodName)
                 : resolveByCount(type, methodName, args.length);
         return method.invoke(target, args);
+    }
+
+    static int cacheSize() {
+        return CACHE.size();
+    }
+
+    static void clearCache() {
+        CACHE.clear();
+    }
+
+    private static Method resolveUncached(Class<?> runtimeType, String methodName, Class<?>... parameterTypes)
+            throws NoSuchMethodException {
+        for (Class<?> type : publicTypes(runtimeType)) {
+            try {
+                return type.getMethod(methodName, parameterTypes);
+            } catch (NoSuchMethodException ignored) {
+            }
+        }
+        Method fallback = runtimeType.getMethod(methodName, parameterTypes);
+        fallback.setAccessible(true);
+        return fallback;
+    }
+
+    private static Method resolveByCountUncached(Class<?> runtimeType, String methodName, int parameterCount)
+            throws NoSuchMethodException {
+        for (Class<?> type : publicTypes(runtimeType)) {
+            Method match = firstMatching(type, methodName, parameterCount);
+            if (match != null) {
+                return match;
+            }
+        }
+        Method fallback = firstMatching(runtimeType, methodName, parameterCount);
+        if (fallback != null) {
+            fallback.setAccessible(true);
+            return fallback;
+        }
+        throw new NoSuchMethodException(runtimeType.getName() + "#" + methodName);
     }
 
     private static Method firstMatching(Class<?> type, String methodName, int parameterCount) {
@@ -123,5 +161,25 @@ public final class PublicApiMethodResolver {
 
     static boolean isPublicType(Class<?> type) {
         return type != null && Modifier.isPublic(type.getModifiers());
+    }
+
+    private static String typesKey(Class<?>[] parameterTypes) {
+        if (parameterTypes == null || parameterTypes.length == 0) {
+            return "()";
+        }
+        StringBuilder builder = new StringBuilder(parameterTypes.length * 24);
+        builder.append('(');
+        for (Class<?> type : parameterTypes) {
+            builder.append(type == null ? "null" : type.getName()).append(',');
+        }
+        builder.append(')');
+        return builder.toString();
+    }
+
+    private static String countKey(int parameterCount) {
+        return "#" + parameterCount;
+    }
+
+    private record CacheKey(Class<?> type, String name, String signature) {
     }
 }
