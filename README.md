@@ -22,6 +22,7 @@
 - [Конфигурация](#конфигурация)
 - [Tick watchdog](#tick-watchdog)
 - [Глюоны и торговец](#глюоны-и-торговец)
+- [Префиксы и спидранер](#префиксы-и-спидранер)
 - [Лаг-фиксы ATM10 8.2](#лаг-фиксы-atm10-82)
 - [Soul Surge](#soul-surge)
 - [Интеграции](#интеграции)
@@ -69,6 +70,8 @@
 - Лимиты и перехват лута спавнеров (Apothic Spawners)
 - Кредиты на киты FTB Essentials (`/kit balance`, `/cointcore kit ...`) и стартовый кит (`/cointcore starter`)
 - Кошелёк глюонов: `/balance`, `/pay`, админ `/cointcore gluons`, системный терминал `cointcore:trader`, торговый автомат игрока `cointcore:player_trader`, обмен с сайтом через AzLink
+- Выбор отображаемого префикса чата (`/prefix`) из групп LuckPerms, двусторонняя синхронизация с сайтом Azuriom
+- Рекорд спидранера: первый крафт ATM Star с наименьшим игровым временем (`/cointcore speedrunner`)
 - Уникальные фильтры ME (AE2)
 - Донорские привилегии (полёт и др.)
 
@@ -174,6 +177,10 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/kit balance` | Баланс кредитов на киты (FTB Essentials) |
 | `/balance` / `/money` | Баланс глюонов |
 | `/pay <игрок> <сумма>` / `/transfer` | Перевод глюонов (офлайн-цели через usercache, как mute) |
+| `/prefix` | Список доступных префиксов (кликабельные строки + превью) |
+| `/prefix set <группа>` | Выбрать префикс группы LuckPerms на этом сервере |
+| `/prefix auto` | Сбросить выбор (побеждает префикс с наибольшим приоритетом) |
+| `/prefix gui` | Простое меню выбора (сундук 9×3) |
 
 ### Администрирование (`/cointcore`)
 
@@ -192,6 +199,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/cointcore kit balance\|add\|set\|take` | Управление кредитами на киты (если FTB Essentials установлен) |
 | `/cointcore watchdog ...` | Tick watchdog: отчёт, топ, телепорт к виновнику |
 | `/cointcore gluons get\|set\|add` | Админ-кошелёк глюонов (`cointcore.gluons.admin`) |
+| `/cointcore speedrunner info\|reset\|set` | Рекорд спидранера (`cointcore.speedrunner.admin`) |
 
 #### Флаги чанков (`/cointcore claim flag`)
 
@@ -364,6 +372,8 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `cointcore.playershop.place` | все | Поставить торговый автомат |
 | `cointcore.playershop.use` | все | Открыть автомат и торговать |
 | `cointcore.playershop.admin` | OP | Управление/ломка чужого автомата |
+| `cointcore.prefix` | все | `/prefix`, `/prefix set`, `/prefix auto`, `/prefix gui` |
+| `cointcore.speedrunner.admin` | OP | `/cointcore speedrunner` |
 
 ## Tick watchdog
 
@@ -444,6 +454,7 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/tick-watchdog.json` | Tick watchdog (координаты лагов, семплы методов) |
 | `config/cointcore/trader_offers.json` | Офферы торговца, `commission_percent`, кольцо истории цен |
 | `config/cointcore/currency-movement.json` | Обмен глюонами с сайтом через AzLink (`site_queue_enabled`, `site_movements_enabled`, оба выключены по умолчанию) и опциональный HTTP-хук |
+| `config/cointcore/prefixes.json` | Выбор префикса, синхронизация с сайтом и рекорд спидранера |
 | `config/cointcore/item-perf.json` | Оптимизация item entity и защита от массового выпадения (`massDropGuard` и лимиты) |
 | `config/cointcore/dimension-wipe.json` | Расписание сброса измерений |
 | `config/cointcore/starter-kit.json` | Стартовый кит |
@@ -565,6 +576,77 @@ Retention старых отчётов: хранятся **7 дней или 512 
 Направление `adjust`: signed `amount` (>0 кредит игрового кошелька, <0 дебет, `0` только `source=reconcile` — зонд без изменения, ack с `balance_after`). `adjust` не трогает глобальный кошелёк сайта. `to_server` / `from_server` без изменений. Ack: `applied` | `failed` плюс `balance_after`; повтор той же `id` отвечает тем же статусом (локальный ledger). Недостаточно средств на дебете — `insufficient_server_balance`, кошелёк не меняется.
 
 Дрейф: если игра сообщила `balance_after`, нет pending ops, и баланс сайта ≠ `balance_after`, сайт ставит один corrective `adjust` (`source=reconcile`, amount = сайт − игра). Нулевой probe с тем же source позволяет узнать игровой баланс.
+
+## Префиксы и спидранер
+
+Игроки выбирают **отображаемый префикс чата на этом сервере**. Re-LPChatPrefix и TAB по-прежнему рисуют `%luckperms-prefix%`: cointcore только ставит user-level prefix node LuckPerms.
+
+### Кому какой префикс доступен
+
+- В списке — префиксы групп, которые игрок **реально имеет** (прямое наследование, в том числе временное): квестовые ранги (track `ranks`), донат, медиа/строитель, `default`.
+- Исключения — `exclude_groups` в конфиге. Группы без префикса не показываются.
+- **Персонал не выбирает префикс.** Если у игрока есть группа из track `staff` (имена читаются из LP в рантайме; запасной список в конфиге: `stazher` / `helper` / `moderator` / `hmod` / `admin` / `hadmin`), `/prefix set` и сайт отвечают отказом, а уже выбранный override снимается.
+
+`/prefix` — кликабельный список с превью. `/prefix set <группа>` ставит выбор. `/prefix auto` снимает override (побеждает самый приоритетный префикс групп). `/prefix gui` открывает сундук 9×3. Право `cointcore.prefix` по умолчанию есть у всех.
+
+### Как выбор хранится в LuckPerms
+
+На пользователя вешается prefix node приоритета **1000** (выше типичных групповых) с meta `cointcore-prefix-select=<группа>` и контекстом `server` этого LP-сервера (если имя сервера не `global`). По тегу мод находит и снимает только свои ноды. При `UserDataRecalculateEvent` override удаляется, если группы больше нет или игрок стал персоналом.
+
+### Синхронизация с сайтом (Azuriom / AzLink)
+
+Сайт реализован отдельно в AzLink-mods. Транспорт тот же, что у глюонов: рефлексия `CoinOperationsBridge` / `HttpClient.request`. `server_id` задаёт токен AzLink.
+
+| Направление | Метод и путь | Тело |
+|-------------|--------------|------|
+| Игра → сайт | `POST /api/azlink/prefixes/report` | `{players:[{uuid,name,available:[{group,prefix_raw,category}],selected,locked_staff}]}` |
+| Сайт → игра | `GET /api/azlink/prefixes/operations` | `{operations:[{op_id,uuid,group\|null}]}` тип `prefix_select` |
+| Ack | `POST /api/azlink/prefixes/ack` | `{op_id,status:applied\|rejected,reason,selected}` |
+
+Репорт уходит при входе, при пересчёте LP и после `/prefix` (debounce `site_report_debounce_ticks`). Операции с сайта идемпотентны по `op_id` (SavedData `cointcore_prefix_operations`) и работают для офлайн-игроков через `UserManager.modifyUser`.
+
+AzLink `HttpClient` склеивает `siteUrl + "/api" + path`. Cointcore вызывает пути без `/api`: `/azlink/prefixes/report`, `/azlink/prefixes/operations`, `/azlink/prefixes/ack`.
+
+**Что должен выставить AzLink-mods** на `CoinOperationsBridge` (если ещё нет):
+
+```java
+static boolean isAvailable();
+static CompletableFuture<String> postJson(String path, String json);
+static CompletableFuture<String> getJson(String path);
+// опционально:
+static CompletableFuture<String> reportPrefixes(String json);
+static CompletableFuture<String> fetchPrefixOperations(int limit);
+static CompletableFuture<String> ackPrefix(String opId, String status, String reason, String selected);
+```
+
+Если этих методов нет, cointcore ходит в `HttpClient.request` через поле `plugin` у того же моста (как `postMovements`).
+
+### Спидранер
+
+Первый крафт `allthetweaks:atm_star` (`ItemCraftedEvent`, как минимум верстак) сравнивается по `Stats.PLAY_TIME` игрока. Рекорд — меньшее число тиков — в overworld SavedData `cointcore_speedrunner` (uuid, имя, тики, дата). Предыдущему держателю группа `speedrunner` снимается даже офлайн; новому выдаётся. В чат уходит объявление. Крафты до установки мода не сканируются.
+
+`/cointcore speedrunner info|reset|set <игрок> [тики]` — право `cointcore.speedrunner.admin`.
+
+### Конфиг `config/cointcore/prefixes.json`
+
+| Ключ | Дефолт | Смысл |
+|------|--------|--------|
+| `enabled` | `true` | Выбор префикса |
+| `staff_track` | `staff` | Track персонала в LuckPerms |
+| `staff_groups` | `stazher`…`hadmin` | Запасной список, если track пуст |
+| `ranks_track` | `ranks` | Квестовые ранги (категория `quest`) |
+| `exclude_groups` | `[]` | Не предлагать эти группы |
+| `donation_groups` / `media_groups` / `builder_groups` | медиа/builder заданы | Категории для сайта |
+| `default_group` | `default` | Категория `default` |
+| `prefix_priority` | `1000` | Приоритет user-level prefix node |
+| `prefix_meta_key` | `cointcore-prefix-select` | Тег «наша» нода |
+| `site_sync_enabled` | `true` | Репорт и поллер сайта |
+| `site_report_debounce_ticks` | `40` | Задержка репорта |
+| `site_poll_seconds` | `15` | Интервал опроса операций |
+| `gui_enabled` | `true` | `/prefix gui` |
+| `speedrunner.enabled` | `true` | Рекорд ATM Star |
+| `speedrunner.group` | `speedrunner` | Группа LuckPerms |
+| `speedrunner.item` | `allthetweaks:atm_star` | Предмет рекорда |
 
 ## Лаг-фиксы ATM10 8.2
 
@@ -704,7 +786,7 @@ Industrial Foregoing Souls: каждый Soul Surge ускоряет **ровн�
 | **LuckPerms** | Расширенное управление правами |
 | **FTB Essentials** | Киты, офлайн-телепорт, фиксы NBT |
 | **Curios / Accessories** | Keep Inventory, донорский полёт, вкладка Accessories в InvSee |
-| **AzLink** (сборка из `cubeofint/AzLink-mods`) | Обмен глюонами с сайтом (см. [Глюоны и торговец](#глюоны-и-торговец)) |
+| **AzLink** (сборка из `cubeofint/AzLink-mods`) | Обмен глюонами и префиксами с сайтом (см. [Глюоны и торговец](#глюоны-и-торговец) и [Префиксы и спидранер](#префиксы-и-спидранер)) |
 | **YIGD / Tombstone / Gravestone** | Вкладка «Могилы» в InvSee |
 | **AE2** | Уникальные ME-фильтры, spatial storage guard |
 | **Apothic Spawners** | Лимиты и лут спавнеров |
@@ -748,6 +830,8 @@ src/main/java/com/mawlee/cointcore/
 ├── claim/            # FTB Chunks: ClaimGuard, флаги, буфер, запрет привата арен боссов
 ├── mixin/            # Mixin + CointCoreMixinPlugin (условная загрузка)
 ├── shop/             # Глюоны: кошелёк, торговый терминал, обмен с сайтом через AzLink
+├── prefix/           # Выбор префикса LuckPerms и синхронизация с сайтом
+├── speedrunner/      # Рекорд крафта ATM Star
 │   └── client/       #   экран терминала, спарклайн, иконка глюона
 ├── invsee/           # InvSee: меню, вкладки, интеграции, журнал
 │   └── client/       #   экраны и оформление вкладок

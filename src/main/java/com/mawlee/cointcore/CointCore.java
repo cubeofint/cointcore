@@ -71,6 +71,8 @@ public class CointCore {
                     com.mawlee.cointcore.shop.SiteMovementSender.tick(event.getServer());
                     com.mawlee.cointcore.shop.TraderPriceHistorySampler.tick(event.getServer());
                     com.mawlee.cointcore.shop.GlobalMarketService.tick(event.getServer());
+                    com.mawlee.cointcore.prefix.PrefixReportScheduler.tick(event.getServer());
+                    com.mawlee.cointcore.prefix.PrefixSiteBridge.tick(event.getServer());
                 });
     }
 }

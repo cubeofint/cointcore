@@ -25,6 +25,7 @@ public final class ModCommands {
         InvSeeCommand.apply(dispatcher);
         BalanceCommand.apply(dispatcher);
         PayCommand.apply(dispatcher);
+        PrefixCommand.apply(dispatcher);
         VoteCommand.apply(dispatcher);
         AdminChatCommand.apply(dispatcher);
     }

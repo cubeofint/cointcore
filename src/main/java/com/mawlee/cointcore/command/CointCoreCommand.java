@@ -36,6 +36,7 @@ import com.mawlee.cointcore.config.SparkProfilerConfig;
 import com.mawlee.cointcore.config.TickWatchdogConfig;
 import com.mawlee.cointcore.config.TraderOffersConfig;
 import com.mawlee.cointcore.config.CurrencyMovementConfig;
+import com.mawlee.cointcore.config.PrefixConfig;
 import com.mawlee.cointcore.config.DimensionWipeConfig;
 import com.mawlee.cointcore.config.StarterKitConfig;
 import com.mawlee.cointcore.server.PeriodicMessageService;
@@ -113,7 +114,8 @@ public final class CointCoreCommand {
                                 .executes(CointCoreCommand::cataclysmSpotsForce)))
                 .then(ChunkLimitCommand.chunkLimitCommand())
                 .then(WatchdogCommand.branch())
-                .then(GluonWalletCommand.branch());
+                .then(GluonWalletCommand.branch())
+                .then(SpeedrunnerCommand.branch());
 
         var claimFlags = ClaimFlagCommand.claimFlagCommand();
         if (claimFlags != null) {
@@ -173,7 +175,8 @@ public final class CointCoreCommand {
                 && MeUniqueFilterConfig.reload()
                 && TickWatchdogConfig.reload()
                 && TraderOffersConfig.reload()
-                && CurrencyMovementConfig.reload()) {
+                && CurrencyMovementConfig.reload()
+                && PrefixConfig.reload()) {
             CrushRecipeCache.invalidate();
             ArsGlyphThrottle.clear();
             NonStackableItemTagPack.ensureGenerated();
