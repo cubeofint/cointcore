@@ -28,7 +28,10 @@ public final class WatchdogCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> branch() {
         return Commands.literal("watchdog")
                 .requires(WatchdogCommand::canUse)
-                .then(Commands.literal("report").executes(WatchdogCommand::report))
+                .then(Commands.literal("report")
+                        .executes(WatchdogCommand::report)
+                        .then(Commands.literal("now").executes(WatchdogCommand::report)))
+                .then(Commands.literal("status").executes(WatchdogCommand::status))
                 .then(Commands.literal("top").executes(WatchdogCommand::top))
                 .then(Commands.literal("tp")
                         .then(Commands.argument("index", IntegerArgumentType.integer(1, 50))
@@ -59,6 +62,27 @@ public final class WatchdogCommand {
                 source.sendSuccess(() -> CointCoreMessages.forSource(source, CointCoreMessages.WATCHDOG_REPORT_TRUNCATED), false);
                 break;
             }
+            source.sendSuccess(() -> Component.literal(line), false);
+        }
+        return 1;
+    }
+
+    private static int status(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        TickWatchdogService service = TickWatchdogService.instance();
+        TickStatsWindow stats = service.stats();
+        source.sendSuccess(() -> Component.literal(String.format(
+                Locale.ROOT,
+                "Watchdog: running=%s avg=%.2f ms p95=%.2f ms max=%.2f ms TPS≈%.2f slow=%d",
+                service.isRunning(),
+                stats.averageMillis(),
+                stats.percentile95Millis(),
+                stats.maxMillis(),
+                stats.estimatedTps(),
+                stats.slowTicks()
+        )), false);
+        String[] lines = service.probeStatusText().split("\n");
+        for (String line : lines) {
             source.sendSuccess(() -> Component.literal(line), false);
         }
         return 1;

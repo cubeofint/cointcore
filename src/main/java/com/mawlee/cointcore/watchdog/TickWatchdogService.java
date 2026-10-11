@@ -3,6 +3,8 @@ package com.mawlee.cointcore.watchdog;
 import com.mawlee.cointcore.config.TickWatchdogConfig;
 import com.mawlee.cointcore.permission.CointPermissionNodes;
 import com.mawlee.cointcore.permission.PermissionService;
+import com.mawlee.cointcore.watchdog.probes.WatchdogProbeConfig;
+import com.mawlee.cointcore.watchdog.probes.WatchdogProbeHub;
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -67,7 +69,9 @@ public final class TickWatchdogService {
         consecutiveSlow = 0;
         detailedArmed = TickWatchdogConfig.isDetailedAlways();
         TIMING_ENABLED.set(running && detailedArmed);
+        WatchdogProbeConfig.load();
         if (running) {
+            WatchdogProbeHub.instance().start();
             sampler.start();
             Thread indexer = new Thread(WatchdogModIndex::rebuild, "cointcore-watchdog-modindex");
             indexer.setDaemon(true);
@@ -85,16 +89,19 @@ public final class TickWatchdogService {
         running = false;
         TIMING_ENABLED.set(false);
         sampler.stop();
+        WatchdogProbeHub.instance().stop();
         TickProbe.clear();
     }
 
     public void setEnabled(boolean enabled) {
         running = enabled;
         if (running) {
+            WatchdogProbeHub.instance().start();
             sampler.start();
         } else {
             TIMING_ENABLED.set(false);
             sampler.stop();
+            WatchdogProbeHub.instance().stop();
         }
     }
 
@@ -111,6 +118,7 @@ public final class TickWatchdogService {
                 || (TickWatchdogConfig.isDetailedOff() ? false : detailedArmed);
         TIMING_ENABLED.set(next && (TickWatchdogConfig.isAttributeBlockEntities()
                 || TickWatchdogConfig.isAttributeEntities()));
+        WatchdogProbeHub.instance().onTickStart(Thread.currentThread());
     }
 
     public void onServerTickEnd(MinecraftServer server, long tickNanos) {
@@ -119,6 +127,7 @@ public final class TickWatchdogService {
         }
         stats.record(tickNanos);
         boolean slow = tickNanos >= TickWatchdogConfig.getSlowTickThresholdNanos();
+        WatchdogProbeHub.instance().onTickEnd(server, tickNanos, slow);
         if (slow) {
             consecutiveSlow++;
             if (consecutiveSlow >= TickWatchdogConfig.getAutoDetailedAfterSlowTicks()
@@ -214,7 +223,12 @@ public final class TickWatchdogService {
     }
 
     public String writeReportNow(MinecraftServer server) {
+        WatchdogProbeHub.instance().analyzeNow(server);
         return writeReport(server);
+    }
+
+    public String probeStatusText() {
+        return WatchdogProbeHub.instance().statusText();
     }
 
     public record BlockEntityTiming(String typeId, String modId, String dimension, int x, int y, int z, long nanos) {
@@ -256,6 +270,10 @@ public final class TickWatchdogService {
                 snapshot -> lookupChunk(server, snapshot),
                 extras
         );
+        String probeText = WatchdogProbeHub.instance().formatReport(server);
+        if (probeText != null && !probeText.isBlank()) {
+            text = text + System.lineSeparator() + probeText;
+        }
 
         Path dir = WatchdogRetention.watchdogReportDir(server);
         Path file = dir.resolve(FILE_DAY.format(Instant.now()) + ".log");
@@ -274,6 +292,7 @@ public final class TickWatchdogService {
         aggregator.clear();
         stats.resetSlowTicks();
         sampler.resetAggregator();
+        WatchdogProbeHub.instance().resetWindows();
         return text;
     }
 
