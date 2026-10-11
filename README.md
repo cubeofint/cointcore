@@ -21,6 +21,7 @@
 - [Права доступа](#права-доступа)
 - [Конфигурация](#конфигурация)
 - [Tick watchdog](#tick-watchdog)
+- [Кредиты на киты](#кредиты-на-киты)
 - [Глюоны и торговец](#глюоны-и-торговец)
 - [Префиксы и спидранер](#префиксы-и-спидранер)
 - [Лаг-фиксы ATM10 8.2](#лаг-фиксы-atm10-82)
@@ -68,7 +69,7 @@
 - Keep Inventory с поддержкой Curios и Accessories
 - Лимиты блоков на чанк, команду и игрока; лимиты сущностей на чанк и команду (`/cointcore chunklimit`)
 - Лимиты и перехват лута спавнеров (Apothic Spawners)
-- Кредиты на киты FTB Essentials (`/kit balance`, `/cointcore kit ...`) и стартовый кит (`/cointcore starter`)
+- Кредиты на киты FTB Essentials (`/kit balance`, `/cointcore kit ...`): купленные использования **не сгорают**, хранятся по UUID (офлайн и никогда не заходившие на сервер), начисляются с сайта через AzLink
 - Кошелёк глюонов: `/balance`, `/pay`, админ `/cointcore gluons`, системный терминал `cointcore:trader`, торговый автомат игрока `cointcore:player_trader`, обмен с сайтом через AzLink
 - Выбор отображаемого префикса чата (`/prefix`) из групп LuckPerms, двусторонняя синхронизация с сайтом Azuriom
 - Рекорд спидранера: первый крафт ATM Star с наименьшим игровым временем (`/cointcore speedrunner`)
@@ -174,7 +175,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/turn-pvp` | Переключить личный PvP-режим |
 | `/voteday` | Голосование за день |
 | `/votesun` / `/voteclearweather` | Голосование за ясную погоду |
-| `/kit balance` | Баланс кредитов на киты (FTB Essentials) |
+| `/kit balance` | Оставшиеся кредиты на киты (FTB Essentials; не сгорают) |
 | `/balance` / `/money` | Баланс глюонов |
 | `/pay <игрок> <сумма>` / `/transfer` | Перевод глюонов (офлайн-цели через usercache, как mute) |
 | `/prefix` | Список доступных префиксов (кликабельные строки + превью) |
@@ -196,7 +197,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/cointcore starter status\|set_from_inv\|sync_cooldown\|reset_firstjoin` | Стартовый кит |
 | `/cointcore chunklimit ...` | Управление лимитами чанков |
 | `/cointcore claim flag ...` | Флаги чанков FTB (если FTB Chunks установлен) |
-| `/cointcore kit balance\|add\|set\|take` | Управление кредитами на киты (если FTB Essentials установлен) |
+| `/cointcore kit balance\|add\|set\|take\|list\|clear` | Кредиты на киты (не сгорают). `add` — ник, UUID (с дефисами или 32 hex) или ник, которого ещё не было на сервере (usercache / Mojang). `list` / `clear [кит]` — админский просмотр и сброс |
 | `/cointcore watchdog ...` | Tick watchdog: отчёт, топ, телепорт к виновнику |
 | `/cointcore gluons get\|set\|add` | Админ-кошелёк глюонов (`cointcore.gluons.admin`) |
 | `/cointcore speedrunner info\|reset\|set` | Рекорд спидранера (`cointcore.speedrunner.admin`) |
@@ -472,6 +473,33 @@ Retention старых отчётов: хранятся **7 дней или 512 
 Это основные файлы. Остальные конфиги (perf-настройки отдельных модов, респавн структур, чат-релей и т.д.) создаются там же, в `config/cointcore/`.
 
 Данные игроков (муты, киты, флаги чанков, история наказаний) хранятся в `world/data/` через Minecraft SavedData.
+
+## Кредиты на киты
+
+Купленные использования китов FTB Essentials хранятся в overworld SavedData `cointcore_kit_credits` **по UUID игрока**. Они **никогда не сгорают**: списать можно только командой `/kit` (mixin `KitCreditClaimMixin` показывает оставшееся число) или админским `take` / `clear`.
+
+Офлайн-игрок и игрок, который ещё ни разу не заходил, получают кредит так же, как онлайн: ключ — UUID. `/cointcore kit add` принимает:
+
+- ник онлайн-игрока;
+- UUID с дефисами или 32 hex-символа без дефисов;
+- ник, которого нет в usercache — тогда берётся `GameProfileCache`, NeoForge `usernamecache.json`, и если дёшево — один запрос к Mojang.
+
+`/kit balance` и `/cointcore kit balance|list` показывают оставшиеся использования (русские строки в `ru_ru.json`). Админ: `/cointcore kit list <игрок>` и `/cointcore kit clear <игрок> [кит]`.
+
+**AzLink.** Compile-зависимости на AzLink нет. Сайт начисляет кредит рефлексией:
+
+`com.mawlee.cointcore.kit.KitCreditService.addCredits(java.util.UUID, java.lang.String, int)`
+
+Сигнатура стабильная, четвёртого аргумента со сроком нет. Вызов с любого потока безопасен: с серверного — сразу, иначе ставится в очередь серверного потока. Возврат — строка статуса:
+
+| Статус | Значение |
+|--------|----------|
+| `applied` | Начислено на этом потоке |
+| `scheduled` | Поставлено в очередь серверного потока |
+| `no_server` | Сервер не запущен |
+| `invalid` | Пустой UUID/кит или `qty <= 0` |
+
+Существующий `addCredits(MinecraftServer, UUID, String, int)` для команд не менялся (без срока действия).
 
 ## Глюоны и торговец
 
@@ -844,7 +872,7 @@ src/main/java/com/mawlee/cointcore/
 ├── chunklimit/       # Лимиты на чанк
 ├── spawner/          # Спавнеры
 ├── keepinventory/    # Keep Inventory
-├── kit/              # Кредиты на киты, стартовый кит
+├── kit/              # Кредиты на киты (бессрочные, UUID, мост AzLink), стартовый кит
 ├── ae/               # Applied Energistics 2
 ├── ftb/, ftbessentials/, ftbranks/  # FTB Chunks / Teams / Essentials / Ranks
 ├── luckperms/        # LuckPerms (reflection)
