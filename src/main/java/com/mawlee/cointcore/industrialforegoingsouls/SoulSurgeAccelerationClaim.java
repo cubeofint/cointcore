@@ -8,9 +8,10 @@ import java.util.Map;
  * given cell each game tick; the surge that held the claim last tick keeps it
  * (sticky owner) so souls are not drained in alternation.
  * <p>
- * O(1) per {@link #tryClaim} / {@link #release}: no world scans. Stale owners
- * drop out when they stop claiming — after one idle tick, or immediately if
- * they {@link #release}.
+ * O(1) per {@link #tryClaim} / {@link #release}: no world scans. A surge
+ * that cannot accelerate must {@link #release} immediately (no souls,
+ * removed, unloaded, retargeted). Otherwise a stale owner drops out after
+ * one idle tick.
  */
 public final class SoulSurgeAccelerationClaim {
     private static final int PACKED_XZ_LENGTH = 26;
@@ -53,6 +54,20 @@ public final class SoulSurgeAccelerationClaim {
             return current;
         }
         return lastOwners.get(targetPacked);
+    }
+
+    /**
+     * Owner that already claimed this tick. {@code null} if only a sticky
+     * owner from the previous tick remains (not yet active this tick).
+     */
+    public Long peekCurrentOwner(long targetPacked, long gameTime) {
+        roll(gameTime);
+        return currentOwners.get(targetPacked);
+    }
+
+    public boolean isOwnerActive(long targetPacked, long surgePacked, long gameTime) {
+        Long current = peekCurrentOwner(targetPacked, gameTime);
+        return current != null && current == surgePacked;
     }
 
     /**
