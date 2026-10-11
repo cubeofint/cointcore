@@ -119,7 +119,7 @@ public final class PrefixConfig {
             if (data == null) {
                 data = FileData.defaults();
             }
-            FileData speedrunner = data.speedrunner != null ? data.speedrunner : FileData.defaultSpeedrunner();
+            SpeedrunnerData speedrunner = data.speedrunner != null ? data.speedrunner : FileData.defaultSpeedrunner();
             return new Settings(
                     data.enabled == null || data.enabled,
                     normalizeName(data.staffTrack, DEFAULT_STAFF_TRACK),

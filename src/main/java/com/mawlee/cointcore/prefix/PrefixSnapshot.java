@@ -35,7 +35,7 @@ public record PrefixSnapshot(
         return null;
     }
 
-    static String normalize(String group) {
+    public static String normalize(String group) {
         if (group == null || group.isBlank()) {
             return null;
         }

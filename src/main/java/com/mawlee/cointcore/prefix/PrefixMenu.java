@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.prefix;
 
+import com.mawlee.cointcore.command.PrefixCommand;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
