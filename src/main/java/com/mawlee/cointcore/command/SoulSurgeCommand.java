@@ -4,6 +4,7 @@ import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeAccelerationClaim;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeClaimTracker;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeDebug;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeFacing;
+import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeSouls;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeTarget;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -19,7 +20,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Admin inspect for Soul Surge facing / per-tick claims.
+ * Admin inspect for Soul Surge facing / per-tick claims / soul supply.
  */
 public final class SoulSurgeCommand {
     private SoulSurgeCommand() {
@@ -44,11 +45,13 @@ public final class SoulSurgeCommand {
         if (surge) {
             String facing = SoulSurgeTarget.normalizeFacing(SoulSurgeFacing.name(state));
             BlockPos target = SoulSurgeFacing.target(pos, state);
+            boolean hasSouls = SoulSurgeSouls.hasSouls(level.getBlockEntity(pos));
             source.sendSuccess(
                     () -> Component.literal(SoulSurgeDebug.surgeLine(
                             pos.getX(), pos.getY(), pos.getZ(),
                             facing,
-                            target.getX(), target.getY(), target.getZ()
+                            target.getX(), target.getY(), target.getZ(),
+                            hasSouls
                     )),
                     false
             );
@@ -63,12 +66,14 @@ public final class SoulSurgeCommand {
             );
             return 1;
         }
+        boolean active = SoulSurgeClaimTracker.isOwnerActive(level, pos, owner);
         source.sendSuccess(
                 () -> Component.literal(SoulSurgeDebug.ownerLine(
                         pos.getX(), pos.getY(), pos.getZ(),
                         SoulSurgeAccelerationClaim.unpackX(owner),
                         SoulSurgeAccelerationClaim.unpackY(owner),
-                        SoulSurgeAccelerationClaim.unpackZ(owner)
+                        SoulSurgeAccelerationClaim.unpackZ(owner),
+                        active
                 )),
                 false
         );

@@ -199,7 +199,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/cointcore claim flag ...` | Флаги чанков FTB (если FTB Chunks установлен) |
 | `/cointcore kit balance\|add\|set\|take\|list\|clear` | Кредиты на киты (не сгорают). `add` — ник, UUID (с дефисами или 32 hex) или ник, которого ещё не было на сервере (usercache / Mojang). `list` / `clear [кит]` — админский просмотр и сброс |
 | `/cointcore watchdog ...` | Tick watchdog: отчёт, топ, телепорт к виновнику |
-| `/cointcore soulsurge debug <pos>` | Админ (уровень 2): у сёрджа — facing и цель; у машины — владелец claim |
+| `/cointcore soulsurge debug <pos>` | Админ (уровень 2): у сёрджа — facing, цель, `souls=yes/no`; у машины — владелец claim и `active=yes/no` |
 | `/cointcore gluons get\|set\|add` | Админ-кошелёк глюонов (`cointcore.gluons.admin`) |
 | `/cointcore speedrunner info\|reset\|set` | Рекорд спидранера (`cointcore.speedrunner.admin`) |
 | `/cointcore prefixes export` | Выгрузить полный каталог квестовых префиксов на сайт (`cointcore.prefix.admin`) |
@@ -859,14 +859,14 @@ Industrial Foregoing Souls: каждый Soul Surge ускоряет **ровн�
 
 В IF Souls блок направленный: Titanium `RotatableBlock.FACING_ALL` — отдельный `DirectionProperty` с именем `facing` (не тот же объект, что `BlockStateProperties.FACING`; сравнение `hasProperty` по identity его не видит). Направление читается по имени свойства. Сопло смотрит в `facing.opposite`, цель = `surgePos.relative(facing.opposite)` — клетка, к которой сёрдж приставлен. Если у блока нет `facing`, берётся `up` (цель — блок снизу), как у сёрджа, поставленного сверху на машину.
 
-Админ-команда `/cointcore soulsurge debug <pos>` (permission 2): для позиции сёрджа показывает resolved facing и клетку-цель; для позиции машины — какой сёрдж держит per-tick claim.
+Админ-команда `/cointcore soulsurge debug <pos>` (permission 2): для позиции сёрджа показывает resolved facing, клетку-цель и есть ли души (`souls=yes/no` — leftover `tickingTime` или души в soul network); для позиции машины — какой сёрдж держит per-tick claim и активен ли он в этом тике (`active=yes` — уже ускорял, `active=no` — только sticky с прошлого тика).
 
 - Полная скорость мода: `ACCELERATION_TICK` из конфига IF Souls (по умолчанию 4 лишних тика).
 - Ограничений по типу машины нет: deny-списки, block tag (`cointcore:soul_surge_no_accelerate`, `industrialforegoingsouls:cant_accelerate`) и лимиты на чанк для Soul Surge не применяются. Общий `tick-acceleration-deny.json` (Time Wand и др.) **не** читается.
 - Исключение: другой `industrialforegoingsouls:soul_surge` не ускоряется (античейн). Воздух и блок без Block Entity — ничего не делают, души не тратятся.
 - Сущности и random-tick соседей не ускоряются. Area-сканов за тик нет.
 - Души списываются как в моде: только пока реально крутится валидный Block Entity.
-- Несколько сёрджей на одной машине: за игровой тик цель ускоряет **не больше одного** сёрджа. Остальные в этот тик простаивают и души не тратят. Владелец «липкий»: пока тот же сёрдж на месте и продолжает работать, он удерживает право ускорять, чтобы души не списывались по очереди с разных сторон. Если владелец снят или перестал целиться в блок, право переходит другому сёрджу (сразу, если владелец сам отпустил цель, иначе после одного тика простоя).
+- Несколько сёрджей на одной машине: за игровой тик цель ускоряет **не больше одного** сёрджа. Остальные в этот тик простаивают и души не тратят. Claim берётся только если сёрдж в этот тик реально может ускорять — как в IF Souls 1.10.7: после попытки списать душу из сети `tickingTime > 0` (уже оплаченный leftover или `getSoulAmount() > 0`). Сёрдж без душ / без трубы claim не берёт. Владелец «липкий»: пока тот же сёрдж на месте и продолжает ускорять, он удерживает право, чтобы души не списывались по очереди. Если владелец не ускорил (нет душ, снят, чанк выгружен, сменил цель), claim отпускается сразу — другой валидный сёрдж забирает его в тот же или следующий тик.
 
 `config/cointcore/soul-surge-perf.json`:
 

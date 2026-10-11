@@ -33,4 +33,19 @@ public final class SoulSurgeClaimTracker {
                 level.getGameTime()
         );
     }
+
+    /**
+     * {@code true} if {@code ownerPacked} already claimed {@code targetPos}
+     * this tick (not merely the sticky owner from last tick).
+     */
+    public static boolean isOwnerActive(Level level, BlockPos targetPos, long ownerPacked) {
+        if (level == null || targetPos == null) {
+            return false;
+        }
+        return forLevel(level).isOwnerActive(
+                SoulSurgeAccelerationClaim.pack(targetPos.getX(), targetPos.getY(), targetPos.getZ()),
+                ownerPacked,
+                level.getGameTime()
+        );
+    }
 }

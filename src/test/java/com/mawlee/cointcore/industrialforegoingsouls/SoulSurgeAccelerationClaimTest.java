@@ -155,4 +155,69 @@ class SoulSurgeAccelerationClaimTest {
         assertTrue(claims.tryClaim(TARGET, SIX_SIDES[0], 1L));
         assertTrue(claims.tryClaim(otherTarget, SIX_SIDES[1], 1L));
     }
+
+    @Test
+    void onlySurgeWithSoulsAccelerates() {
+        long dry = SIX_SIDES[0];
+        long fed = SIX_SIDES[1];
+
+        assertFalse(SoulSurgeAcceleration.canWorkThisTick(0, 0));
+        assertTrue(SoulSurgeAcceleration.canWorkThisTick(0, 3));
+        assertTrue(SoulSurgeAcceleration.canWorkThisTick(12, 0));
+
+        assertFalse(tick(dry, false, 1L));
+        assertTrue(tick(fed, true, 1L));
+        assertFalse(tick(dry, false, 1L));
+
+        assertEquals(fed, claims.peekOwner(TARGET, 1L));
+        assertTrue(claims.isOwnerActive(TARGET, fed, 1L));
+        assertFalse(claims.isOwnerActive(TARGET, dry, 1L));
+    }
+
+    @Test
+    void ownerLosesSoulsOtherTakesOverSameTick() {
+        long owner = SIX_SIDES[2];
+        long other = SIX_SIDES[3];
+        assertTrue(tick(owner, true, 5L));
+        assertFalse(tick(other, true, 5L));
+
+        assertFalse(tick(owner, false, 6L));
+        assertTrue(tick(other, true, 6L));
+        assertFalse(tick(owner, false, 6L));
+
+        assertEquals(other, claims.peekOwner(TARGET, 6L));
+        assertTrue(claims.isOwnerActive(TARGET, other, 6L));
+        assertEquals(1, acceleratedThisTick(6L, owner, other));
+    }
+
+    @Test
+    void stillAtMostOneAcceleratesPerTick() {
+        assertEquals(1, acceleratedThisTick(7L, SIX_SIDES[0], SIX_SIDES[1], SIX_SIDES[2]));
+        assertTrue(claims.isOwnerActive(TARGET, SIX_SIDES[0], 7L));
+        assertFalse(claims.isOwnerActive(TARGET, SIX_SIDES[1], 7L));
+    }
+
+    @Test
+    void peekCurrentOwnerIsEmptyWhileOnlySticky() {
+        long owner = SIX_SIDES[4];
+        assertTrue(claims.tryClaim(TARGET, owner, 1L));
+        assertEquals(owner, claims.peekCurrentOwner(TARGET, 1L));
+        assertNull(claims.peekCurrentOwner(TARGET, 2L));
+        assertEquals(owner, claims.peekOwner(TARGET, 2L));
+        assertFalse(claims.isOwnerActive(TARGET, owner, 2L));
+    }
+
+    private boolean tick(long surge, boolean hasSouls, long gameTime) {
+        return SoulSurgeAcceleration.tryAccelerate(claims, TARGET, surge, gameTime, hasSouls);
+    }
+
+    private int acceleratedThisTick(long gameTime, long... surges) {
+        int accelerated = 0;
+        for (long surge : surges) {
+            if (tick(surge, true, gameTime)) {
+                accelerated++;
+            }
+        }
+        return accelerated;
+    }
 }

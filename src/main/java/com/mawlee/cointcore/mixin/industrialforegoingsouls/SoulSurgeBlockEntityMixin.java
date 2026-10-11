@@ -3,9 +3,11 @@ package com.mawlee.cointcore.mixin.industrialforegoingsouls;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mawlee.cointcore.config.SoulSurgePerfConfig;
+import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeAcceleration;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeAccelerationClaim;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeClaimTracker;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeFacing;
+import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeSouls;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeTarget;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -22,6 +24,7 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -35,7 +38,10 @@ import java.util.List;
  * ({@code pos.relative(facing.opposite)}) at the mod's {@code ACCELERATION_TICK}.
  * Facing is read by property name {@code facing} (Titanium
  * {@code RotatableBlock.FACING_ALL}), not {@code BlockStateProperties} identity.
- * A target may be claimed by at most one surge per game tick (sticky owner).
+ * A target may be claimed by at most one surge per game tick (sticky owner),
+ * and only after IF Souls 1.10.7 has {@code tickingTime > 0} (soul already
+ * paid or just consumed from the pipe network). A surge that fails to
+ * accelerate releases immediately.
  * No deny lists, no chunk-limit gate, no entity / random-tick / neighbour scans.
  */
 @Mixin(targets = "com.buuz135.industrialforegoingsouls.block.tile.SoulSurgeBlockEntity", remap = false)
@@ -43,11 +49,21 @@ public abstract class SoulSurgeBlockEntityMixin {
     private static final String SERVER_TICK =
             "serverTick(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lcom/buuz135/industrialforegoingsouls/block/tile/SoulSurgeBlockEntity;)V";
 
+    /**
+     * Leftover paid soul duration. IF Souls refills this from the network
+     * before {@code getBlockState} / ticker calls when it was {@code <= 0}.
+     */
+    @Shadow(remap = false)
+    private int tickingTime;
+
     @Unique
     private long cointcore$claimedTargetPacked;
 
     @Unique
     private boolean cointcore$hasClaim;
+
+    @Unique
+    private boolean cointcore$acceleratedThisTick;
 
     /**
      * IF Souls reads the target via {@code level.getBlockState(attached)}.
@@ -84,7 +100,8 @@ public abstract class SoulSurgeBlockEntityMixin {
             cointcore$releaseClaim(level);
             return Blocks.AIR.defaultBlockState();
         }
-        if (!cointcore$tryClaim(level, queryPos)) {
+        // After IF Souls soul refill: only tickingTime > 0 may reserve the target.
+        if (!cointcore$tryAccelerate(level, queryPos, this.tickingTime > 0)) {
             return Blocks.AIR.defaultBlockState();
         }
         return queried;
@@ -142,9 +159,10 @@ public abstract class SoulSurgeBlockEntityMixin {
             cointcore$releaseClaim(level);
             return;
         }
-        if (!cointcore$tryClaim(level, targetPos)) {
+        if (!cointcore$tryAccelerate(level, targetPos, this.tickingTime > 0)) {
             return;
         }
+        cointcore$acceleratedThisTick = true;
         original.call(ticker, level, targetPos, targetState, blockEntity);
     }
 
@@ -207,6 +225,29 @@ public abstract class SoulSurgeBlockEntityMixin {
         original.call(entity);
     }
 
+    @Inject(method = SERVER_TICK, at = @At("HEAD"))
+    private void cointcore$beginTick(CallbackInfo ci) {
+        cointcore$acceleratedThisTick = false;
+        Level level = ((BlockEntity) (Object) this).getLevel();
+        if (level == null || !SoulSurgePerfConfig.isEnabled()) {
+            return;
+        }
+        if (!SoulSurgeSouls.hasSouls(this)) {
+            cointcore$releaseClaim(level);
+        }
+    }
+
+    @Inject(method = SERVER_TICK, at = @At("RETURN"))
+    private void cointcore$endTick(CallbackInfo ci) {
+        Level level = ((BlockEntity) (Object) this).getLevel();
+        if (level == null || !SoulSurgePerfConfig.isEnabled()) {
+            return;
+        }
+        if (!cointcore$acceleratedThisTick) {
+            cointcore$releaseClaim(level);
+        }
+    }
+
     @Inject(method = "setRemoved()V", at = @At("HEAD"), require = 0)
     private void cointcore$releaseClaimOnRemoved(CallbackInfo ci) {
         BlockEntity surge = (BlockEntity) (Object) this;
@@ -216,15 +257,28 @@ public abstract class SoulSurgeBlockEntityMixin {
         }
     }
 
+    @Inject(method = "onChunkUnloaded()V", at = @At("HEAD"), require = 0)
+    private void cointcore$releaseClaimOnUnload(CallbackInfo ci) {
+        BlockEntity surge = (BlockEntity) (Object) this;
+        Level level = surge.getLevel();
+        if (level != null && SoulSurgePerfConfig.isEnabled()) {
+            cointcore$releaseClaim(level);
+        }
+    }
+
     @Unique
-    private boolean cointcore$tryClaim(Level level, BlockPos targetPos) {
+    private boolean cointcore$tryAccelerate(Level level, BlockPos targetPos, boolean canWorkThisTick) {
         long targetPacked = SoulSurgeAccelerationClaim.pack(targetPos.getX(), targetPos.getY(), targetPos.getZ());
         long surgePacked = cointcore$selfPacked();
+        SoulSurgeAccelerationClaim claims = cointcore$claimsFor(level);
+        long gameTime = level.getGameTime();
         if (cointcore$hasClaim && cointcore$claimedTargetPacked != targetPacked) {
-            cointcore$claimsFor(level).release(cointcore$claimedTargetPacked, surgePacked, level.getGameTime());
+            claims.release(cointcore$claimedTargetPacked, surgePacked, gameTime);
             cointcore$hasClaim = false;
         }
-        boolean claimed = cointcore$claimsFor(level).tryClaim(targetPacked, surgePacked, level.getGameTime());
+        boolean claimed = SoulSurgeAcceleration.tryAccelerate(
+                claims, targetPacked, surgePacked, gameTime, canWorkThisTick
+        );
         cointcore$hasClaim = claimed;
         if (claimed) {
             cointcore$claimedTargetPacked = targetPacked;
@@ -234,10 +288,18 @@ public abstract class SoulSurgeBlockEntityMixin {
 
     @Unique
     private void cointcore$releaseClaim(Level level) {
-        if (!cointcore$hasClaim) {
-            return;
+        long surgePacked = cointcore$selfPacked();
+        long gameTime = level.getGameTime();
+        SoulSurgeAccelerationClaim claims = cointcore$claimsFor(level);
+        BlockPos attached = cointcore$attachedPos();
+        claims.release(
+                SoulSurgeAccelerationClaim.pack(attached.getX(), attached.getY(), attached.getZ()),
+                surgePacked,
+                gameTime
+        );
+        if (cointcore$hasClaim) {
+            claims.release(cointcore$claimedTargetPacked, surgePacked, gameTime);
         }
-        cointcore$claimsFor(level).release(cointcore$claimedTargetPacked, cointcore$selfPacked(), level.getGameTime());
         cointcore$hasClaim = false;
     }
 
