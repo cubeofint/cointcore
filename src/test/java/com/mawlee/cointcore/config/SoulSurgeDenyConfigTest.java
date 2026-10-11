@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SoulSurgeDenyConfigTest {
     @Test
     void deprecatedStubParses() {
-        SoulSurgeDenyConfig.Parsed parsed = SoulSurgeDenyConfig.parseJson(
+        SoulSurgeDenyParse.Parsed parsed = SoulSurgeDenyParse.parseJson(
                 """
                         {
                           "deprecated": true,
@@ -28,7 +28,7 @@ class SoulSurgeDenyConfigTest {
 
     @Test
     void leftoverDenyListsDoNotCrash() {
-        SoulSurgeDenyConfig.Parsed parsed = assertDoesNotThrow(() -> SoulSurgeDenyConfig.parseJson(
+        SoulSurgeDenyParse.Parsed parsed = assertDoesNotThrow(() -> SoulSurgeDenyParse.parseJson(
                 """
                         {
                           "denyBlockIds": ["justdirethings:clickert1", "sfm:manager"],
@@ -45,7 +45,7 @@ class SoulSurgeDenyConfigTest {
 
     @Test
     void emptyObjectIsTolerant() {
-        SoulSurgeDenyConfig.Parsed parsed = SoulSurgeDenyConfig.parseJson("{}");
+        SoulSurgeDenyParse.Parsed parsed = SoulSurgeDenyParse.parseJson("{}");
         assertFalse(parsed.deprecated());
         assertTrue(parsed.denyBlockIds().isEmpty());
     }
