@@ -3,7 +3,10 @@ package com.mawlee.cointcore.industrialforegoingsouls;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SoulSurgeAccelerationClaimTest {
@@ -34,6 +37,68 @@ class SoulSurgeAccelerationClaimTest {
             );
         }
         assertTrue(claims.tryClaim(TARGET, SIX_SIDES[0], 10L));
+    }
+
+    @Test
+    void ringOfSixSurgesAroundOneBeExactlyOneAccelerates() {
+        int[] machine = {4, 64, 7};
+        record Side(String facing, int x, int y, int z) {
+        }
+        Side[] ring = {
+                new Side("up", 4, 65, 7),
+                new Side("down", 4, 63, 7),
+                new Side("north", 4, 64, 6),
+                new Side("south", 4, 64, 8),
+                new Side("west", 3, 64, 7),
+                new Side("east", 5, 64, 7)
+        };
+
+        int accelerated = 0;
+        Long owner = null;
+        for (Side side : ring) {
+            int[] target = SoulSurgeTarget.attachedCoordinates(side.x, side.y, side.z, side.facing);
+            assertEquals(machine[0], target[0], side.facing);
+            assertEquals(machine[1], target[1], side.facing);
+            assertEquals(machine[2], target[2], side.facing);
+            assertTrue(SoulSurgeTarget.shouldAccelerate(false, true, "minecraft:furnace"));
+            assertFalse(SoulSurgeTarget.shouldAccelerate(
+                    false, true, SoulSurgeTarget.SOUL_SURGE_BLOCK_ID
+            ));
+
+            long targetPacked = SoulSurgeAccelerationClaim.pack(target[0], target[1], target[2]);
+            long surgePacked = SoulSurgeAccelerationClaim.pack(side.x, side.y, side.z);
+            if (claims.tryClaim(targetPacked, surgePacked, 1L)) {
+                accelerated++;
+                owner = surgePacked;
+            }
+        }
+        assertEquals(1, accelerated);
+        assertNotNull(owner);
+        assertEquals(owner, claims.peekOwner(TARGET, 1L));
+    }
+
+    @Test
+    void packRoundTripIncludingNegatives() {
+        assertPacked(-8, -64, 12);
+        assertPacked(0, 0, 0);
+        assertPacked(30000000, 319, -30000000);
+    }
+
+    @Test
+    void peekOwnerReturnsStickyThenClearsAfterIdle() {
+        long owner = SIX_SIDES[0];
+        assertNull(claims.peekOwner(TARGET, 1L));
+        assertTrue(claims.tryClaim(TARGET, owner, 1L));
+        assertEquals(owner, claims.peekOwner(TARGET, 1L));
+        assertEquals(owner, claims.peekOwner(TARGET, 2L));
+        assertNull(claims.peekOwner(TARGET, 4L));
+    }
+
+    private static void assertPacked(int x, int y, int z) {
+        long packed = SoulSurgeAccelerationClaim.pack(x, y, z);
+        assertEquals(x, SoulSurgeAccelerationClaim.unpackX(packed));
+        assertEquals(y, SoulSurgeAccelerationClaim.unpackY(packed));
+        assertEquals(z, SoulSurgeAccelerationClaim.unpackZ(packed));
     }
 
     @Test

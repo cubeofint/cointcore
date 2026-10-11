@@ -13,8 +13,10 @@ import java.util.Map;
  * they {@link #release}.
  */
 public final class SoulSurgeAccelerationClaim {
-    private static final long XZ_MASK = (1L << 26) - 1L;
-    private static final long Y_MASK = (1L << 12) - 1L;
+    private static final int PACKED_XZ_LENGTH = 26;
+    private static final int PACKED_Y_LENGTH = 12;
+    private static final long XZ_MASK = (1L << PACKED_XZ_LENGTH) - 1L;
+    private static final long Y_MASK = (1L << PACKED_Y_LENGTH) - 1L;
     private static final int Z_OFFSET = 12;
     private static final int X_OFFSET = 38;
 
@@ -27,6 +29,30 @@ public final class SoulSurgeAccelerationClaim {
      */
     public static long pack(int x, int y, int z) {
         return (x & XZ_MASK) << X_OFFSET | (z & XZ_MASK) << Z_OFFSET | (y & Y_MASK);
+    }
+
+    public static int unpackX(long packed) {
+        return (int) (packed << (64 - X_OFFSET - PACKED_XZ_LENGTH) >> (64 - PACKED_XZ_LENGTH));
+    }
+
+    public static int unpackY(long packed) {
+        return (int) (packed << (64 - PACKED_Y_LENGTH) >> (64 - PACKED_Y_LENGTH));
+    }
+
+    public static int unpackZ(long packed) {
+        return (int) (packed << (64 - Z_OFFSET - PACKED_XZ_LENGTH) >> (64 - PACKED_XZ_LENGTH));
+    }
+
+    /**
+     * Current-tick owner, or the sticky owner from the previous tick.
+     */
+    public Long peekOwner(long targetPacked, long gameTime) {
+        roll(gameTime);
+        Long current = currentOwners.get(targetPacked);
+        if (current != null) {
+            return current;
+        }
+        return lastOwners.get(targetPacked);
     }
 
     /**
