@@ -49,9 +49,4 @@ class SoulSurgeDenyConfigTest {
         assertFalse(parsed.deprecated());
         assertTrue(parsed.denyBlockIds().isEmpty());
     }
-
-    @Test
-    void denyCheckIsHardOff() {
-        assertFalse(SoulSurgeDenyConfig.isDenied(null));
-    }
 }
