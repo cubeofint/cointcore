@@ -83,6 +83,18 @@ class PrefixCatalogTest {
     }
 
     @Test
+    void emptyCatalogIsStillAFullAuthoritativePayload() {
+        List<PrefixCatalogEntry> empty = PrefixCatalog.normalize(List.of());
+        String hash = PrefixCatalog.hash(empty);
+        JsonObject payload = PrefixCatalog.toPayload(empty, hash, true);
+        assertEquals(1, payload.get("schema").getAsInt());
+        assertTrue(payload.get("full").getAsBoolean());
+        assertEquals(0, payload.getAsJsonArray("groups").size());
+        assertEquals(64, hash.length());
+        assertEquals(hash, PrefixCatalog.hash(List.of()));
+    }
+
+    @Test
     void bulkCursorSkipsUsersUpToSavedId() {
         java.util.UUID first = java.util.UUID.fromString("11111111-1111-1111-1111-111111111111");
         java.util.UUID second = java.util.UUID.fromString("22222222-2222-2222-2222-222222222222");

@@ -94,7 +94,34 @@ public final class LuckPermsUsers {
     }
 
     public static CompletableFuture<PrefixSnapshot> loadSnapshot(UUID playerId) {
-        return loadUser(playerId).thenApply(LuckPermsUsers::snapshotOf);
+        return loadUser(playerId).thenCompose(user -> persistLostSelection(user)
+                .handle((ignored, error) -> snapshotOf(user)));
+    }
+
+    /**
+     * If the stored quest selection is gone (group deleted / expired), drop user meta and the
+     * render PrefixNode. Remaining quest ranks fall back to auto-render. Works for offline
+     * users on the next {@code loadUser}.
+     */
+    public static CompletableFuture<Void> persistLostSelection(Object user) {
+        if (user == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        PrefixSnapshot snapshot = snapshotOf(user);
+        PrefixSelectionRules.Decision decision = PrefixSelectionRules.reconcile(
+                snapshot.selected(),
+                snapshot.availableGroups()
+        );
+        if (!decision.clearOverride()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        PrefixOption highest = snapshot.highestQuest();
+        try {
+            applyQuestNodes(user, null, highest == null ? null : highest.prefixRaw());
+        } catch (ReflectiveOperationException exception) {
+            return CompletableFuture.failedFuture(exception);
+        }
+        return saveUser(user);
     }
 
     /**
@@ -102,24 +129,43 @@ public final class LuckPermsUsers {
      * that LuckPerms stacking can render via {@code highest_own}.
      */
     public static CompletableFuture<Void> syncQuestPrefix(UUID playerId, String selectedGroup, String prefixRaw) {
-        PrefixConfig.Settings settings = PrefixConfig.get();
         return modifyUser(playerId, user -> {
             try {
-                clearOwnOverrideNodes(user, settings);
-                String group = PrefixSnapshot.normalize(selectedGroup);
-                if (group != null) {
-                    Object meta = buildMetaNode(settings.prefixMetaKey(), group, settings);
-                    addNode(user, meta);
-                }
-                if (prefixRaw != null && !prefixRaw.isBlank()) {
-                    String tagged = group == null ? "auto" : group;
-                    Object prefix = buildPrefixNode(prefixRaw, tagged, settings);
-                    addNode(user, prefix);
-                }
+                applyQuestNodes(user, selectedGroup, prefixRaw);
             } catch (ReflectiveOperationException exception) {
                 throw new IllegalStateException("Failed to sync quest prefix", exception);
             }
         });
+    }
+
+    private static void applyQuestNodes(Object user, String selectedGroup, String prefixRaw)
+            throws ReflectiveOperationException {
+        PrefixConfig.Settings settings = PrefixConfig.get();
+        clearOwnOverrideNodes(user, settings);
+        String group = PrefixSnapshot.normalize(selectedGroup);
+        if (group != null) {
+            addNode(user, buildMetaNode(settings.prefixMetaKey(), group, settings));
+        }
+        if (prefixRaw != null && !prefixRaw.isBlank()) {
+            addNode(user, buildPrefixNode(prefixRaw, group == null ? "auto" : group, settings));
+        }
+    }
+
+    public static CompletableFuture<Void> saveUser(Object user) {
+        if (!LuckPermsIntegration.isAvailable() || user == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        try {
+            Object userManager = LuckPermsIntegration.invoke(LuckPermsIntegration.provider(), "getUserManager");
+            Class<?> userClass = Class.forName("net.luckperms.api.model.user.User");
+            Object future = userManager.getClass().getMethod("saveUser", userClass).invoke(userManager, user);
+            if (future instanceof CompletableFuture<?> completable) {
+                return completable.thenApply(ignored -> null);
+            }
+            return CompletableFuture.completedFuture(null);
+        } catch (ReflectiveOperationException exception) {
+            return CompletableFuture.failedFuture(exception);
+        }
     }
 
     public static CompletableFuture<Void> applyPrefixOverride(UUID playerId, String group, String prefixRaw) {

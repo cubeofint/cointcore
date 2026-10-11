@@ -256,7 +256,8 @@ public final class LuckPermsIntegration {
 
     /**
      * Group-side mutations that can change the quest catalog: node edits on a group,
-     * group data recalc, create and delete.
+     * group data recalc and create. Delete is registered separately so the exporter
+     * can always push an authoritative full catalog.
      */
     public static void registerGroupCatalogListener(Runnable listener) {
         subscribe("net.luckperms.api.event.node.NodeMutateEvent", event -> {
@@ -269,6 +270,9 @@ public final class LuckPermsIntegration {
         });
         subscribe("net.luckperms.api.event.group.GroupDataRecalculateEvent", event -> listener.run());
         subscribe("net.luckperms.api.event.group.GroupCreateEvent", event -> listener.run());
+    }
+
+    public static void registerGroupDeleteListener(Runnable listener) {
         subscribe("net.luckperms.api.event.group.GroupDeleteEvent", event -> listener.run());
     }
 

@@ -165,8 +165,11 @@ public final class PrefixBulkReportService {
             return CompletableFuture.completedFuture(acc);
         }
         UUID playerId = batch.get(offset);
-        return LuckPermsUsers.loadUser(playerId).handle((user, error) -> {
-            if (error == null && user != null) {
+        return LuckPermsUsers.loadUser(playerId).thenCompose(user -> {
+            if (user == null) {
+                return CompletableFuture.completedFuture(acc);
+            }
+            return LuckPermsUsers.persistLostSelection(user).handle((ignored, error) -> {
                 try {
                     PrefixSnapshot snapshot = LuckPermsUsers.snapshotOf(user);
                     acc.add(PrefixSiteBridge.playerReport(server, playerId, snapshot));
@@ -176,7 +179,10 @@ public final class PrefixBulkReportService {
                 } catch (RuntimeException exception) {
                     LOGGER.debug("Prefix report-all snapshot failed for {}", playerId, exception);
                 }
-            }
+                return acc;
+            });
+        }).exceptionally(error -> {
+            LOGGER.debug("Prefix report-all load failed for {}: {}", playerId, error.toString());
             return acc;
         }).thenCompose(next -> loadBatch(server, batch, offset + 1, next));
     }

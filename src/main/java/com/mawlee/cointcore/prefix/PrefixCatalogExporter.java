@@ -14,8 +14,8 @@ import java.util.function.Consumer;
 /**
  * Pushes the quest-track prefix catalog to the site through AzLink.
  *
- * <p>Triggers: {@code ServerStarted}+45s; LuckPerms group mutations debounced 5s;
- * periodic hash check every 15 min; {@code /cointcore prefixes export [--force]}.
+ * <p>A {@code full:true} payload is authoritative: the site deletes groups missing from it.
+ * Startup and {@code GroupDeleteEvent} always POST (even an empty {@code groups} list).
  */
 public final class PrefixCatalogExporter {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -26,10 +26,12 @@ public final class PrefixCatalogExporter {
     private static MinecraftServer server;
     private static int ticks;
     private static int debounceTicks = -1;
+    private static boolean debounceIgnoreHash;
     private static int nextPeriodicTick;
     private static int startupTick = -1;
     private static long nextAttemptAt;
     private static long backoffMs;
+    private static boolean pendingIgnoreHash;
     private static boolean listenersBound;
 
     private PrefixCatalogExporter() {
@@ -39,16 +41,19 @@ public final class PrefixCatalogExporter {
         server = minecraftServer;
         ticks = 0;
         debounceTicks = -1;
+        debounceIgnoreHash = false;
         startupTick = -1;
         nextPeriodicTick = 0;
         nextAttemptAt = 0L;
         backoffMs = 0L;
+        pendingIgnoreHash = false;
         if (!LuckPermsIntegration.isAvailable()) {
             LOGGER.info("Prefix catalog export inactive: LuckPerms is not loaded");
             return;
         }
         if (!listenersBound) {
             LuckPermsIntegration.registerGroupCatalogListener(PrefixCatalogExporter::onGroupChanged);
+            LuckPermsIntegration.registerGroupDeleteListener(PrefixCatalogExporter::onGroupDeleted);
             listenersBound = true;
         }
         LOGGER.info("Prefix catalog export ready (track={})", PrefixConfig.get().ranksTrack());
@@ -70,22 +75,32 @@ public final class PrefixCatalogExporter {
         }
         if (startupTick > 0 && ticks >= startupTick) {
             startupTick = -1;
-            request(false);
+            request(true);
         }
         if (debounceTicks >= 0 && ticks >= debounceTicks) {
+            boolean ignoreHash = debounceIgnoreHash;
             debounceTicks = -1;
-            request(false);
+            debounceIgnoreHash = false;
+            request(ignoreHash);
         }
         if (nextPeriodicTick > 0 && ticks >= nextPeriodicTick) {
             nextPeriodicTick = ticks + settings.catalogHashIntervalSeconds() * 20;
             request(false);
         }
         if (System.currentTimeMillis() >= nextAttemptAt && backoffMs > 0L) {
-            request(false);
+            request(pendingIgnoreHash);
         }
     }
 
     public static void onGroupChanged() {
+        scheduleDebounce(false);
+    }
+
+    public static void onGroupDeleted() {
+        scheduleDebounce(true);
+    }
+
+    private static void scheduleDebounce(boolean ignoreHash) {
         MinecraftServer current = server;
         if (current == null) {
             return;
@@ -93,23 +108,24 @@ public final class PrefixCatalogExporter {
         current.execute(() -> {
             int delay = PrefixConfig.get().catalogDebounceSeconds() * 20;
             debounceTicks = ticks + delay;
+            debounceIgnoreHash = debounceIgnoreHash || ignoreHash;
         });
     }
 
-    public static void export(MinecraftServer minecraftServer, boolean force, Consumer<ExportResult> callback) {
+    public static void export(MinecraftServer minecraftServer, Consumer<ExportResult> callback) {
         server = minecraftServer;
-        run(minecraftServer, force, callback);
+        run(minecraftServer, true, callback);
     }
 
-    static void request(boolean force) {
+    static void request(boolean ignoreStoredHash) {
         MinecraftServer current = server;
         if (current == null) {
             return;
         }
-        run(current, force, null);
+        run(current, ignoreStoredHash, null);
     }
 
-    private static void run(MinecraftServer minecraftServer, boolean force, Consumer<ExportResult> callback) {
+    private static void run(MinecraftServer minecraftServer, boolean ignoreStoredHash, Consumer<ExportResult> callback) {
         PrefixConfig.Settings settings = PrefixConfig.get();
         if (!settings.enabled() || !settings.siteSyncEnabled()) {
             complete(callback, ExportResult.unavailable());
@@ -119,8 +135,9 @@ public final class PrefixCatalogExporter {
             complete(callback, ExportResult.unavailable());
             return;
         }
+        pendingIgnoreHash = pendingIgnoreHash || ignoreStoredHash;
         long now = System.currentTimeMillis();
-        if (!force && now < nextAttemptAt) {
+        if (!pendingIgnoreHash && now < nextAttemptAt) {
             complete(callback, ExportResult.retrying());
             return;
         }
@@ -128,13 +145,15 @@ public final class PrefixCatalogExporter {
             complete(callback, ExportResult.busy());
             return;
         }
+        boolean ignoreHash = pendingIgnoreHash;
         try {
             List<PrefixCatalogEntry> groups = LuckPermsUsers.catalogEntries();
             String hash = PrefixCatalog.hash(groups);
             PrefixSyncSavedData data = PrefixSyncSavedData.get(minecraftServer);
-            if (!force && hash.equals(data.lastCatalogHash())) {
+            if (!ignoreHash && hash.equals(data.lastCatalogHash())) {
                 backoffMs = 0L;
                 nextAttemptAt = 0L;
+                pendingIgnoreHash = false;
                 IN_FLIGHT.set(false);
                 complete(callback, ExportResult.unchanged(hash, groups.size()));
                 return;
@@ -151,6 +170,7 @@ public final class PrefixCatalogExporter {
                     minecraftServer.execute(() -> PrefixSyncSavedData.get(minecraftServer).acceptCatalogHash(hash));
                     backoffMs = 0L;
                     nextAttemptAt = 0L;
+                    pendingIgnoreHash = false;
                     LOGGER.info("Prefix catalog exported ({} groups, hash={})", groups.size(), hash);
                     complete(callback, ExportResult.sent(hash, groups.size()));
                 } finally {

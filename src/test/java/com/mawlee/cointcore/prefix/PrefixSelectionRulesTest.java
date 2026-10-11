@@ -103,6 +103,11 @@ class PrefixSelectionRulesTest {
         PrefixSelectionRules.Decision none = PrefixSelectionRules.reconcile(null, Set.of("titan"));
         assertEquals(PrefixSelectionRules.Kind.UNCHANGED, none.kind());
         assertNull(none.selectedGroup());
+
+        PrefixSelectionRules.Decision wiped = PrefixSelectionRules.reconcile("titan", Set.of());
+        assertEquals(PrefixSelectionRules.Kind.AUTO, wiped.kind());
+        assertTrue(wiped.clearOverride());
+        assertEquals(PrefixSelectionRules.REASON_GROUP_LOST, wiped.reason());
     }
 
     @Test

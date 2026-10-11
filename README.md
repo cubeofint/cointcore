@@ -200,7 +200,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/cointcore watchdog ...` | Tick watchdog: отчёт, топ, телепорт к виновнику |
 | `/cointcore gluons get\|set\|add` | Админ-кошелёк глюонов (`cointcore.gluons.admin`) |
 | `/cointcore speedrunner info\|reset\|set` | Рекорд спидранера (`cointcore.speedrunner.admin`) |
-| `/cointcore prefixes export [--force]` | Выгрузить каталог квестовых префиксов на сайт (`cointcore.prefix.admin`) |
+| `/cointcore prefixes export` | Выгрузить полный каталог квестовых префиксов на сайт (`cointcore.prefix.admin`) |
 | `/cointcore prefixes report-all` | Массовый репорт доступных квестовых префиксов всех известных игроков |
 
 #### Флаги чанков (`/cointcore claim flag`)
@@ -604,7 +604,7 @@ Retention старых отчётов: хранятся **7 дней или 512 
 1. user-level meta `cointcore-quest-prefix=<группа>` (контекст `server` этого LP-сервера, если имя не `global`);
 2. user-level PrefixNode с текстом префикса выбранной группы, приоритетом **1000** (выше квестовых групп) и метаданными `cointcore-quest-render=1`.
 
-`auto` снимает meta выбора и ставит тот же PrefixNode с префиксом высшего квестового ранга (без meta группы), чтобы `highest_own` в стеке LP не оставлял дыру. При `UserDataRecalculateEvent` override удаляется, если выбранной квестовой группы больше нет.
+`auto` снимает meta выбора и ставит тот же PrefixNode с префиксом высшего квестового ранга (без meta группы), чтобы `highest_own` в стеке LP не оставлял дыру. Если выбранной квестовой группы больше нет, meta и render-нода этой группы снимаются (`UserDataRecalculateEvent`, вход, `loadUser` офлайн — в том числе report-all / репорт на сайт). Нет оставшихся квестовых рангов — обе ноды удаляются.
 
 User-level PrefixNode **не виден** элементу `highest_on_track_ranks` (LP берёт только префиксы, унаследованные от группы на треке). Поэтому квестовый слот стека — `highest_own`, а не track-элемент.
 
@@ -669,7 +669,16 @@ AzLink `HttpClient` склеивает `siteUrl + "/api" + path`. Cointcore вы
 | `display_name` | meta `cointcore-prefix-name` → trimmed displayname node → текст префикса без цветов/тегов/`[]` → имя группы |
 | `category` | всегда `quest` |
 
-Триггеры: `ServerStarted` + 45 с; `NodeMutateEvent` (цель Group), `GroupDataRecalculateEvent`, `GroupCreateEvent`, `GroupDeleteEvent` с debounce 5 с; периодическая проверка хеша каждые 15 мин; вручную `/cointcore prefixes export [--force]` (`cointcore.prefix.admin`). Последний принятый хеш — SavedData `cointcore_prefix_sync`. При ошибке POST — backoff 5 с … 5 мин.
+Сайт считает `full:true` авторитетным и **удаляет группы, которых нет в `groups`**. Поэтому игра шлёт полный каталог, в том числе пустой список, если track `ranks` или групп нет.
+
+Триггеры:
+- `ServerStarted` + 45 с — **всегда** полный POST, сохранённый хеш игнорируется;
+- `GroupDeleteEvent` — debounce 5 с и полный POST (хеш игнорируется);
+- `NodeMutateEvent` (цель Group), `GroupDataRecalculateEvent`, `GroupCreateEvent` — debounce 5 с, POST если хеш изменился;
+- периодическая проверка хеша каждые 15 мин;
+- вручную `/cointcore prefixes export` (`cointcore.prefix.admin`) — полный POST без `--force`.
+
+Последний принятый хеш — SavedData `cointcore_prefix_sync` (нужен только чтобы не долбить сайт на periodic/mutate). При ошибке POST — backoff 5 с … 5 мин.
 
 #### Массовый репорт
 

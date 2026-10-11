@@ -19,9 +19,7 @@ public final class PrefixAdminCommand {
         return Commands.literal("prefixes")
                 .requires(PrefixAdminCommand::canAdmin)
                 .then(Commands.literal("export")
-                        .executes(context -> export(context, false))
-                        .then(Commands.literal("force").executes(context -> export(context, true)))
-                        .then(Commands.literal("--force").executes(context -> export(context, true))))
+                        .executes(PrefixAdminCommand::export))
                 .then(Commands.literal("report-all")
                         .executes(PrefixAdminCommand::reportAll));
     }
@@ -33,9 +31,9 @@ public final class PrefixAdminCommand {
         return source.hasPermission(2);
     }
 
-    private static int export(CommandContext<CommandSourceStack> context, boolean force) {
+    private static int export(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
-        PrefixCatalogExporter.export(source.getServer(), force, result -> source.getServer().execute(() ->
+        PrefixCatalogExporter.export(source.getServer(), result -> source.getServer().execute(() ->
                 source.sendSuccess(() -> switch (result.kind()) {
                     case SENT -> CointCoreMessages.forSource(
                             source, CointCoreMessages.PREFIX_EXPORT_OK, result.groups(), result.hash());
