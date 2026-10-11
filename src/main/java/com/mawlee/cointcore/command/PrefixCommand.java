@@ -76,10 +76,6 @@ public final class PrefixCommand {
             return;
         }
         player.sendSystemMessage(CointCoreMessages.forPlayer(player, CointCoreMessages.PREFIX_HEADER));
-        if (snapshot.lockedStaff()) {
-            player.sendSystemMessage(CointCoreMessages.forPlayer(player, CointCoreMessages.PREFIX_STAFF_LOCKED));
-            return;
-        }
         player.sendSystemMessage(currentLine(player, snapshot));
         player.sendSystemMessage(autoLine(player));
         for (PrefixOption option : snapshot.available()) {
@@ -125,10 +121,6 @@ public final class PrefixCommand {
                 player.sendSystemMessage(CointCoreMessages.forPlayer(player, CointCoreMessages.PREFIX_UNAVAILABLE));
                 return;
             }
-            if (snapshot.lockedStaff()) {
-                player.sendSystemMessage(CointCoreMessages.forPlayer(player, CointCoreMessages.PREFIX_STAFF_LOCKED));
-                return;
-            }
             PrefixGui.open(player, snapshot);
         }));
         return Command.SINGLE_SUCCESS;
@@ -146,7 +138,6 @@ public final class PrefixCommand {
         return switch (decision.kind()) {
             case APPLIED -> CointCoreMessages.forPlayer(player, CointCoreMessages.PREFIX_SET, decision.selectedGroup());
             case AUTO -> CointCoreMessages.forPlayer(player, CointCoreMessages.PREFIX_AUTO);
-            case STAFF_LOCKED -> CointCoreMessages.forPlayer(player, CointCoreMessages.PREFIX_STAFF_LOCKED);
             case UNAVAILABLE -> CointCoreMessages.forPlayer(
                     player,
                     CointCoreMessages.PREFIX_NOT_AVAILABLE,

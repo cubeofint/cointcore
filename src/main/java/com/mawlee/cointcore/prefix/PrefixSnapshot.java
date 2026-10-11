@@ -7,6 +7,9 @@ import java.util.stream.Collectors;
 
 /**
  * Player prefix state used by {@link PrefixSelectionRules}. Independent of LuckPerms / Minecraft.
+ *
+ * <p>{@code lockedStaff} is always {@code false}: staff prefixes stay visible via stacking
+ * and no longer block quest selection.
  */
 public record PrefixSnapshot(
         boolean lockedStaff,
@@ -14,8 +17,13 @@ public record PrefixSnapshot(
         String selected
 ) {
     public PrefixSnapshot {
+        lockedStaff = false;
         available = available == null ? List.of() : List.copyOf(available);
         selected = normalize(selected);
+    }
+
+    public static PrefixSnapshot of(List<PrefixOption> available, String selected) {
+        return new PrefixSnapshot(false, available, selected);
     }
 
     public Set<String> availableGroups() {
@@ -33,6 +41,10 @@ public record PrefixSnapshot(
             }
         }
         return null;
+    }
+
+    public PrefixOption highestQuest() {
+        return PrefixSelectionRules.highestQuest(available);
     }
 
     public static String normalize(String group) {

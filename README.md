@@ -70,7 +70,7 @@
 - Лимиты и перехват лута спавнеров (Apothic Spawners)
 - Кредиты на киты FTB Essentials (`/kit balance`, `/cointcore kit ...`) и стартовый кит (`/cointcore starter`)
 - Кошелёк глюонов: `/balance`, `/pay`, админ `/cointcore gluons`, системный терминал `cointcore:trader`, торговый автомат игрока `cointcore:player_trader`, обмен с сайтом через AzLink
-- Выбор отображаемого префикса чата (`/prefix`) из групп LuckPerms, двусторонняя синхронизация с сайтом Azuriom
+- Выбор **квестового** префикса чата (`/prefix`, track `ranks`); staff/donate/media всегда рядом через stacking LuckPerms; каталог и репорт на сайт Azuriom
 - Рекорд спидранера: первый крафт ATM Star с наименьшим игровым временем (`/cointcore speedrunner`)
 - Уникальные фильтры ME (AE2)
 - Донорские привилегии (полёт и др.)
@@ -177,9 +177,9 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/kit balance` | Баланс кредитов на киты (FTB Essentials) |
 | `/balance` / `/money` | Баланс глюонов |
 | `/pay <игрок> <сумма>` / `/transfer` | Перевод глюонов (офлайн-цели через usercache, как mute) |
-| `/prefix` | Список доступных префиксов (кликабельные строки + превью) |
-| `/prefix set <группа>` | Выбрать префикс группы LuckPerms на этом сервере |
-| `/prefix auto` | Сбросить выбор (побеждает префикс с наибольшим приоритетом) |
+| `/prefix` | Список доступных **квестовых** префиксов (кликабельные строки + превью) |
+| `/prefix set <группа>` | Выбрать квестовый префикс (track `ranks`) на этом сервере |
+| `/prefix auto` | Сбросить выбор (показывается высший квестовый ранг) |
 | `/prefix gui` | Простое меню выбора (сундук 9×3) |
 
 ### Администрирование (`/cointcore`)
@@ -200,6 +200,8 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/cointcore watchdog ...` | Tick watchdog: отчёт, топ, телепорт к виновнику |
 | `/cointcore gluons get\|set\|add` | Админ-кошелёк глюонов (`cointcore.gluons.admin`) |
 | `/cointcore speedrunner info\|reset\|set` | Рекорд спидранера (`cointcore.speedrunner.admin`) |
+| `/cointcore prefixes export [--force]` | Выгрузить каталог квестовых префиксов на сайт (`cointcore.prefix.admin`) |
+| `/cointcore prefixes report-all` | Массовый репорт доступных квестовых префиксов всех известных игроков |
 
 #### Флаги чанков (`/cointcore claim flag`)
 
@@ -373,6 +375,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `cointcore.playershop.use` | все | Открыть автомат и торговать |
 | `cointcore.playershop.admin` | OP | Управление/ломка чужого автомата |
 | `cointcore.prefix` | все | `/prefix`, `/prefix set`, `/prefix auto`, `/prefix gui` |
+| `cointcore.prefix.admin` | OP | `/cointcore prefixes export`, `/cointcore prefixes report-all` |
 | `cointcore.speedrunner.admin` | OP | `/cointcore speedrunner` |
 
 ## Tick watchdog
@@ -579,19 +582,64 @@ Retention старых отчётов: хранятся **7 дней или 512 
 
 ## Префиксы и спидранер
 
-Игроки выбирают **отображаемый префикс чата на этом сервере**. Re-LPChatPrefix и TAB по-прежнему рисуют `%luckperms-prefix%`: cointcore только ставит user-level prefix node LuckPerms.
+Игроки выбирают **только квестовый** префикс (LuckPerms track `ranks`, читается в рантайме). Все остальные префиксы — персонал, донат (`emerald` / `allthemodium` / `vibranium` / `unobtanium`), медиа, строитель — **всегда видны рядом** с выбранным квестовым, например `[U] [Titan] Nick`. Персонал тоже может выбрать квестовый ранг: staff больше не блокирует `/prefix`.
+
+На ATM10-Test Re-LPChatPrefix рисует `{prefix}{player}{suffix}`, TAB — `%luckperms-prefix%`. Оба берут уже сложенный префикс LuckPerms, поэтому **шаблоны чата и TAB менять не нужно**. Нужен stacking в `luckperms.conf` (см. ниже). Cointcore сам конфиги сервера не правит.
+
+Типичные группы track `ranks` (имена не зашиты, читаются из LP): `darwinawards`, `explorer`, `engineer`, `atm`, `arcanist`, `bosskiller`, `titan`, `jesus`, `godofatm`.
 
 ### Кому какой префикс доступен
 
-- В списке — префиксы групп, которые игрок **реально имеет** (прямое наследование, в том числе временное): квестовые ранги (track `ranks`), донат, медиа/строитель, `default`.
-- Исключения — `exclude_groups` в конфиге. Группы без префикса не показываются.
-- **Персонал не выбирает префикс.** Если у игрока есть группа из track `staff` (имена читаются из LP в рантайме; запасной список в конфиге: `stazher` / `helper` / `moderator` / `hmod` / `admin` / `hadmin`), `/prefix set` и сайт отвечают отказом, а уже выбранный override снимается.
+- В `/prefix` — только квестовые группы track `ranks`, которые игрок **реально имеет** (наследование, в том числе временное) и у которых есть собственный PrefixNode.
+- `exclude_groups` по-прежнему скрывает группы из списка.
+- Staff / donate / media / builder в список не попадают и не снимаются: они остаются в стеке `%luckperms-prefix%`.
+- `auto` = высший квестовый ранг игрока (max priority собственного PrefixNode, при равенстве — более поздний `track_index`).
 
-`/prefix` — кликабельный список с превью. `/prefix set <группа>` ставит выбор. `/prefix auto` снимает override (побеждает самый приоритетный префикс групп). `/prefix gui` открывает сундук 9×3. Право `cointcore.prefix` по умолчанию есть у всех.
+`/prefix` — кликабельный список с превью. `/prefix set <группа>` ставит выбор. `/prefix auto` снимает выбор (остаётся высший квестовый). `/prefix gui` открывает сундук 9×3. Право `cointcore.prefix` по умолчанию есть у всех.
 
 ### Как выбор хранится в LuckPerms
 
-На пользователя вешается prefix node приоритета **1000** (выше типичных групповых) с meta `cointcore-prefix-select=<группа>` и контекстом `server` этого LP-сервера (если имя сервера не `global`). По тегу мод находит и снимает только свои ноды. При `UserDataRecalculateEvent` override удаляется, если группы больше нет или игрок стал персоналом.
+Явный выбор пишет:
+
+1. user-level meta `cointcore-quest-prefix=<группа>` (контекст `server` этого LP-сервера, если имя не `global`);
+2. user-level PrefixNode с текстом префикса выбранной группы, приоритетом **1000** (выше квестовых групп) и метаданными `cointcore-quest-render=1`.
+
+`auto` снимает meta выбора и ставит тот же PrefixNode с префиксом высшего квестового ранга (без meta группы), чтобы `highest_own` в стеке LP не оставлял дыру. При `UserDataRecalculateEvent` override удаляется, если выбранной квестовой группы больше нет.
+
+User-level PrefixNode **не виден** элементу `highest_on_track_ranks` (LP берёт только префиксы, унаследованные от группы на треке). Поэтому квестовый слот стека — `highest_own`, а не track-элемент.
+
+### Stacking LuckPerms / TAB / чат (нужно прописать на сервере)
+
+Cointcore **не меняет** `luckperms.conf`, Re-LPChatPrefix и TAB. Ниже — рекомендуемый сниппет.
+
+`config/luckperms/luckperms.conf` (или `yaml`, в зависимости от платформы):
+
+```yaml
+meta-formatting:
+  prefix:
+    format:
+      - "highest_not_on_track_ranks"   # staff, donate, media, builder
+      - "highest_own"                  # выбор cointcore / auto-рендер
+    duplicates: first-only
+    start-spacer: ""
+    middle-spacer: " "
+    end-spacer: ""
+```
+
+- `highest_not_on_track_ranks` — префиксы, унаследованные от групп **не** на track `ranks`. User-own нода сюда не попадает (она не inherited).
+- `highest_own` — user-level PrefixNode cointcore (выбранный квестовый или auto = высший ранг).
+
+Re-LPChatPrefix (`config/relpchatprefix/config.json`) оставить:
+
+```json
+{ "chatFormat": "{prefix}{player}{suffix}" }
+```
+
+TAB — без изменений, `%luckperms-prefix%` уже содержит сложенный результат.
+
+Не добавляйте `highest_on_track_ranks` вторым квестовым слотом вместе с `highest_own`: при выборе ранга ниже высшего получится дубль (`[Explorer] [Titan]`). Track-элемент можно оставить запасным **только если** cointcore не пишет user PrefixNode на `auto` — текущая сборка пишет, поэтому двух элементов достаточно.
+
+Запасной путь (если stacking по какой-то причине нельзя): перенести PrefixNode квестовых групп в meta и дописать в чат/TAB `%luckperms_meta_quest_prefix%` после `%luckperms-prefix%`. Это инвазивнее; предпочтителен stacking выше.
 
 ### Синхронизация с сайтом (Azuriom / AzLink)
 
@@ -600,12 +648,32 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | Направление | Метод и путь | Тело |
 |-------------|--------------|------|
 | Игра → сайт | `POST /api/azlink/prefixes/report` | `{players:[{uuid,name,available:[{group,prefix_raw,category}],selected,locked_staff}]}` |
+| Игра → сайт | `POST /api/azlink/prefixes/catalog` | `{schema:1,hash,full:true,groups:[{group,prefix_raw,priority,track_index,display_name,category}]}` |
 | Сайт → игра | `GET /api/azlink/prefixes/operations` | `{operations:[{op_id,uuid,group\|null}]}` тип `prefix_select` |
 | Ack | `POST /api/azlink/prefixes/ack` | `{op_id,status:applied\|rejected,reason,selected}` |
 
-Репорт уходит при входе, при пересчёте LP и после `/prefix` (debounce `site_report_debounce_ticks`). Операции с сайта идемпотентны по `op_id` (SavedData `cointcore_prefix_operations`) и работают для офлайн-игроков через `UserManager.modifyUser`.
+В `available` только квестовые группы; `locked_staff` всегда `false`. Репорт уходит при входе, при пересчёте LP и после `/prefix` (debounce `site_report_debounce_ticks`). Операции с сайта идемпотентны по `op_id` (SavedData `cointcore_prefix_operations`) и работают для офлайн-игроков через `UserManager.modifyUser`.
 
-AzLink `HttpClient` склеивает `siteUrl + "/api" + path`. Cointcore вызывает пути без `/api`: `/azlink/prefixes/report`, `/azlink/prefixes/operations`, `/azlink/prefixes/ack`.
+AzLink `HttpClient` склеивает `siteUrl + "/api" + path`. Cointcore вызывает пути без `/api`: `/azlink/prefixes/report`, `/azlink/prefixes/catalog`, `/azlink/prefixes/operations`, `/azlink/prefixes/ack`.
+
+#### Каталог квестовых групп
+
+`PrefixCatalogExporter` шлёт **только** группы track `ranks`:
+
+| Поле | Откуда |
+|------|--------|
+| `group` | имя группы |
+| `prefix_raw` | собственный PrefixNode группы с max priority, без наследования |
+| `priority` | priority этого PrefixNode |
+| `track_index` | индекс на track `ranks` (0 = первый) |
+| `display_name` | meta `cointcore-prefix-name` → trimmed displayname node → текст префикса без цветов/тегов/`[]` → имя группы |
+| `category` | всегда `quest` |
+
+Триггеры: `ServerStarted` + 45 с; `NodeMutateEvent` (цель Group), `GroupDataRecalculateEvent`, `GroupCreateEvent`, `GroupDeleteEvent` с debounce 5 с; периодическая проверка хеша каждые 15 мин; вручную `/cointcore prefixes export [--force]` (`cointcore.prefix.admin`). Последний принятый хеш — SavedData `cointcore_prefix_sync`. При ошибке POST — backoff 5 с … 5 мин.
+
+#### Массовый репорт
+
+`/cointcore prefixes report-all` обходит `UserManager.getUniqueUsers`, грузит `loadUser` батчами по 25–50 с паузой 1–2 с (один батч за раз), ждёт если TPS &lt; 18, хранит курсор в SavedData, для офлайн вызывает `cleanupUser`. На сайт уходит тот же `report`, чанками по 100–200 игроков.
 
 **Что должен выставить AzLink-mods** на `CoinOperationsBridge` (если ещё нет):
 
@@ -632,17 +700,25 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
 | Ключ | Дефолт | Смысл |
 |------|--------|--------|
 | `enabled` | `true` | Выбор префикса |
-| `staff_track` | `staff` | Track персонала в LuckPerms |
+| `staff_track` | `staff` | Track персонала (больше не блокирует выбор) |
 | `staff_groups` | `stazher`…`hadmin` | Запасной список, если track пуст |
-| `ranks_track` | `ranks` | Квестовые ранги (категория `quest`) |
-| `exclude_groups` | `[]` | Не предлагать эти группы |
-| `donation_groups` / `media_groups` / `builder_groups` | медиа/builder заданы | Категории для сайта |
+| `ranks_track` | `ranks` | Квестовые ранги — единственные selectable |
+| `exclude_groups` | `[]` | Не предлагать эти квестовые группы |
+| `donation_groups` / `media_groups` / `builder_groups` | медиа/builder заданы | Справочные категории (не selectable) |
 | `default_group` | `default` | Категория `default` |
-| `prefix_priority` | `1000` | Приоритет user-level prefix node |
-| `prefix_meta_key` | `cointcore-prefix-select` | Тег «наша» нода |
-| `site_sync_enabled` | `true` | Репорт и поллер сайта |
+| `prefix_priority` | `1000` | Приоритет user-level PrefixNode |
+| `prefix_meta_key` | `cointcore-quest-prefix` | User meta выбранной квестовой группы |
+| `render_meta_key` | `cointcore-quest-render` | Тег «наша» PrefixNode |
+| `site_sync_enabled` | `true` | Репорт, каталог и поллер сайта |
 | `site_report_debounce_ticks` | `40` | Задержка репорта |
 | `site_poll_seconds` | `15` | Интервал опроса операций |
+| `catalog_startup_delay_seconds` | `45` | Первый экспорт каталога после старта |
+| `catalog_debounce_seconds` | `5` | Debounce групповых событий LP |
+| `catalog_hash_interval_seconds` | `900` | Периодическая проверка хеша |
+| `report_all_batch_size` | `40` | Размер `loadUser` батча (25–50) |
+| `report_all_batch_pause_ms` | `1500` | Пауза между батчами (1–2 с) |
+| `report_all_chunk_size` | `150` | Размер POST `report` (100–200) |
+| `report_all_min_tps` | `18` | Пауза массового репорта при лаге |
 | `gui_enabled` | `true` | `/prefix gui` |
 | `speedrunner.enabled` | `true` | Рекорд ATM Star |
 | `speedrunner.group` | `speedrunner` | Группа LuckPerms |

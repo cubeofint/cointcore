@@ -267,6 +267,13 @@ public final class CointCoreMessages {
     public static final String PREFIX_GUI_CATEGORY = "gui.cointcore.prefix.category";
     public static final String PREFIX_GUI_CURRENT = "gui.cointcore.prefix.current";
     public static final String PREFIX_GUI_CLICK = "gui.cointcore.prefix.click";
+    public static final String PREFIX_ADMIN_UNAVAILABLE = "message.cointcore.prefix.admin.unavailable";
+    public static final String PREFIX_EXPORT_OK = "message.cointcore.prefix.export.ok";
+    public static final String PREFIX_EXPORT_UNCHANGED = "message.cointcore.prefix.export.unchanged";
+    public static final String PREFIX_EXPORT_BUSY = "message.cointcore.prefix.export.busy";
+    public static final String PREFIX_EXPORT_FAILED = "message.cointcore.prefix.export.failed";
+    public static final String PREFIX_REPORT_ALL_STARTED = "message.cointcore.prefix.report_all.started";
+    public static final String PREFIX_REPORT_ALL_ALREADY = "message.cointcore.prefix.report_all.already";
     public static final String SPEEDRUNNER_BROADCAST = "message.cointcore.speedrunner.broadcast";
     public static final String SPEEDRUNNER_INFO = "message.cointcore.speedrunner.info";
     public static final String SPEEDRUNNER_NONE = "message.cointcore.speedrunner.none";

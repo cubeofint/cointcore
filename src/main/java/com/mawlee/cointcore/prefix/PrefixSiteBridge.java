@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -127,11 +128,11 @@ public final class PrefixSiteBridge {
         PrefixSelectionService.select(server, op.playerId(), op.group(), decision -> {
             String status = switch (decision.kind()) {
                 case APPLIED, AUTO, UNCHANGED -> "applied";
-                case STAFF_LOCKED, UNAVAILABLE -> "rejected";
+                case UNAVAILABLE -> "rejected";
             };
             String selected = switch (decision.kind()) {
                 case APPLIED, UNCHANGED -> decision.selectedGroup();
-                case AUTO, STAFF_LOCKED, UNAVAILABLE -> null;
+                case AUTO, UNAVAILABLE -> null;
             };
             handled.mark(op.opId(), status, decision.reason(), selected);
             AzLinkHttp.ackPrefix(op.opId(), status, decision.reason(), selected);
@@ -181,7 +182,24 @@ public final class PrefixSiteBridge {
         } else {
             player.addProperty("selected", snapshot.selected());
         }
-        player.addProperty("locked_staff", snapshot.lockedStaff());
+        player.addProperty("locked_staff", false);
         return player;
+    }
+
+    static JsonObject playerReport(MinecraftServer server, UUID playerId, PrefixSnapshot snapshot) {
+        return toReport(server, playerId, snapshot);
+    }
+
+    public static CompletableFuture<Void> postReports(List<JsonObject> players) {
+        if (players == null || players.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        JsonObject body = new JsonObject();
+        JsonArray array = new JsonArray();
+        for (JsonObject player : players) {
+            array.add(player);
+        }
+        body.add("players", array);
+        return AzLinkHttp.reportPrefixes(body.toString()).thenApply(ignored -> null);
     }
 }

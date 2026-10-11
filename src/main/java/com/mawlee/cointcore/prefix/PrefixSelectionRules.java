@@ -4,14 +4,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 /**
- * Pure prefix-selection policy: staff lock, availability, auto, and reconcile after group loss.
+ * Pure prefix-selection policy: only quest-track groups are selectable.
+ * Staff / donate / media / builder prefixes stay visible via LuckPerms stacking
+ * and never lock the picker.
  */
 public final class PrefixSelectionRules {
-    public static final String REASON_STAFF_LOCKED = "staff_locked";
     public static final String REASON_UNAVAILABLE = "unavailable";
     public static final String REASON_AUTO = "auto";
     public static final String REASON_APPLIED = "applied";
@@ -21,7 +21,6 @@ public final class PrefixSelectionRules {
     public enum Kind {
         APPLIED,
         AUTO,
-        STAFF_LOCKED,
         UNAVAILABLE,
         UNCHANGED
     }
@@ -47,10 +46,6 @@ public final class PrefixSelectionRules {
             return new Decision(Kind.AUTO, null, true, REASON_GROUP_LOST);
         }
 
-        public static Decision staffLocked() {
-            return new Decision(Kind.STAFF_LOCKED, null, true, REASON_STAFF_LOCKED);
-        }
-
         public static Decision unavailable(String group) {
             return new Decision(Kind.UNAVAILABLE, PrefixSnapshot.normalize(group), false, REASON_UNAVAILABLE);
         }
@@ -63,29 +58,19 @@ public final class PrefixSelectionRules {
     private PrefixSelectionRules() {
     }
 
-    public static boolean isStaffLocked(Collection<String> heldGroups, Collection<String> staffGroups) {
-        Set<String> staff = normalizeSet(staffGroups);
-        if (staff.isEmpty()) {
-            return false;
-        }
-        for (String group : normalizeSet(heldGroups)) {
-            if (staff.contains(group)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
+    /**
+     * Selectable groups: quest-track groups the player actually has, with a prefix, minus excludes.
+     */
     public static List<PrefixOption> available(
             Collection<PrefixOption> heldWithPrefix,
-            Collection<String> staffGroups,
+            Collection<String> questGroups,
             Collection<String> excludeGroups
     ) {
-        Set<String> staff = normalizeSet(staffGroups);
+        Set<String> quest = normalizeSet(questGroups);
         Set<String> exclude = normalizeSet(excludeGroups);
         List<PrefixOption> result = new ArrayList<>();
         Set<String> seen = new LinkedHashSet<>();
-        if (heldWithPrefix == null) {
+        if (heldWithPrefix == null || quest.isEmpty()) {
             return List.of();
         }
         for (PrefixOption option : heldWithPrefix) {
@@ -93,7 +78,7 @@ public final class PrefixSelectionRules {
                 continue;
             }
             String group = option.group();
-            if (group.isBlank() || staff.contains(group) || exclude.contains(group) || !seen.add(group)) {
+            if (group.isBlank() || !quest.contains(group) || exclude.contains(group) || !seen.add(group)) {
                 continue;
             }
             result.add(option);
@@ -101,10 +86,7 @@ public final class PrefixSelectionRules {
         return List.copyOf(result);
     }
 
-    public static Decision decideSet(boolean staffLocked, Collection<String> availableGroups, String requestedGroup) {
-        if (staffLocked) {
-            return Decision.staffLocked();
-        }
+    public static Decision decideSet(Collection<String> availableGroups, String requestedGroup) {
         String group = PrefixSnapshot.normalize(requestedGroup);
         if (group == null) {
             return Decision.auto();
@@ -115,20 +97,14 @@ public final class PrefixSelectionRules {
         return Decision.applied(group);
     }
 
-    public static Decision decideAuto(boolean staffLocked) {
-        if (staffLocked) {
-            return Decision.staffLocked();
-        }
+    public static Decision decideAuto() {
         return Decision.auto();
     }
 
     /**
-     * After a LuckPerms recalc: staff lose any override; a selected group that is gone falls back to auto.
+     * After a LuckPerms recalc: a selected quest group that is gone falls back to auto (highest quest).
      */
-    public static Decision reconcile(boolean staffLocked, String selected, Collection<String> availableGroups) {
-        if (staffLocked) {
-            return Decision.staffLocked();
-        }
+    public static Decision reconcile(String selected, Collection<String> availableGroups) {
         String current = PrefixSnapshot.normalize(selected);
         if (current == null) {
             return Decision.unchanged(null);
@@ -137,6 +113,27 @@ public final class PrefixSelectionRules {
             return Decision.groupLost();
         }
         return Decision.unchanged(current);
+    }
+
+    /**
+     * Highest quest rank among selectable options: max own-prefix priority, then later track index.
+     */
+    public static PrefixOption highestQuest(Collection<PrefixOption> available) {
+        if (available == null || available.isEmpty()) {
+            return null;
+        }
+        PrefixOption best = null;
+        for (PrefixOption option : available) {
+            if (option == null || !option.hasPrefix()) {
+                continue;
+            }
+            if (best == null
+                    || option.priority() > best.priority()
+                    || option.priority() == best.priority() && option.trackIndex() > best.trackIndex()) {
+                best = option;
+            }
+        }
+        return best;
     }
 
     public static String category(
@@ -188,7 +185,6 @@ public final class PrefixSelectionRules {
         return switch (kind) {
             case APPLIED -> REASON_APPLIED;
             case AUTO -> REASON_AUTO;
-            case STAFF_LOCKED -> REASON_STAFF_LOCKED;
             case UNAVAILABLE -> REASON_UNAVAILABLE;
             case UNCHANGED -> REASON_UNCHANGED;
         };

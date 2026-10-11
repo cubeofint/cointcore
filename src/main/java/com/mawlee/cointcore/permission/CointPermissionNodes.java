@@ -4,7 +4,6 @@ import com.mawlee.cointcore.CointCore;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.server.permission.nodes.PermissionNode;
 import net.neoforged.neoforge.server.permission.nodes.PermissionTypes;
-import net.neoforged.neoforge.server.permission.nodes.PermissionTypes;
 
 public final class CointPermissionNodes {
     private static final PermissionNode.PermissionResolver<Boolean> OP_ONLY =
@@ -388,6 +387,13 @@ public final class CointPermissionNodes {
     ).setInformation(
             Component.translatable("permission.name.cointcore.prefix"),
             Component.translatable("permission.desc.cointcore.prefix")
+    );
+
+    public static final PermissionNode<Boolean> PREFIX_ADMIN = new PermissionNode<>(
+            CointCore.MOD_ID, "prefix.admin", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.prefix.admin"),
+            Component.translatable("permission.desc.cointcore.prefix.admin")
     );
 
     public static final PermissionNode<Boolean> SPEEDRUNNER_ADMIN = new PermissionNode<>(

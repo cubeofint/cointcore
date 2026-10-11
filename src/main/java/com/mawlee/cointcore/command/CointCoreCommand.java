@@ -115,7 +115,8 @@ public final class CointCoreCommand {
                 .then(ChunkLimitCommand.chunkLimitCommand())
                 .then(WatchdogCommand.branch())
                 .then(GluonWalletCommand.branch())
-                .then(SpeedrunnerCommand.branch());
+                .then(SpeedrunnerCommand.branch())
+                .then(PrefixAdminCommand.branch());
 
         var claimFlags = ClaimFlagCommand.claimFlagCommand();
         if (claimFlags != null) {
