@@ -35,6 +35,7 @@ public final class AzLinkHttp {
     static final String REPORT_PATH = "/azlink/prefixes/report";
     static final String OPERATIONS_PATH = "/azlink/prefixes/operations";
     static final String ACK_PATH = "/azlink/prefixes/ack";
+    static final String CATALOG_PATH = "/azlink/prefixes/catalog";
 
     private static boolean resolved;
     private static Method isAvailable;
@@ -123,6 +124,10 @@ public final class AzLinkHttp {
         return getJson(path);
     }
 
+    public static CompletableFuture<String> exportCatalog(String json) {
+        return postJson(CATALOG_PATH, json);
+    }
+
     public static CompletableFuture<String> ackPrefix(String opId, String status, String reason, String selected) {
         if (resolve() && ackPrefix != null) {
             try {
@@ -194,11 +199,12 @@ public final class AzLinkHttp {
                 LOGGER.warn(
                         "AzLink {} not found; prefix site sync disabled. AzLink-mods must expose "
                                 + "CoinOperationsBridge.postJson/getJson or keep CoinOperationsBridge.plugin + "
-                                + "HttpClient.request. Paths: {} {} {}",
+                                + "HttpClient.request. Paths: {} {} {} {}",
                         BRIDGE,
                         REPORT_PATH,
                         OPERATIONS_PATH,
-                        ACK_PATH
+                        ACK_PATH,
+                        CATALOG_PATH
                 );
             }
             return false;

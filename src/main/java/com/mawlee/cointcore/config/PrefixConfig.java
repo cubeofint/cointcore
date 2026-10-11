@@ -27,8 +27,16 @@ public final class PrefixConfig {
     private static final String FILE_NAME = "prefixes.json";
     public static final String DEFAULT_STAFF_TRACK = "staff";
     public static final String DEFAULT_RANKS_TRACK = "ranks";
-    public static final String DEFAULT_META_KEY = "cointcore-prefix-select";
+    public static final String DEFAULT_META_KEY = "cointcore-quest-prefix";
+    public static final String DEFAULT_RENDER_META_KEY = "cointcore-quest-render";
     public static final int DEFAULT_PREFIX_PRIORITY = 1000;
+    public static final int DEFAULT_CATALOG_STARTUP_DELAY_SECONDS = 45;
+    public static final int DEFAULT_CATALOG_DEBOUNCE_SECONDS = 5;
+    public static final int DEFAULT_CATALOG_HASH_INTERVAL_SECONDS = 900;
+    public static final int DEFAULT_REPORT_ALL_BATCH_SIZE = 40;
+    public static final int DEFAULT_REPORT_ALL_BATCH_PAUSE_MS = 1500;
+    public static final int DEFAULT_REPORT_ALL_CHUNK_SIZE = 150;
+    public static final double DEFAULT_REPORT_ALL_MIN_TPS = 18.0D;
     public static final String DEFAULT_SPEEDRUNNER_GROUP = "speedrunner";
     public static final String DEFAULT_SPEEDRUNNER_ITEM = "allthetweaks:atm_star";
 
@@ -103,9 +111,17 @@ public final class PrefixConfig {
             String unmatchedCategory,
             int prefixPriority,
             String prefixMetaKey,
+            String renderMetaKey,
             boolean siteSyncEnabled,
             int siteReportDebounceTicks,
             int sitePollSeconds,
+            int catalogStartupDelaySeconds,
+            int catalogDebounceSeconds,
+            int catalogHashIntervalSeconds,
+            int reportAllBatchSize,
+            int reportAllBatchPauseMs,
+            int reportAllChunkSize,
+            double reportAllMinTps,
             boolean guiEnabled,
             boolean speedrunnerEnabled,
             String speedrunnerGroup,
@@ -136,9 +152,17 @@ public final class PrefixConfig {
                             ? DEFAULT_PREFIX_PRIORITY
                             : data.prefixPriority,
                     normalizeName(data.prefixMetaKey, DEFAULT_META_KEY),
+                    normalizeName(data.renderMetaKey, DEFAULT_RENDER_META_KEY),
                     data.siteSyncEnabled == null || data.siteSyncEnabled,
                     clamp(data.siteReportDebounceTicks, 1, 400, 40),
                     clamp(data.sitePollSeconds, 1, 300, 15),
+                    clamp(data.catalogStartupDelaySeconds, 1, 600, DEFAULT_CATALOG_STARTUP_DELAY_SECONDS),
+                    clamp(data.catalogDebounceSeconds, 1, 60, DEFAULT_CATALOG_DEBOUNCE_SECONDS),
+                    clamp(data.catalogHashIntervalSeconds, 30, 86_400, DEFAULT_CATALOG_HASH_INTERVAL_SECONDS),
+                    clamp(data.reportAllBatchSize, 25, 50, DEFAULT_REPORT_ALL_BATCH_SIZE),
+                    clamp(data.reportAllBatchPauseMs, 1000, 2000, DEFAULT_REPORT_ALL_BATCH_PAUSE_MS),
+                    clamp(data.reportAllChunkSize, 100, 200, DEFAULT_REPORT_ALL_CHUNK_SIZE),
+                    clampDouble(data.reportAllMinTps, 1.0D, 20.0D, DEFAULT_REPORT_ALL_MIN_TPS),
                     data.guiEnabled == null || data.guiEnabled,
                     speedrunner.enabled == null || speedrunner.enabled,
                     normalizeName(speedrunner.group, DEFAULT_SPEEDRUNNER_GROUP),
@@ -193,6 +217,11 @@ public final class PrefixConfig {
         return Math.max(min, Math.min(max, parsed));
     }
 
+    private static double clampDouble(Double value, double min, double max, double fallback) {
+        double parsed = value == null || value <= 0.0D ? fallback : value;
+        return Math.max(min, Math.min(max, parsed));
+    }
+
     static final class FileData {
         Boolean enabled;
         @SerializedName("staff_track")
@@ -219,8 +248,24 @@ public final class PrefixConfig {
         Integer prefixPriority;
         @SerializedName("prefix_meta_key")
         String prefixMetaKey;
+        @SerializedName("render_meta_key")
+        String renderMetaKey;
         @SerializedName("site_sync_enabled")
         Boolean siteSyncEnabled;
+        @SerializedName("catalog_startup_delay_seconds")
+        Integer catalogStartupDelaySeconds;
+        @SerializedName("catalog_debounce_seconds")
+        Integer catalogDebounceSeconds;
+        @SerializedName("catalog_hash_interval_seconds")
+        Integer catalogHashIntervalSeconds;
+        @SerializedName("report_all_batch_size")
+        Integer reportAllBatchSize;
+        @SerializedName("report_all_batch_pause_ms")
+        Integer reportAllBatchPauseMs;
+        @SerializedName("report_all_chunk_size")
+        Integer reportAllChunkSize;
+        @SerializedName("report_all_min_tps")
+        Double reportAllMinTps;
         @SerializedName("site_report_debounce_ticks")
         Integer siteReportDebounceTicks;
         @SerializedName("site_poll_seconds")
@@ -244,9 +289,17 @@ public final class PrefixConfig {
             data.unmatchedCategory = "donation";
             data.prefixPriority = DEFAULT_PREFIX_PRIORITY;
             data.prefixMetaKey = DEFAULT_META_KEY;
+            data.renderMetaKey = DEFAULT_RENDER_META_KEY;
             data.siteSyncEnabled = true;
             data.siteReportDebounceTicks = 40;
             data.sitePollSeconds = 15;
+            data.catalogStartupDelaySeconds = DEFAULT_CATALOG_STARTUP_DELAY_SECONDS;
+            data.catalogDebounceSeconds = DEFAULT_CATALOG_DEBOUNCE_SECONDS;
+            data.catalogHashIntervalSeconds = DEFAULT_CATALOG_HASH_INTERVAL_SECONDS;
+            data.reportAllBatchSize = DEFAULT_REPORT_ALL_BATCH_SIZE;
+            data.reportAllBatchPauseMs = DEFAULT_REPORT_ALL_BATCH_PAUSE_MS;
+            data.reportAllChunkSize = DEFAULT_REPORT_ALL_CHUNK_SIZE;
+            data.reportAllMinTps = DEFAULT_REPORT_ALL_MIN_TPS;
             data.guiEnabled = true;
             data.speedrunner = defaultSpeedrunner();
             return data;

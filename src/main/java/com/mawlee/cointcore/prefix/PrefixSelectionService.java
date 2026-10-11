@@ -35,8 +35,8 @@ public final class PrefixSelectionService {
             }
             current.execute(() -> reconcile(current, playerId, true));
         });
-        LOGGER.info("Prefix selection ready (staff track={}, priority={})",
-                PrefixConfig.get().staffTrack(), PrefixConfig.get().prefixPriority());
+        LOGGER.info("Prefix selection ready (ranks track={}, priority={})",
+                PrefixConfig.get().ranksTrack(), PrefixConfig.get().prefixPriority());
     }
 
     public static void onPlayerJoin(ServerPlayer player) {
@@ -66,15 +66,25 @@ public final class PrefixSelectionService {
             boolean report
     ) {
         PrefixSelectionRules.Decision decision = PrefixSelectionRules.reconcile(
-                snapshot.lockedStaff(),
                 snapshot.selected(),
                 snapshot.availableGroups()
         );
-        if (decision.clearOverride() && snapshot.selected() != null) {
-            LuckPermsUsers.clearPrefixOverride(playerId).whenComplete((ignored, error) -> {
+        if (decision.clearOverride()) {
+            applyAutoRender(playerId, snapshot).whenComplete((ignored, error) -> {
                 if (error != null) {
-                    LOGGER.warn("Failed to drop prefix override for {}", playerId, error);
+                    LOGGER.warn("Failed to drop quest prefix override for {}", playerId, error);
                     return;
+                }
+                if (report) {
+                    PrefixReportScheduler.request(minecraftServer, playerId);
+                }
+            });
+            return;
+        }
+        if (snapshot.selected() == null) {
+            applyAutoRender(playerId, snapshot).whenComplete((ignored, error) -> {
+                if (error != null) {
+                    LOGGER.debug("Failed to refresh auto quest prefix for {}", playerId, error);
                 }
                 if (report) {
                     PrefixReportScheduler.request(minecraftServer, playerId);
@@ -127,16 +137,16 @@ public final class PrefixSelectionService {
             Consumer<PrefixSelectionRules.Decision> callback
     ) {
         PrefixSelectionRules.Decision decision = requestedGroup == null
-                ? PrefixSelectionRules.decideAuto(snapshot.lockedStaff())
-                : PrefixSelectionRules.decideSet(snapshot.lockedStaff(), snapshot.availableGroups(), requestedGroup);
+                ? PrefixSelectionRules.decideAuto()
+                : PrefixSelectionRules.decideSet(snapshot.availableGroups(), requestedGroup);
         CompletableFuture<Void> mutation = switch (decision.kind()) {
-            case STAFF_LOCKED, AUTO -> LuckPermsUsers.clearPrefixOverride(playerId);
+            case AUTO -> applyAutoRender(playerId, snapshot);
             case APPLIED -> {
                 PrefixOption option = snapshot.option(decision.selectedGroup());
                 if (option == null) {
                     yield CompletableFuture.completedFuture(null);
                 }
-                yield LuckPermsUsers.applyPrefixOverride(playerId, option.group(), option.prefixRaw());
+                yield LuckPermsUsers.syncQuestPrefix(playerId, option.group(), option.prefixRaw());
             }
             case UNAVAILABLE, UNCHANGED -> CompletableFuture.completedFuture(null);
         };
@@ -153,4 +163,11 @@ public final class PrefixSelectionService {
         }));
     }
 
+    private static CompletableFuture<Void> applyAutoRender(UUID playerId, PrefixSnapshot snapshot) {
+        PrefixOption highest = snapshot.highestQuest();
+        if (highest == null) {
+            return LuckPermsUsers.syncQuestPrefix(playerId, null, null);
+        }
+        return LuckPermsUsers.syncQuestPrefix(playerId, null, highest.prefixRaw());
+    }
 }

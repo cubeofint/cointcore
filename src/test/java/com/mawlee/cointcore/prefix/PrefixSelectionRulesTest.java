@@ -11,66 +11,70 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PrefixSelectionRulesTest {
-    private static final List<String> STAFF = List.of("stazher", "helper", "moderator", "hmod", "admin", "hadmin");
+    private static final List<String> QUEST = List.of(
+            "darwinawards", "explorer", "engineer", "atm", "arcanist",
+            "bosskiller", "titan", "jesus", "godofatm"
+    );
 
-    @Test
-    void staffTrackGroupLocksSelection() {
-        assertTrue(PrefixSelectionRules.isStaffLocked(List.of("default", "helper"), STAFF));
-        assertFalse(PrefixSelectionRules.isStaffLocked(List.of("default", "vip"), STAFF));
-        assertFalse(PrefixSelectionRules.isStaffLocked(List.of(), STAFF));
+    private static PrefixOption quest(String group, String prefix, int priority, int trackIndex) {
+        return new PrefixOption(group, prefix, "quest", priority, trackIndex);
     }
 
     @Test
-    void staffLockRefusesSetAndClearsOverride() {
-        PrefixSelectionRules.Decision set = PrefixSelectionRules.decideSet(true, Set.of("vip"), "vip");
-        assertEquals(PrefixSelectionRules.Kind.STAFF_LOCKED, set.kind());
-        assertTrue(set.clearOverride());
-        assertNull(set.selectedGroup());
-        assertEquals(PrefixSelectionRules.REASON_STAFF_LOCKED, set.reason());
-
-        PrefixSelectionRules.Decision auto = PrefixSelectionRules.decideAuto(true);
-        assertEquals(PrefixSelectionRules.Kind.STAFF_LOCKED, auto.kind());
-        assertTrue(auto.clearOverride());
-    }
-
-    @Test
-    void staffReconcileAlwaysDropsOverride() {
-        PrefixSelectionRules.Decision decision = PrefixSelectionRules.reconcile(true, "vip", Set.of("vip"));
-        assertEquals(PrefixSelectionRules.Kind.STAFF_LOCKED, decision.kind());
-        assertTrue(decision.clearOverride());
-        assertNull(decision.selectedGroup());
-    }
-
-    @Test
-    void availableExcludesStaffEmptyAndExcludedGroups() {
+    void availableIsOnlyHeldQuestGroups() {
         List<PrefixOption> held = List.of(
-                new PrefixOption("helper", "&cStaff ", "other"),
-                new PrefixOption("vip", "&6[VIP] ", "donation"),
-                new PrefixOption("default", "&7", "default"),
-                new PrefixOption("hidden", "&8X", "other"),
-                new PrefixOption("empty", "", "other")
+                quest("helper", "&cStaff ", 200, -1),
+                quest("titan", "&6[Titan] ", 70, 6),
+                quest("explorer", "&a[Explorer] ", 20, 1),
+                new PrefixOption("emerald", "&a[E] ", "donation", 50, 0),
+                quest("hidden", "&8X", 5, 0),
+                quest("empty", "", 1, 0)
         );
-        List<PrefixOption> available = PrefixSelectionRules.available(held, STAFF, List.of("hidden"));
-        assertEquals(List.of("vip", "default"), available.stream().map(PrefixOption::group).toList());
+        List<PrefixOption> available = PrefixSelectionRules.available(held, QUEST, List.of("hidden"));
+        assertEquals(List.of("titan", "explorer"), available.stream().map(PrefixOption::group).toList());
+        assertTrue(available.stream().allMatch(option -> "quest".equals(option.category())));
     }
 
     @Test
-    void setAppliesOnlyHeldAvailableGroup() {
-        PrefixSelectionRules.Decision ok = PrefixSelectionRules.decideSet(false, Set.of("vip", "default"), "VIP");
+    void staffAndDonateAreNeverSelectableEvenIfListedAsHeld() {
+        List<PrefixOption> held = List.of(
+                quest("admin", "&c[A] ", 200, 0),
+                quest("unobtanium", "&5[U] ", 80, 0),
+                quest("media", "&d[M] ", 40, 0),
+                quest("builder", "&e[B] ", 30, 0)
+        );
+        assertTrue(PrefixSelectionRules.available(held, QUEST, List.of()).isEmpty());
+    }
+
+    @Test
+    void setAppliesOnlyHeldQuestGroup() {
+        PrefixSelectionRules.Decision ok = PrefixSelectionRules.decideSet(Set.of("titan", "explorer"), "Titan");
         assertEquals(PrefixSelectionRules.Kind.APPLIED, ok.kind());
-        assertEquals("vip", ok.selectedGroup());
+        assertEquals("titan", ok.selectedGroup());
         assertFalse(ok.clearOverride());
 
-        PrefixSelectionRules.Decision missing = PrefixSelectionRules.decideSet(false, Set.of("vip"), "mvp");
+        PrefixSelectionRules.Decision staff = PrefixSelectionRules.decideSet(Set.of("titan"), "admin");
+        assertEquals(PrefixSelectionRules.Kind.UNAVAILABLE, staff.kind());
+        assertEquals("admin", staff.selectedGroup());
+        assertFalse(staff.clearOverride());
+
+        PrefixSelectionRules.Decision missing = PrefixSelectionRules.decideSet(Set.of("titan"), "explorer");
         assertEquals(PrefixSelectionRules.Kind.UNAVAILABLE, missing.kind());
-        assertEquals("mvp", missing.selectedGroup());
-        assertFalse(missing.clearOverride());
         assertEquals(PrefixSelectionRules.REASON_UNAVAILABLE, missing.reason());
     }
 
     @Test
-    void autoClearsOverrideWhenNotStaff() {
-        PrefixSelectionRules.Decision decision = PrefixSelectionRules.decideAuto(false);
+    void staffDoesNotBlockSelection() {
+        PrefixSelectionRules.Decision set = PrefixSelectionRules.decideSet(Set.of("titan"), "titan");
+        assertEquals(PrefixSelectionRules.Kind.APPLIED, set.kind());
+        PrefixSelectionRules.Decision auto = PrefixSelectionRules.decideAuto();
+        assertEquals(PrefixSelectionRules.Kind.AUTO, auto.kind());
+        assertTrue(auto.clearOverride());
+    }
+
+    @Test
+    void autoClearsOverride() {
+        PrefixSelectionRules.Decision decision = PrefixSelectionRules.decideAuto();
         assertEquals(PrefixSelectionRules.Kind.AUTO, decision.kind());
         assertTrue(decision.clearOverride());
         assertNull(decision.selectedGroup());
@@ -79,41 +83,63 @@ class PrefixSelectionRulesTest {
 
     @Test
     void blankSetIsAuto() {
-        PrefixSelectionRules.Decision decision = PrefixSelectionRules.decideSet(false, Set.of("vip"), "  ");
+        PrefixSelectionRules.Decision decision = PrefixSelectionRules.decideSet(Set.of("titan"), "  ");
         assertEquals(PrefixSelectionRules.Kind.AUTO, decision.kind());
         assertTrue(decision.clearOverride());
     }
 
     @Test
-    void lostGroupFallsBackToAuto() {
-        PrefixSelectionRules.Decision lost = PrefixSelectionRules.reconcile(false, "vip", Set.of("default"));
+    void lostQuestGroupFallsBackToAuto() {
+        PrefixSelectionRules.Decision lost = PrefixSelectionRules.reconcile("explorer", Set.of("titan"));
         assertEquals(PrefixSelectionRules.Kind.AUTO, lost.kind());
         assertTrue(lost.clearOverride());
         assertEquals(PrefixSelectionRules.REASON_GROUP_LOST, lost.reason());
 
-        PrefixSelectionRules.Decision keep = PrefixSelectionRules.reconcile(false, "vip", Set.of("vip", "default"));
+        PrefixSelectionRules.Decision keep = PrefixSelectionRules.reconcile("titan", Set.of("titan", "explorer"));
         assertEquals(PrefixSelectionRules.Kind.UNCHANGED, keep.kind());
-        assertEquals("vip", keep.selectedGroup());
+        assertEquals("titan", keep.selectedGroup());
         assertFalse(keep.clearOverride());
 
-        PrefixSelectionRules.Decision none = PrefixSelectionRules.reconcile(false, null, Set.of("vip"));
+        PrefixSelectionRules.Decision none = PrefixSelectionRules.reconcile(null, Set.of("titan"));
         assertEquals(PrefixSelectionRules.Kind.UNCHANGED, none.kind());
         assertNull(none.selectedGroup());
+
+        PrefixSelectionRules.Decision wiped = PrefixSelectionRules.reconcile("titan", Set.of());
+        assertEquals(PrefixSelectionRules.Kind.AUTO, wiped.kind());
+        assertTrue(wiped.clearOverride());
+        assertEquals(PrefixSelectionRules.REASON_GROUP_LOST, wiped.reason());
     }
 
     @Test
-    void categoriesMatchTracksAndLists() {
+    void highestQuestUsesPriorityThenTrackIndex() {
+        List<PrefixOption> available = List.of(
+                quest("explorer", "&a[E] ", 20, 1),
+                quest("titan", "&6[T] ", 70, 6),
+                quest("jesus", "&b[J] ", 70, 7)
+        );
+        PrefixOption highest = PrefixSelectionRules.highestQuest(available);
+        assertEquals("jesus", highest.group());
+        assertEquals("jesus", PrefixSnapshot.of(available, null).highestQuest().group());
+    }
+
+    @Test
+    void snapshotForcesLockedStaffFalse() {
+        PrefixSnapshot snapshot = new PrefixSnapshot(true, List.of(quest("titan", "&6[T] ", 70, 6)), "titan");
+        assertFalse(snapshot.lockedStaff());
+        assertEquals("titan", snapshot.selected());
+    }
+
+    @Test
+    void categoriesStillRecognizeQuestTrack() {
         assertEquals("quest", PrefixSelectionRules.category(
-                "miner", List.of("miner", "farmer"), List.of(), List.of(), List.of(), "default", "donation"));
+                "titan", QUEST, List.of(), List.of(), List.of(), "default", "donation"));
         assertEquals("donation", PrefixSelectionRules.category(
-                "vip", List.of("miner"), List.of("vip"), List.of(), List.of(), "default", "other"));
+                "emerald", QUEST, List.of("emerald"), List.of(), List.of(), "default", "other"));
         assertEquals("media", PrefixSelectionRules.category(
-                "youtube", List.of(), List.of(), List.of("youtube"), List.of(), "default", "donation"));
+                "youtube", QUEST, List.of(), List.of("youtube"), List.of(), "default", "donation"));
         assertEquals("builder", PrefixSelectionRules.category(
-                "builder", List.of(), List.of(), List.of(), List.of("builder"), "default", "donation"));
+                "builder", QUEST, List.of(), List.of(), List.of("builder"), "default", "donation"));
         assertEquals("default", PrefixSelectionRules.category(
-                "default", List.of(), List.of(), List.of(), List.of(), "default", "donation"));
-        assertEquals("donation", PrefixSelectionRules.category(
-                "mvp", List.of(), List.of(), List.of(), List.of(), "default", "donation"));
+                "default", QUEST, List.of(), List.of(), List.of(), "default", "donation"));
     }
 }

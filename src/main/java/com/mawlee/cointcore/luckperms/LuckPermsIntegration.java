@@ -244,24 +244,49 @@ public final class LuckPermsIntegration {
     }
 
     public static void registerUserDataRecalculateListener(Consumer<UUID> listener) {
+        subscribe("net.luckperms.api.event.user.UserDataRecalculateEvent", event -> {
+            try {
+                Object user = invoke(event, "getUser");
+                UUID playerId = (UUID) invoke(user, "getUniqueId");
+                listener.accept(playerId);
+            } catch (ReflectiveOperationException ignored) {
+            }
+        });
+    }
+
+    /**
+     * Group-side mutations that can change the quest catalog: node edits on a group,
+     * group data recalc and create. Delete is registered separately so the exporter
+     * can always push an authoritative full catalog.
+     */
+    public static void registerGroupCatalogListener(Runnable listener) {
+        subscribe("net.luckperms.api.event.node.NodeMutateEvent", event -> {
+            try {
+                if (Boolean.TRUE.equals(invoke(event, "isGroup"))) {
+                    listener.run();
+                }
+            } catch (ReflectiveOperationException ignored) {
+            }
+        });
+        subscribe("net.luckperms.api.event.group.GroupDataRecalculateEvent", event -> listener.run());
+        subscribe("net.luckperms.api.event.group.GroupCreateEvent", event -> listener.run());
+    }
+
+    public static void registerGroupDeleteListener(Runnable listener) {
+        subscribe("net.luckperms.api.event.group.GroupDeleteEvent", event -> listener.run());
+    }
+
+    private static void subscribe(String eventClassName, Consumer<Object> listener) {
         if (!isAvailable()) {
             return;
         }
-
         try {
             Object provider = invokeStatic(PROVIDER_CLASS, "get");
             Object eventBus = invoke(provider, "getEventBus");
-            Class<?> eventClass = Class.forName("net.luckperms.api.event.user.UserDataRecalculateEvent");
+            Class<?> eventClass = Class.forName(eventClassName);
             eventBus.getClass()
                     .getMethod("subscribe", Class.class, Consumer.class)
-                    .invoke(eventBus, eventClass, (Consumer<Object>) event -> {
-                        try {
-                            Object user = invoke(event, "getUser");
-                            UUID playerId = (UUID) invoke(user, "getUniqueId");
-                            listener.accept(playerId);
-                        } catch (ReflectiveOperationException ignored) {
-                        }
-                    });
+                    .invoke(eventBus, eventClass, listener);
         } catch (ReflectiveOperationException ignored) {
         }
     }

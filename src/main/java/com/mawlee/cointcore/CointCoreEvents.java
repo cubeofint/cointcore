@@ -127,6 +127,7 @@ public final class CointCoreEvents {
         ChunkBonusService.init(event.getServer());
         FtbRanksLuckPermsBridge.init(event.getServer());
         com.mawlee.cointcore.prefix.PrefixSelectionService.init(event.getServer());
+        com.mawlee.cointcore.prefix.PrefixCatalogExporter.init(event.getServer());
         ChatSpyManager.loadFromSavedData(event.getServer());
         com.mawlee.cointcore.watchdog.TickWatchdogService.instance().start(event.getServer());
     }
@@ -137,6 +138,8 @@ public final class CointCoreEvents {
         } catch (RuntimeException exception) {
             LOGGER.error("Failed to clear Just Dire Things portal force-load tickets", exception);
         }
+        com.mawlee.cointcore.prefix.PrefixCatalogExporter.onServerStarted(event.getServer());
+        com.mawlee.cointcore.prefix.PrefixBulkReportService.onServerStarted(event.getServer());
     }
 
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
