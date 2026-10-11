@@ -9,9 +9,7 @@ import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -121,7 +119,7 @@ public final class PrefixBulkReportService {
                     data.finishReportAll();
                     return;
                 }
-                users = sortAfterCursor(ids, data.reportAllCursor());
+                users = PrefixCatalog.sortAfterCursor(ids, data.reportAllCursor());
                 index = 0;
                 LOGGER.info("Prefix report-all listed {} remaining users", users.size());
             } finally {
@@ -212,21 +210,6 @@ public final class PrefixBulkReportService {
             }
             SENDING.set(false);
         });
-    }
-
-    static List<UUID> sortAfterCursor(Set<UUID> ids, String cursor) {
-        List<UUID> sorted = new ArrayList<>(ids);
-        sorted.sort(Comparator.comparing(UUID::toString));
-        if (cursor == null || cursor.isBlank()) {
-            return sorted;
-        }
-        List<UUID> remaining = new ArrayList<>();
-        for (UUID id : sorted) {
-            if (id.toString().compareTo(cursor) > 0) {
-                remaining.add(id);
-            }
-        }
-        return remaining;
     }
 
     static double tps(MinecraftServer server) {

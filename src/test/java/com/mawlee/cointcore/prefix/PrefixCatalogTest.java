@@ -31,7 +31,7 @@ class PrefixCatalogTest {
 
     @Test
     void normalizeSortsByTrackIndexThenGroupAndForcesQuestCategory() {
-        List<PrefixCatalogEntry> normalized = PrefixCatalog.normalize(List.of(
+        List<PrefixCatalogEntry> normalized = PrefixCatalog.normalize(java.util.Arrays.asList(
                 new PrefixCatalogEntry("Titan", "&6[Titan] ", 70, 6, "Titan", "other"),
                 new PrefixCatalogEntry("explorer", "&a[Explorer] ", 20, 1, "", "donation"),
                 new PrefixCatalogEntry("", "&cX", 1, 0, "Nope", "quest"),
@@ -87,7 +87,7 @@ class PrefixCatalogTest {
         java.util.UUID first = java.util.UUID.fromString("11111111-1111-1111-1111-111111111111");
         java.util.UUID second = java.util.UUID.fromString("22222222-2222-2222-2222-222222222222");
         java.util.UUID third = java.util.UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
-        List<java.util.UUID> remaining = PrefixBulkReportService.sortAfterCursor(
+        List<java.util.UUID> remaining = PrefixCatalog.sortAfterCursor(
                 java.util.Set.of(third, first, second),
                 first.toString()
         );

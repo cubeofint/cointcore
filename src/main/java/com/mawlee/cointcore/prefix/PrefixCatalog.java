@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -118,6 +120,24 @@ public final class PrefixCatalog {
             array.add(row);
         }
         return array;
+    }
+
+    public static List<UUID> sortAfterCursor(Set<UUID> ids, String cursor) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> sorted = new ArrayList<>(ids);
+        sorted.sort(Comparator.comparing(UUID::toString));
+        if (cursor == null || cursor.isBlank()) {
+            return List.copyOf(sorted);
+        }
+        List<UUID> remaining = new ArrayList<>();
+        for (UUID id : sorted) {
+            if (id.toString().compareTo(cursor) > 0) {
+                remaining.add(id);
+            }
+        }
+        return List.copyOf(remaining);
     }
 
     static String sha256Hex(String canonical) {
