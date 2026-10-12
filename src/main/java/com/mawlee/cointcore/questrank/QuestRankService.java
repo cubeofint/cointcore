@@ -143,7 +143,7 @@ public final class QuestRankService {
     }
 
     public static String statusLine() {
-        QuestRankConfig.Settings settings = QuestRankConfig.get();
+        QuestRankSettings settings = QuestRankConfig.get();
         SyncSummary last = lastSummary();
         return "enabled=" + settings.enabled()
                 + " mappings=" + settings.table().size()

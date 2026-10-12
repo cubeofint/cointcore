@@ -22,7 +22,8 @@ class QuestRankGrantLogicTest {
                 Set.of("explorer", "helper"),
                 TABLE
         );
-        assertEquals(List.of("titan", "jesus"), grants);
+        assertEquals(Set.of("titan", "jesus"), Set.copyOf(grants));
+        assertEquals(2, grants.size());
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.mawlee.cointcore.config;
 
 import com.google.gson.annotations.SerializedName;
 import com.mawlee.cointcore.CointCore;
+import com.mawlee.cointcore.questrank.QuestRankSettings;
 import com.mawlee.cointcore.questrank.QuestRankTable;
 import com.mojang.logging.LogUtils;
 import net.neoforged.fml.loading.FMLPaths;
@@ -23,14 +24,14 @@ import java.util.Map;
 public final class QuestRankConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final String FILE_NAME = "quest-ranks.json";
-    public static final int DEFAULT_SWEEP_INTERVAL_SECONDS = 60;
+    public static final int DEFAULT_SWEEP_INTERVAL_SECONDS = QuestRankSettings.DEFAULT_SWEEP_INTERVAL_SECONDS;
 
-    private static Settings settings = Settings.defaults();
+    private static QuestRankSettings settings = QuestRankSettings.defaults();
 
     private QuestRankConfig() {
     }
 
-    public static Settings get() {
+    public static QuestRankSettings get() {
         return settings;
     }
 
@@ -43,7 +44,7 @@ public final class QuestRankConfig {
     }
 
     public static boolean reload() {
-        Settings loaded = loadFromDisk(true);
+        QuestRankSettings loaded = loadFromDisk(true);
         if (loaded == null) {
             return false;
         }
@@ -58,11 +59,11 @@ public final class QuestRankConfig {
         return true;
     }
 
-    private static void apply(Settings loaded) {
-        settings = loaded != null ? loaded : Settings.defaults();
+    private static void apply(QuestRankSettings loaded) {
+        settings = loaded != null ? loaded : QuestRankSettings.defaults();
     }
 
-    private static Settings loadFromDisk(boolean reloading) {
+    private static QuestRankSettings loadFromDisk(boolean reloading) {
         Path path = getConfigPath();
         try {
             Files.createDirectories(path.getParent());
@@ -72,11 +73,11 @@ public final class QuestRankConfig {
                     ConfigMergeSupport.GSON.toJson(defaults, writer);
                 }
                 LOGGER.info("Created default quest-rank config at {}", path);
-                return Settings.from(defaults);
+                return fromFile(defaults);
             }
             try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
                 FileData data = ConfigMergeSupport.GSON.fromJson(reader, FileData.class);
-                Settings parsed = Settings.from(data);
+                QuestRankSettings parsed = fromFile(data);
                 if (!reloading) {
                     LOGGER.info(
                             "Loaded quest-rank config (enabled={}, mappings={}, sweep={}s) from {}",
@@ -90,33 +91,15 @@ public final class QuestRankConfig {
             }
         } catch (IOException | RuntimeException exception) {
             LOGGER.error("Failed to load quest-rank config from {}", path, exception);
-            return reloading ? null : Settings.defaults();
+            return reloading ? null : QuestRankSettings.defaults();
         }
     }
 
-    public record Settings(boolean enabled, int sweepIntervalSeconds, QuestRankTable table) {
-        static Settings defaults() {
-            return from(FileData.defaults());
+    static QuestRankSettings fromFile(FileData data) {
+        if (data == null) {
+            return QuestRankSettings.defaults();
         }
-
-        static Settings from(FileData data) {
-            if (data == null) {
-                data = FileData.defaults();
-            }
-            Map<String, String> quests = data.quests != null ? data.quests : FileData.defaultQuests();
-            return new Settings(
-                    data.enabled == null || data.enabled,
-                    clamp(data.sweepIntervalSeconds, 5, 3600, DEFAULT_SWEEP_INTERVAL_SECONDS),
-                    QuestRankTable.parse(quests)
-            );
-        }
-    }
-
-    private static int clamp(Integer value, int min, int max, int fallback) {
-        if (value == null || value < min) {
-            return fallback;
-        }
-        return Math.min(max, value);
+        return QuestRankSettings.from(data.enabled, data.sweepIntervalSeconds, data.quests);
     }
 
     static final class FileData {

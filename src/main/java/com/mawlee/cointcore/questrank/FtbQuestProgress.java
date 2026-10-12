@@ -220,7 +220,7 @@ public final class FtbQuestProgress {
     private static Object questFile() {
         try {
             Class<?> apiClass = Class.forName(QUESTS_API);
-            Object api = PublicApiMethodResolver.invoke(apiClass, null, "api");
+            Object api = apiClass.getMethod("api").invoke(null);
             if (api == null) {
                 return null;
             }
