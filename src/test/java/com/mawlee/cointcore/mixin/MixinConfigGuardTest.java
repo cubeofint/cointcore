@@ -44,14 +44,24 @@ class MixinConfigGuardTest {
     void coreConfigIsRequiredAndCompatIsSoft() throws IOException {
         String core = Files.readString(RESOURCES.resolve("cointcore.mixins.json"));
         String compat = Files.readString(RESOURCES.resolve("cointcore.compat.mixins.json"));
+        String watchdog = Files.readString(RESOURCES.resolve("cointcore.watchdog.mixins.json"));
 
         assertTrue(core.contains("\"required\": true") || core.contains("\"required\":true"));
         assertTrue(core.contains("\"defaultRequire\": 1") || core.contains("\"defaultRequire\":1"));
         assertTrue(core.contains("\"com.mawlee.cointcore.mixin.CointCoreMixinPlugin\""));
+        assertFalse(core.contains("watchdog.SavedDataWatchdogMixin"));
+        assertFalse(core.contains("watchdog.PathNavigationWatchdogMixin"));
 
         assertTrue(compat.contains("\"required\": false") || compat.contains("\"required\":false"));
         assertTrue(compat.contains("\"defaultRequire\": 0") || compat.contains("\"defaultRequire\":0"));
         assertTrue(compat.contains("\"com.mawlee.cointcore.mixin.CointCoreMixinPlugin\""));
+
+        assertTrue(watchdog.contains("\"required\": false") || watchdog.contains("\"required\":false"));
+        assertTrue(watchdog.contains("\"defaultRequire\": 0") || watchdog.contains("\"defaultRequire\":0"));
+        assertTrue(watchdog.contains("SavedDataWatchdogMixin"));
+        assertTrue(watchdog.contains("PathNavigationWatchdogMixin"));
+        assertTrue(watchdog.contains("ServerLevelTickChunkWatchdogMixin"));
+        assertTrue(watchdog.contains("MinecraftServerSaveWatchdogMixin"));
     }
 
     @Test
@@ -59,6 +69,7 @@ class MixinConfigGuardTest {
         String toml = Files.readString(Path.of("src/main/templates/META-INF/neoforge.mods.toml"));
         assertTrue(toml.contains("config=\"${mod_id}.mixins.json\""));
         assertTrue(toml.contains("config=\"${mod_id}.compat.mixins.json\""));
+        assertTrue(toml.contains("config=\"${mod_id}.watchdog.mixins.json\""));
     }
 
     @Test
@@ -111,6 +122,7 @@ class MixinConfigGuardTest {
         Set<String> listed = new LinkedHashSet<>();
         listed.addAll(listedMixins(Files.readString(RESOURCES.resolve("cointcore.mixins.json"))));
         listed.addAll(listedMixins(Files.readString(RESOURCES.resolve("cointcore.compat.mixins.json"))));
+        listed.addAll(prefixWatchdog(listedMixins(Files.readString(RESOURCES.resolve("cointcore.watchdog.mixins.json")))));
 
         List<String> missingSources = listed.stream()
                 .filter(name -> !Files.isRegularFile(MIXIN_ROOT.resolve(name.replace('.', '/') + ".java")))
@@ -148,6 +160,12 @@ class MixinConfigGuardTest {
         );
         assertTrue(source.contains("cointcore$flushInvSeeBeforeLoad"));
         assertTrue(source.contains("CallbackInfoReturnable<Optional<CompoundTag>>"));
+    }
+
+    private static Set<String> prefixWatchdog(Set<String> names) {
+        return names.stream()
+                .map(name -> name.startsWith("watchdog.") ? name : "watchdog." + name)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     private static Set<String> listedMixins(String json) {

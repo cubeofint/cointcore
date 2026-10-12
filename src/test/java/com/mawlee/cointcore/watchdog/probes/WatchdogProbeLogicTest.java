@@ -231,11 +231,13 @@ class ProbeReportFormatterTest {
 class WatchdogMixinRequireTest {
     @Test
     void watchdogMixinsAreOptional() throws Exception {
-        String json = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/resources/cointcore.mixins.json"));
-        assertTrue(json.contains("watchdog.PathNavigationWatchdogMixin"));
-        assertTrue(json.contains("watchdog.SavedDataWatchdogMixin"));
-        assertTrue(json.contains("watchdog.ServerLevelTickChunkWatchdogMixin"));
-        assertTrue(json.contains("watchdog.MinecraftServerSaveWatchdogMixin"));
+        String json = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/resources/cointcore.watchdog.mixins.json"));
+        assertTrue(json.contains("\"required\": false") || json.contains("\"required\":false"));
+        assertTrue(json.contains("\"defaultRequire\": 0") || json.contains("\"defaultRequire\":0"));
+        assertTrue(json.contains("PathNavigationWatchdogMixin"));
+        assertTrue(json.contains("SavedDataWatchdogMixin"));
+        assertTrue(json.contains("ServerLevelTickChunkWatchdogMixin"));
+        assertTrue(json.contains("MinecraftServerSaveWatchdogMixin"));
         for (String name : List.of(
                 "PathNavigationWatchdogMixin",
                 "SavedDataWatchdogMixin",
@@ -247,5 +249,16 @@ class WatchdogMixinRequireTest {
             ));
             assertTrue(source.contains("require = 0") || source.contains("require=0"), name);
         }
+    }
+
+    @Test
+    void savedDataMixinTargetsConcreteFileSave() throws Exception {
+        String source = java.nio.file.Files.readString(java.nio.file.Path.of(
+                "src/main/java/com/mawlee/cointcore/mixin/watchdog/SavedDataWatchdogMixin.java"
+        ));
+        assertTrue(source.contains("save(Ljava/io/File;Lnet/minecraft/core/HolderLookup$Provider;)V"));
+        assertFalse(source.contains("save(Lnet/minecraft/nbt/CompoundTag;"));
+        assertTrue(source.contains("CallbackInfo"));
+        assertFalse(source.contains("CallbackInfoReturnable"));
     }
 }

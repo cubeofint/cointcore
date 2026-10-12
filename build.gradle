@@ -285,6 +285,18 @@ tasks.named('test', Test).configure {
     useJUnitPlatform()
 }
 
+// Source-level + javap audit of watchdog mixin targets vs mapped MC (see WatchdogMixinTargetAuditTest).
+// Full MixinEnvironment/runServer boot is not wired into CI (too heavy / flaky for this check).
+tasks.register('auditWatchdogMixins') {
+    group = 'verification'
+    description = 'Audit watchdog mixin inject targets against mapped Minecraft/NeoForge classes'
+    dependsOn test
+}
+
+tasks.named('check').configure {
+    dependsOn 'auditWatchdogMixins'
+}
+
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
 idea {
     module {
