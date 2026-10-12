@@ -560,7 +560,7 @@
   "message.cointcore.questranks.status": "&7Quest ranks: &f%s",
   "message.cointcore.questranks.disabled": "&cQuest-rank grants are disabled in quest-ranks.json.",
   "message.cointcore.questranks.unavailable": "&cQuest-rank grants are unavailable: &f%s",
-  "message.cointcore.questranks.sync.all": "&aQuest-rank sync: &f%s &aonline, granted &f%s&a, already held &f%s&a.",
+  "message.cointcore.questranks.sync.all": "&aQuest-rank sync: &f%s &aplayers, granted &f%s&a, already held &f%s&a.",
   "message.cointcore.questranks.sync.player": "&aQuest-rank sync for &f%s&a: granted &f%s&a, already held &f%s&a.",
-  "message.cointcore.questranks.player_offline": "&cPlayer &f%s &cis not online. Offline players are granted on login."
+  "message.cointcore.questranks.player_offline": "&cPlayer &f%s &cis not online. Offline team members are granted by sweep."
 }
