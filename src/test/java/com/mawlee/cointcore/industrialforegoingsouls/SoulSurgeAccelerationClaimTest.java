@@ -164,6 +164,9 @@ class SoulSurgeAccelerationClaimTest {
         assertFalse(SoulSurgeAcceleration.canWorkThisTick(0, 0));
         assertTrue(SoulSurgeAcceleration.canWorkThisTick(0, 3));
         assertTrue(SoulSurgeAcceleration.canWorkThisTick(12, 0));
+        // After IF Souls consumes the last network soul, leftover tickingTime
+        // still lets that surge work / keep the claim for SOUL_TIME ticks.
+        assertTrue(SoulSurgeAcceleration.canWorkThisTick(300, 0));
 
         assertFalse(tick(dry, false, 1L));
         assertTrue(tick(fed, true, 1L));
