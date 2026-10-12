@@ -90,7 +90,8 @@ class WatchdogMixinTargetAuditTest {
             assertTrue(source.contains(descriptor), expected.getKey() + " " + descriptor);
         }
         String serverSave = Files.readString(WATCHDOG_DIR.resolve("MinecraftServerSaveWatchdogMixin.java"));
-        assertTrue(serverSave.contains("saveAllChunks(ZZZ)V"));
+        assertTrue(serverSave.contains("saveAllChunks(ZZZ)Z"));
+        assertFalse(serverSave.contains("saveAllChunks(ZZZ)V"));
     }
 
     private static void auditSource(Path jar, Path source, List<String> failures) throws Exception {
