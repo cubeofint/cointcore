@@ -13,7 +13,8 @@ class QuestRankSettingsTest {
     void missingKeysKeepEnabledDefaultsAndNineMappings() {
         QuestRankSettings settings = QuestRankSettings.from(null, null, null);
         assertTrue(settings.enabled());
-        assertEquals(60, settings.sweepIntervalSeconds());
+        assertEquals(20, settings.sweepIntervalSeconds());
+        assertEquals(400, settings.sweepIntervalTicks());
         assertEquals(9, settings.table().size());
         assertEquals(
                 "godofatm",
@@ -41,9 +42,15 @@ class QuestRankSettingsTest {
 
     @Test
     void sweepIntervalIsClamped() {
-        assertEquals(60, QuestRankSettings.clampSweep(1));
-        assertEquals(60, QuestRankSettings.clampSweep(null));
+        assertEquals(20, QuestRankSettings.clampSweep(1));
+        assertEquals(20, QuestRankSettings.clampSweep(null));
         assertEquals(15, QuestRankSettings.clampSweep(15));
         assertEquals(3600, QuestRankSettings.clampSweep(99_999));
+    }
+
+    @Test
+    void defaultSweepIsTwentySecondsForLoginPlusSweepPath() {
+        assertEquals(20, QuestRankSettings.DEFAULT_SWEEP_INTERVAL_SECONDS);
+        assertEquals(400, QuestRankSettings.defaults().sweepIntervalTicks());
     }
 }

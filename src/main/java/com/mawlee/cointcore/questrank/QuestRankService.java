@@ -19,7 +19,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Grants LuckPerms groups for completed FTB team quests. Online-only; offline players
- * are handled on login. Groups are never removed.
+ * are handled on login, and online players are rechecked by a periodic sweep.
+ * There is no FTB Quests completion-event hook (Architectury EventActor mismatch
+ * crashed the server). Groups are never removed.
  *
  * <p>Prefix sync path: {@link LuckPermsUsers#addGroups} uses LuckPerms {@code modifyUser}
  * (console-level API, not a player command). That save fires {@code UserDataRecalculateEvent}.
@@ -31,15 +33,16 @@ public final class QuestRankService {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final AtomicReference<SyncSummary> LAST = new AtomicReference<>(SyncSummary.EMPTY);
 
-    private static MinecraftServer server;
     private static int sweepTicks;
 
     private QuestRankService() {
     }
 
     public static void init(MinecraftServer minecraftServer) {
-        server = minecraftServer;
         sweepTicks = 0;
+        if (minecraftServer == null) {
+            return;
+        }
         if (!QuestRankConfig.get().enabled()) {
             LOGGER.info("Quest-rank grants disabled by config");
             return;
@@ -50,15 +53,8 @@ public final class QuestRankService {
         if (!FtbQuestProgress.isAvailable()) {
             LOGGER.info("Quest-rank grants inactive until FTB Quests and FTB Teams are loaded");
         }
-        FtbQuestProgress.registerCompletionListener(members -> {
-            MinecraftServer current = server;
-            if (current == null) {
-                return;
-            }
-            current.execute(() -> syncPlayers(members, "quest-complete"));
-        });
         LOGGER.info(
-                "Quest-rank grants ready (mappings={}, sweep={}s)",
+                "Quest-rank grants ready (mappings={}, sweep={}s, login+sweep only)",
                 QuestRankConfig.get().table().size(),
                 QuestRankConfig.get().sweepIntervalSeconds()
         );
@@ -75,7 +71,7 @@ public final class QuestRankService {
         if (!ready()) {
             return;
         }
-        int intervalTicks = Math.max(5, QuestRankConfig.get().sweepIntervalSeconds()) * 20;
+        int intervalTicks = QuestRankConfig.get().sweepIntervalTicks();
         sweepTicks++;
         if (sweepTicks < intervalTicks) {
             return;
