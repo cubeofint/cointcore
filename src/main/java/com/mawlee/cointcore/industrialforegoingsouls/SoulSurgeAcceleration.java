@@ -1,50 +1,29 @@
 package com.mawlee.cointcore.industrialforegoingsouls;
 
 /**
- * When a Soul Surge may take the per-tick claim, matching Industrial
- * Foregoing Souls 1.10.7 {@code SoulSurgeBlockEntity.serverTick}.
+ * Extra-tick cap for Soul Surge acceleration.
  * <p>
- * The surge has no local soul tank. Each tick IF Souls does: if
- * {@code tickingTime <= 0} it reads {@code SoulNetwork} via
- * {@code getNetwork()} / {@code NetworkManager.get(level).getElement(pos)}
- * and, when {@code getSoulAmount() > 0}, {@code useSoul} then
- * {@code tickingTime = SOUL_TIME}. {@code getBlockState} / ticker run
- * only inside {@code if (tickingTime > 0)} afterwards. Pre-1.10.2 builds
- * pulled the same soul from connected laser bases
- * ({@code getSoulLaserDrills()}) instead of the network tank.
- * <p>
- * Equivalent pre-refill test: leftover {@code tickingTime > 0} or the
- * network (or laser bases) can supply a soul. Claim only when that is
- * true; otherwise release immediately so another surge can take over.
+ * A target block entity may be accelerated at most 4x per game tick
+ * (1 normal tick + {@link SoulSurgeAccelerationBudget#MAX_EXTRA_TICKS}
+ * extra), regardless of how many surges point at it. Soul consumption
+ * stays in Industrial Foregoing Souls: this only admits extra ticker
+ * calls while the per-target counter is still under the cap.
  */
 public final class SoulSurgeAcceleration {
+    public static final int MAX_EXTRA_TICKS = SoulSurgeAccelerationBudget.MAX_EXTRA_TICKS;
+
     private SoulSurgeAcceleration() {
     }
 
     /**
-     * {@code true} if IF Souls will have {@code tickingTime > 0} after
-     * its soul refill attempt this tick.
+     * Applies one extra tick to {@code targetPacked} if the cap still has
+     * room this {@code gameTime}.
      */
-    public static boolean canWorkThisTick(int tickingTime, int networkSoulAmount) {
-        return tickingTime > 0 || networkSoulAmount > 0;
-    }
-
-    /**
-     * Claim {@code targetPacked} only when this surge can accelerate now.
-     * Otherwise drop a sticky/current claim so a later surge in the same
-     * tick may take over.
-     */
-    public static boolean tryAccelerate(
-            SoulSurgeAccelerationClaim claims,
+    public static boolean tryApplyExtraTick(
+            SoulSurgeAccelerationBudget budget,
             long targetPacked,
-            long surgePacked,
-            long gameTime,
-            boolean canWorkThisTick
+            long gameTime
     ) {
-        if (!canWorkThisTick) {
-            claims.release(targetPacked, surgePacked, gameTime);
-            return false;
-        }
-        return claims.tryClaim(targetPacked, surgePacked, gameTime);
+        return budget.tryApplyExtraTick(targetPacked, gameTime);
     }
 }

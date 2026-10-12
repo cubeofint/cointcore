@@ -18,36 +18,21 @@ public final class SoulSurgeDebug {
             int targetX,
             int targetY,
             int targetZ,
-            boolean hasSouls
+            int extraTicks,
+            int maxExtraTicks
     ) {
         return String.format(
                 Locale.ROOT,
-                "Soul Surge at %d %d %d facing=%s target=%d %d %d souls=%s",
-                x, y, z, facing, targetX, targetY, targetZ, yesNo(hasSouls)
+                "Soul Surge at %d %d %d facing=%s target=%d %d %d extra=%d/%d",
+                x, y, z, facing, targetX, targetY, targetZ, extraTicks, maxExtraTicks
         );
     }
 
-    public static String ownerLine(
-            int targetX,
-            int targetY,
-            int targetZ,
-            int surgeX,
-            int surgeY,
-            int surgeZ,
-            boolean active
-    ) {
+    public static String targetLine(int x, int y, int z, int extraTicks, int maxExtraTicks) {
         return String.format(
                 Locale.ROOT,
-                "Target %d %d %d claimed by surge at %d %d %d active=%s",
-                targetX, targetY, targetZ, surgeX, surgeY, surgeZ, yesNo(active)
+                "Target %d %d %d extra=%d/%d",
+                x, y, z, extraTicks, maxExtraTicks
         );
-    }
-
-    private static String yesNo(boolean value) {
-        return value ? "yes" : "no";
-    }
-
-    public static String noOwnerLine(int x, int y, int z) {
-        return String.format(Locale.ROOT, "No Soul Surge claim at %d %d %d", x, y, z);
     }
 }

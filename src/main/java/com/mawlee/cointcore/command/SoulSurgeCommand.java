@@ -1,10 +1,9 @@
 package com.mawlee.cointcore.command;
 
-import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeAccelerationClaim;
-import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeClaimTracker;
+import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeAcceleration;
+import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeAccelerationTracker;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeDebug;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeFacing;
-import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeSouls;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeTarget;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -20,7 +19,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Admin inspect for Soul Surge facing / per-tick claims / soul supply.
+ * Admin inspect for Soul Surge facing / per-tick extra-tick budget.
  */
 public final class SoulSurgeCommand {
     private SoulSurgeCommand() {
@@ -45,35 +44,26 @@ public final class SoulSurgeCommand {
         if (surge) {
             String facing = SoulSurgeTarget.normalizeFacing(SoulSurgeFacing.name(state));
             BlockPos target = SoulSurgeFacing.target(pos, state);
-            boolean hasSouls = SoulSurgeSouls.hasSouls(level.getBlockEntity(pos));
+            int extra = SoulSurgeAccelerationTracker.extraTicksApplied(level, target);
             source.sendSuccess(
                     () -> Component.literal(SoulSurgeDebug.surgeLine(
                             pos.getX(), pos.getY(), pos.getZ(),
                             facing,
                             target.getX(), target.getY(), target.getZ(),
-                            hasSouls
+                            extra,
+                            SoulSurgeAcceleration.MAX_EXTRA_TICKS
                     )),
                     false
             );
             return 1;
         }
 
-        Long owner = SoulSurgeClaimTracker.peekOwnerPacked(level, pos);
-        if (owner == null) {
-            source.sendSuccess(
-                    () -> Component.literal(SoulSurgeDebug.noOwnerLine(pos.getX(), pos.getY(), pos.getZ())),
-                    false
-            );
-            return 1;
-        }
-        boolean active = SoulSurgeClaimTracker.isOwnerActive(level, pos, owner);
+        int extra = SoulSurgeAccelerationTracker.extraTicksApplied(level, pos);
         source.sendSuccess(
-                () -> Component.literal(SoulSurgeDebug.ownerLine(
+                () -> Component.literal(SoulSurgeDebug.targetLine(
                         pos.getX(), pos.getY(), pos.getZ(),
-                        SoulSurgeAccelerationClaim.unpackX(owner),
-                        SoulSurgeAccelerationClaim.unpackY(owner),
-                        SoulSurgeAccelerationClaim.unpackZ(owner),
-                        active
+                        extra,
+                        SoulSurgeAcceleration.MAX_EXTRA_TICKS
                 )),
                 false
         );
