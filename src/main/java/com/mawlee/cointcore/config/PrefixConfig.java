@@ -29,7 +29,7 @@ public final class PrefixConfig {
     public static final String DEFAULT_RANKS_TRACK = "ranks";
     public static final String DEFAULT_META_KEY = "cointcore-prefix-select";
     public static final String DEFAULT_RENDER_META_KEY = "cointcore-quest-render";
-    public static final int DEFAULT_PREFIX_PRIORITY = 1000;
+    public static final int DEFAULT_PREFIX_PRIORITY = 5;
     public static final int DEFAULT_CATALOG_STARTUP_DELAY_SECONDS = 45;
     public static final int DEFAULT_CATALOG_DEBOUNCE_SECONDS = 5;
     public static final int DEFAULT_CATALOG_HASH_INTERVAL_SECONDS = 900;

@@ -47,4 +47,11 @@ class QuestPrefixStateTest {
         QuestPrefixState desired = QuestPrefixState.desired("titan", "&6[Titan] ");
         assertTrue(current.needsWrite(desired));
     }
+
+    @Test
+    void writeWhenLegacyPriority1000NodeRemains() {
+        QuestPrefixState current = QuestPrefixState.current("titan", "&6[Titan] ", 1, 1, false, true);
+        QuestPrefixState desired = QuestPrefixState.desired("titan", "&6[Titan] ");
+        assertTrue(current.needsWrite(desired));
+    }
 }

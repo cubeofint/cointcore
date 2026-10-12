@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OwnPrefixNodeMatchTest {
-    private static final int PRIORITY = 1000;
+    private static final int PRIORITY = 5;
     private static final Set<String> RANK_TEXTS = Set.of("&8[DarwinAwards] ", "&b[ATM] ", "&6[Titan] ");
 
     @Test
@@ -25,11 +25,34 @@ class OwnPrefixNodeMatchTest {
     }
 
     @Test
-    void accumulatedRestartNodesAreAllOwn() {
-        List<String> leftover = List.of("&8[DarwinAwards] ", "&b[ATM] ", "&6[Titan] ");
-        for (String text : leftover) {
-            assertTrue(OwnPrefixNodeMatch.matches(PRIORITY, text, PRIORITY, RANK_TEXTS));
+    void clearsLegacyPriority1000ByRankTrackText() {
+        assertTrue(OwnPrefixNodeMatch.matches(
+                OwnPrefixNodeMatch.LEGACY_PREFIX_PRIORITY,
+                "&8[DarwinAwards] ",
+                PRIORITY,
+                RANK_TEXTS
+        ));
+        assertTrue(OwnPrefixNodeMatch.matches(
+                OwnPrefixNodeMatch.LEGACY_PREFIX_PRIORITY,
+                "&b[ATM] ",
+                PRIORITY,
+                Set.of()
+        ));
+        for (String text : List.of("&8[DarwinAwards] ", "&b[ATM] ", "&6[Titan] ")) {
+            assertTrue(OwnPrefixNodeMatch.matches(
+                    OwnPrefixNodeMatch.LEGACY_PREFIX_PRIORITY,
+                    text,
+                    PRIORITY,
+                    RANK_TEXTS
+            ));
         }
+    }
+
+    @Test
+    void staffDonorPrioritiesAreNotOwnUnlessTextIsARankPrefix() {
+        assertFalse(OwnPrefixNodeMatch.matches(70, "&c[Helper] ", PRIORITY, RANK_TEXTS));
+        assertFalse(OwnPrefixNodeMatch.matches(110, "&6[Donor] ", PRIORITY, RANK_TEXTS));
+        assertTrue(OwnPrefixNodeMatch.matches(70, "&6[Titan] ", PRIORITY, RANK_TEXTS));
     }
 
     @Test

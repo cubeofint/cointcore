@@ -141,7 +141,8 @@ public final class LuckPermsUsers {
 
     /**
      * Writes user meta {@code cointcore-prefix-select} (when selected) and a user-level PrefixNode
-     * that LuckPerms stacking can render via {@code highest_own}.
+     * (default priority 5) that LuckPerms stacking can render via {@code highest_own} in slot 2,
+     * below staff/donor {@code highest_not_on_track_ranks}.
      * No-ops (no {@code saveUser}) when own prefix/meta already match.
      */
     public static CompletableFuture<Void> syncQuestPrefix(UUID playerId, String selectedGroup, String prefixRaw) {
@@ -481,6 +482,7 @@ public final class LuckPermsUsers {
             int prefixCount = 0;
             int metaCount = 0;
             boolean staleMeta = false;
+            boolean stalePriority = false;
             if (nodes != null) {
                 for (Object node : nodes) {
                     if (Boolean.TRUE.equals(LuckPermsIntegration.invoke(node, "hasExpired"))) {
@@ -490,6 +492,10 @@ public final class LuckPermsUsers {
                     if (prefixType.equals(type)) {
                         if (isOurPrefixNode(node, settings, rankTexts) && matchesThisServer(node, server)) {
                             prefixCount++;
+                            int priority = ((Number) LuckPermsIntegration.invoke(node, "getPriority")).intValue();
+                            if (priority != settings.prefixPriority()) {
+                                stalePriority = true;
+                            }
                             if (prefixRaw == null) {
                                 String value = (String) LuckPermsIntegration.invoke(node, "getMetaValue");
                                 prefixRaw = value == null || value.isBlank() ? null : value;
@@ -511,7 +517,7 @@ public final class LuckPermsUsers {
                     }
                 }
             }
-            return QuestPrefixState.current(selected, prefixRaw, prefixCount, metaCount, staleMeta);
+            return QuestPrefixState.current(selected, prefixRaw, prefixCount, metaCount, staleMeta, stalePriority);
         } catch (ReflectiveOperationException ignored) {
             return QuestPrefixState.current(null, null, 0, 0);
         }

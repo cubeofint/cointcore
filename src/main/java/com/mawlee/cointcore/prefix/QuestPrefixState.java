@@ -11,7 +11,8 @@ public record QuestPrefixState(
         String prefixRaw,
         int ourPrefixNodes,
         int ourMetaNodes,
-        boolean staleMeta
+        boolean staleMeta,
+        boolean stalePriority
 ) {
     public QuestPrefixState {
         selectedGroup = PrefixSnapshot.normalize(selectedGroup);
@@ -28,6 +29,7 @@ public record QuestPrefixState(
                 prefix,
                 prefix == null ? 0 : 1,
                 group == null ? 0 : 1,
+                false,
                 false
         );
     }
@@ -38,7 +40,7 @@ public record QuestPrefixState(
             int ourPrefixNodes,
             int ourMetaNodes
     ) {
-        return current(selectedGroup, prefixRaw, ourPrefixNodes, ourMetaNodes, false);
+        return current(selectedGroup, prefixRaw, ourPrefixNodes, ourMetaNodes, false, false);
     }
 
     public static QuestPrefixState current(
@@ -48,7 +50,25 @@ public record QuestPrefixState(
             int ourMetaNodes,
             boolean staleMeta
     ) {
-        return new QuestPrefixState(selectedGroup, prefixRaw, ourPrefixNodes, ourMetaNodes, staleMeta);
+        return current(selectedGroup, prefixRaw, ourPrefixNodes, ourMetaNodes, staleMeta, false);
+    }
+
+    public static QuestPrefixState current(
+            String selectedGroup,
+            String prefixRaw,
+            int ourPrefixNodes,
+            int ourMetaNodes,
+            boolean staleMeta,
+            boolean stalePriority
+    ) {
+        return new QuestPrefixState(
+                selectedGroup,
+                prefixRaw,
+                ourPrefixNodes,
+                ourMetaNodes,
+                staleMeta,
+                stalePriority
+        );
     }
 
     public boolean needsWrite(QuestPrefixState desired) {
@@ -56,6 +76,7 @@ public record QuestPrefixState(
             return false;
         }
         return staleMeta
+                || stalePriority
                 || ourPrefixNodes != desired.ourPrefixNodes
                 || ourMetaNodes != desired.ourMetaNodes
                 || !Objects.equals(selectedGroup, desired.selectedGroup)
