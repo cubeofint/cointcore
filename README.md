@@ -23,7 +23,6 @@
 - [Tick watchdog](#tick-watchdog)
 - [Кредиты на киты](#кредиты-на-киты)
 - [Глюоны и торговец](#глюоны-и-торговец)
-- [Префиксы и спидранер](#префиксы-и-спидранер)
 - [Лаг-фиксы ATM10 8.2](#лаг-фиксы-atm10-82)
 - [Soul Surge](#soul-surge)
 - [Интеграции](#интеграции)
@@ -72,7 +71,6 @@
 - Кредиты на киты FTB Essentials (`/kit balance`, `/cointcore kit ...`): купленные использования **не сгорают**, хранятся по UUID (офлайн и никогда не заходившие на сервер), начисляются с сайта через AzLink
 - Кошелёк глюонов: `/balance`, `/pay`, админ `/cointcore gluons`, системный терминал `cointcore:trader`, торговый автомат игрока `cointcore:player_trader`, обмен с сайтом через AzLink
 - Выбор **квестового** префикса чата (`/prefix`, track `ranks`); staff/donate/media всегда рядом через stacking LuckPerms; каталог и репорт на сайт Azuriom
-- Рекорд спидранера: первый крафт ATM Star с наименьшим игровым временем (`/cointcore speedrunner`)
 - Уникальные фильтры ME (AE2)
 - Донорские привилегии (полёт и др.)
 
@@ -201,7 +199,6 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/cointcore watchdog ...` | Tick watchdog: отчёт, топ, телепорт к виновнику |
 | `/cointcore soulsurge debug <pos>` | Админ (уровень 2): у сёрджа — facing, цель и `extra=N/3`; у машины — сколько extra-тиков уже наложено в этом тике |
 | `/cointcore gluons get\|set\|add` | Админ-кошелёк глюонов (`cointcore.gluons.admin`) |
-| `/cointcore speedrunner info\|reset\|set` | Рекорд спидранера (`cointcore.speedrunner.admin`) |
 | `/cointcore prefixes export` | Выгрузить полный каталог квестовых префиксов на сайт (`cointcore.prefix.admin`) |
 | `/cointcore prefixes report-all` | Массовый репорт доступных квестовых префиксов всех известных игроков |
 
@@ -378,7 +375,6 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `cointcore.playershop.admin` | OP | Управление/ломка чужого автомата |
 | `cointcore.prefix` | все | `/prefix`, `/prefix set`, `/prefix auto`, `/prefix gui` |
 | `cointcore.prefix.admin` | OP | `/cointcore prefixes export`, `/cointcore prefixes report-all` |
-| `cointcore.speedrunner.admin` | OP | `/cointcore speedrunner` |
 
 ## Tick watchdog
 
@@ -461,7 +457,6 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/tick-watchdog.json` | Tick watchdog (координаты лагов, семплы методов) |
 | `config/cointcore/trader_offers.json` | Офферы торговца, `commission_percent`, кольцо истории цен |
 | `config/cointcore/currency-movement.json` | Обмен глюонами с сайтом через AzLink (`site_queue_enabled`, `site_movements_enabled`, оба выключены по умолчанию) и опциональный HTTP-хук |
-| `config/cointcore/prefixes.json` | Выбор префикса, синхронизация с сайтом и рекорд спидранера |
 | `config/cointcore/quest-ranks.json` | Квестовые ранги (hex id → группа LuckPerms, per-player) |
 | `config/cointcore/item-perf.json` | Оптимизация item entity и защита от массового выпадения (`massDropGuard` и лимиты) |
 | `config/cointcore/dimension-wipe.json` | Расписание сброса измерений |
@@ -612,7 +607,6 @@ Retention старых отчётов: хранятся **7 дней или 512 
 
 Дрейф: если игра сообщила `balance_after`, нет pending ops, и баланс сайта ≠ `balance_after`, сайт ставит один corrective `adjust` (`source=reconcile`, amount = сайт − игра). Нулевой probe с тем же source позволяет узнать игровой баланс.
 
-## Префиксы и спидранер
 
 Игроки выбирают **только квестовый** префикс (LuckPerms track `ranks`, читается в рантайме). Все остальные префиксы — персонал, донат (`emerald` / `allthemodium` / `vibranium` / `unobtanium`), медиа, строитель — **всегда видны рядом** с выбранным квестовым, например `[U] [Titan] Nick`. Персонал тоже может выбрать квестовый ранг: staff больше не блокирует `/prefix`.
 
@@ -738,12 +732,6 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
 
 Если этих методов нет, cointcore ходит в `HttpClient.request` через поле `plugin` у того же моста (как `postMovements`).
 
-### Спидранер
-
-Первый крафт `allthetweaks:atm_star` (`ItemCraftedEvent`, как минимум верстак) сравнивается по `Stats.PLAY_TIME` игрока. Рекорд — меньшее число тиков — в overworld SavedData `cointcore_speedrunner` (uuid, имя, тики, дата). Предыдущему держателю группа `speedrunner` снимается даже офлайн; новому выдаётся. В чат уходит объявление. Крафты до установки мода не сканируются.
-
-`/cointcore speedrunner info|reset|set <игрок> [тики]` — право `cointcore.speedrunner.admin`.
-
 ### Конфиг `config/cointcore/prefixes.json`
 
 | Ключ | Дефолт | Смысл |
@@ -769,9 +757,6 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
 | `report_all_chunk_size` | `150` | Размер POST `report` (100–200) |
 | `report_all_min_tps` | `18` | Пауза массового репорта при лаге |
 | `gui_enabled` | `true` | `/prefix gui` |
-| `speedrunner.enabled` | `true` | Рекорд ATM Star |
-| `speedrunner.group` | `speedrunner` | Группа LuckPerms |
-| `speedrunner.item` | `allthetweaks:atm_star` | Предмет рекорда |
 
 ## Лаг-фиксы ATM10 8.2
 
@@ -914,7 +899,6 @@ Industrial Foregoing Souls: каждый Soul Surge ускоряет **ровн�
 | **LuckPerms** | Расширенное управление правами |
 | **FTB Essentials** | Киты, офлайн-телепорт, фиксы NBT |
 | **Curios / Accessories** | Keep Inventory, донорский полёт, вкладка Accessories в InvSee |
-| **AzLink** (сборка из `cubeofint/AzLink-mods`) | Обмен глюонами и префиксами с сайтом (см. [Глюоны и торговец](#глюоны-и-торговец) и [Префиксы и спидранер](#префиксы-и-спидранер)) |
 | **YIGD / Tombstone / Gravestone** | Вкладка «Могилы» в InvSee |
 | **AE2** | Уникальные ME-фильтры, spatial storage guard |
 | **Apothic Spawners** | Лимиты и лут спавнеров |
@@ -959,7 +943,6 @@ src/main/java/com/mawlee/cointcore/
 ├── mixin/            # Mixin + CointCoreMixinPlugin (условная загрузка)
 ├── shop/             # Глюоны: кошелёк, торговый терминал, обмен с сайтом через AzLink
 ├── prefix/           # Выбор префикса LuckPerms и синхронизация с сайтом
-├── speedrunner/      # Рекорд крафта ATM Star
 │   └── client/       #   экран терминала, спарклайн, иконка глюона
 ├── invsee/           # InvSee: меню, вкладки, интеграции, журнал
 │   └── client/       #   экраны и оформление вкладок

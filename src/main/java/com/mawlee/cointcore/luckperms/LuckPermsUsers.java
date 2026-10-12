@@ -25,7 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
- * LuckPerms user/group mutations used by prefix selection, catalog export and the speedrunner title.
+ * LuckPerms user/group mutations used by prefix selection and catalog export.
  * All access is reflective so the API jar is compileOnly.
  */
 public final class LuckPermsUsers {
