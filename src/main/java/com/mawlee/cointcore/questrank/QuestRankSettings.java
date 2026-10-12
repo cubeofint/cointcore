@@ -5,7 +5,12 @@ import java.util.Map;
 /**
  * Parsed quest-rank config. No NeoForge types so unit tests can construct it.
  */
-public record QuestRankSettings(boolean enabled, int sweepIntervalSeconds, QuestRankTable table) {
+public record QuestRankSettings(
+        boolean enabled,
+        int sweepIntervalSeconds,
+        boolean resetRankQuestTeamProgress,
+        QuestRankTable table
+) {
     public static final int DEFAULT_SWEEP_INTERVAL_SECONDS = 20;
 
     public QuestRankSettings {
@@ -14,14 +19,28 @@ public record QuestRankSettings(boolean enabled, int sweepIntervalSeconds, Quest
     }
 
     public static QuestRankSettings defaults() {
-        return from(true, DEFAULT_SWEEP_INTERVAL_SECONDS, QuestRankTable.DEFAULT_QUESTS);
+        return from(true, DEFAULT_SWEEP_INTERVAL_SECONDS, true, QuestRankTable.DEFAULT_QUESTS);
     }
 
-    public static QuestRankSettings from(Boolean enabled, Integer sweepIntervalSeconds, Map<String, String> quests) {
+    public static QuestRankSettings from(
+            Boolean enabled,
+            Integer sweepIntervalSeconds,
+            Map<String, String> quests
+    ) {
+        return from(enabled, sweepIntervalSeconds, true, quests);
+    }
+
+    public static QuestRankSettings from(
+            Boolean enabled,
+            Integer sweepIntervalSeconds,
+            Boolean resetRankQuestTeamProgress,
+            Map<String, String> quests
+    ) {
         Map<String, String> raw = quests != null ? quests : QuestRankTable.DEFAULT_QUESTS;
         return new QuestRankSettings(
                 enabled == null || enabled,
                 clampSweep(sweepIntervalSeconds),
+                resetRankQuestTeamProgress == null || resetRankQuestTeamProgress,
                 QuestRankTable.parse(raw)
         );
     }

@@ -462,6 +462,7 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/trader_offers.json` | Офферы торговца, `commission_percent`, кольцо истории цен |
 | `config/cointcore/currency-movement.json` | Обмен глюонами с сайтом через AzLink (`site_queue_enabled`, `site_movements_enabled`, оба выключены по умолчанию) и опциональный HTTP-хук |
 | `config/cointcore/prefixes.json` | Выбор префикса, синхронизация с сайтом и рекорд спидранера |
+| `config/cointcore/quest-ranks.json` | Квестовые ранги (hex id → группа LuckPerms, per-player) |
 | `config/cointcore/item-perf.json` | Оптимизация item entity и защита от массового выпадения (`massDropGuard` и лимиты) |
 | `config/cointcore/dimension-wipe.json` | Расписание сброса измерений |
 | `config/cointcore/starter-kit.json` | Стартовый кит |
@@ -618,6 +619,14 @@ Retention старых отчётов: хранятся **7 дней или 512 
 На ATM10-Test Re-LPChatPrefix рисует `{prefix}{player}{suffix}`, TAB — `%luckperms-prefix%`. Оба берут уже сложенный префикс LuckPerms, поэтому **шаблоны чата и TAB менять не нужно**. Нужен stacking в `luckperms.conf` (см. ниже). Cointcore сам конфиги сервера не правит.
 
 Типичные группы track `ranks` (имена не зашиты, читаются из LP): `darwinawards`, `explorer`, `engineer`, `atm`, `arcanist`, `bosskiller`, `titan`, `jesus`, `godofatm`.
+
+### Квестовые ранги (`quest-ranks.json`)
+
+Глава `ranks` в FTB Quests (9 mapped quest id) выдаёт LuckPerms-группу **только тому игроку, который закрыл квест**. Прогресс FTB Quests общий на команду, поэтому cointcore не читает team completion и не выдаёт ранг тиммейтам / офлайн-участникам / при входе в пати.
+
+Атрибуция: `ObjectCompletedEvent.QUEST` через Architectury `EventActor` (не `Proxy`). Игрок берётся из `ServerQuestFile.getCurrentPlayer()` — его выставляет `withPlayerContext` вокруг `Task.submitTask`. Запись — overworld SavedData `cointcore_quest_ranks`. Login и sweep только повторяют уже записанные личные прохождения; группы никогда не снимаются.
+
+`resetRankQuestTeamProgress` (по умолчанию `true`): после записи игрока командный прогресс этого mapped-квеста и его тасков сбрасывается (`TeamData` / `Quest.forceProgress` + `setProgress(task, 0)`), чтобы тиммейт мог закрыть тот же квест сам. Выключите, если сброс ломает книгу квестов. Если квест сразу закрывается снова из инвентаря (item task), тиммейту всё равно нужно закрыть его лично — ранг пишется только attributed player.
 
 ### Кому какой префикс доступен
 

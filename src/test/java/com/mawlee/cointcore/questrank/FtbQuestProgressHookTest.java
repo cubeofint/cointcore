@@ -16,40 +16,47 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Architectury {@code Event&lt;EventActor&lt;T&gt;&gt;} casts each listener to
  * {@code EventActor} (see EventFactory.handleInvocation). A {@code Proxy} of
- * {@code Consumer} or the event's inner type is not an {@code EventActor} and
- * crashes FTB Quests {@code Quest.onCompleted}. Quest ranks therefore do not
- * register on {@code ObjectCompletedEvent}; login + sweep grant ranks instead.
+ * {@code Consumer} is not an {@code EventActor} and crashes FTB Quests
+ * {@code Quest.onCompleted}. Rank grants register a real EventActor lambda.
  */
 class FtbQuestProgressHookTest {
     private static final Path PROGRESS =
             Path.of("src/main/java/com/mawlee/cointcore/questrank/FtbQuestProgress.java");
     private static final Path SERVICE =
             Path.of("src/main/java/com/mawlee/cointcore/questrank/QuestRankService.java");
-    private static final Path JOIN_HOOK =
-            Path.of("src/main/java/com/mawlee/cointcore/questrank/FtbTeamJoinHook.java");
+    private static final Path HOOK =
+            Path.of("src/main/java/com/mawlee/cointcore/questrank/FtbQuestCompletionHook.java");
 
     @Test
-    void questRankSourcesDoNotRegisterArchitecturyCompletionProxy() throws IOException {
+    void completionHookIsRealEventActorLambdaNotProxy() throws IOException {
         String progress = Files.readString(PROGRESS);
         String service = Files.readString(SERVICE);
-        String joinHook = Files.readString(JOIN_HOOK);
+        String hook = Files.readString(HOOK);
 
         assertFalse(progress.contains("Proxy.newProxyInstance"));
         assertFalse(progress.contains("import java.lang.reflect.Proxy"));
-        assertFalse(progress.contains("registerCompletionListener"));
-        assertFalse(progress.contains("subscribeCompletedEvent"));
-        assertFalse(service.contains("registerCompletionListener"));
-        assertFalse(service.contains("quest-complete"));
-        assertFalse(joinHook.contains("Proxy.newProxyInstance"));
-        assertFalse(joinHook.contains("import java.lang.reflect.Proxy"));
-        assertTrue(progress.contains("completedMapped"));
+        assertFalse(hook.contains("Proxy.newProxyInstance"));
+        assertFalse(hook.contains("import java.lang.reflect.Proxy"));
+        assertTrue(hook.contains("EventActor<ObjectCompletedEvent.QuestEvent>"));
+        assertTrue(hook.contains("dev.architectury.event.EventActor"));
+        assertTrue(hook.contains("EventResult.pass()"));
+        assertTrue(hook.contains("ObjectCompletedEvent.QUEST.register(listener)"));
+        assertTrue(service.contains("onMappedQuestCompleted"));
         assertTrue(service.contains("onPlayerJoin"));
         assertTrue(service.contains("sweep"));
-        assertTrue(joinHook.contains("PLAYER_JOINED_PARTY"));
-        assertTrue(joinHook.contains("FtbTeamJoinHook::onPlayerJoinedParty"));
-        assertTrue(joinHook.contains("server.execute"));
-        assertTrue(joinHook.contains("QuestRankService.syncTeam"));
-        assertTrue(joinHook.contains("Consumer<PlayerJoinedPartyTeamEvent>"));
+        assertFalse(service.contains("syncTeam"));
+        assertFalse(service.contains("FtbTeamJoinHook"));
+        assertFalse(Files.exists(Path.of("src/main/java/com/mawlee/cointcore/questrank/FtbTeamJoinHook.java")));
+    }
+
+    @Test
+    void teamDataLookupUsesUuidOverloadsNotGetTeamDataUuid() throws IOException {
+        String progress = Files.readString(PROGRESS);
+        assertTrue(progress.contains("getNullableTeamData(teamId)"));
+        assertTrue(progress.contains("getOrCreateTeamData(teamId)"));
+        assertTrue(progress.contains("getCurrentPlayer"));
+        assertFalse(progress.contains("getTeamData(teamId)"));
+        assertFalse(progress.contains("completedMapped"));
     }
 
     @Test
@@ -68,23 +75,9 @@ class FtbQuestProgressHookTest {
     }
 
     @Test
-    void eventActorProxyActReturnsPassAndDoesNotThrow() {
-        Object proxy = Proxy.newProxyInstance(
-                EventActor.class.getClassLoader(),
-                new Class<?>[]{EventActor.class},
-                (ignored, method, args) -> {
-                    try {
-                        if ("act".equals(method.getName())) {
-                            return EventResult.pass();
-                        }
-                        return defaultReturn(method.getReturnType());
-                    } catch (RuntimeException exception) {
-                        return EventResult.pass();
-                    }
-                }
-        );
-
-        assertEquals(EventResult.PASS, invokeAsEventActor(proxy));
+    void realEventActorLambdaReturnsPass() {
+        EventActor<Object> listener = ignored -> EventResult.pass();
+        assertEquals(EventResult.PASS, invokeAsEventActor(listener));
     }
 
     @SuppressWarnings("unchecked")

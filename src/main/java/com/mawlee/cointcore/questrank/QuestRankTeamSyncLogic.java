@@ -3,36 +3,30 @@ package com.mawlee.cointcore.questrank;
 import java.util.Set;
 
 /**
- * Pure decisions for team-wide quest-rank grants. Never implies group removal.
+ * Pure decisions for per-player quest-rank grants. Never implies group removal.
+ * Team-join and team-progress inference are not grant reasons.
  */
 public final class QuestRankTeamSyncLogic {
     public static final String REASON_SWEEP = "sweep";
-    public static final String REASON_TEAM_JOIN = "team_join";
-    public static final String REASON_OFFLINE = "offline";
     public static final String REASON_LOGIN = "login";
     public static final String REASON_COMMAND = "command";
+    public static final String REASON_QUEST_COMPLETE = "quest-complete";
 
     private QuestRankTeamSyncLogic() {
     }
 
-    /**
-     * Team-join wins, then an explicit caller reason, then online sweep vs offline load.
-     */
-    public static String grantReason(boolean teamChanged, boolean online, String callerReason) {
-        if (teamChanged) {
-            return REASON_TEAM_JOIN;
-        }
+    public static String grantReason(String callerReason) {
         if (REASON_LOGIN.equals(callerReason)
                 || REASON_COMMAND.equals(callerReason)
-                || REASON_TEAM_JOIN.equals(callerReason)) {
+                || REASON_QUEST_COMPLETE.equals(callerReason)) {
             return callerReason;
         }
-        return online ? REASON_SWEEP : REASON_OFFLINE;
+        return REASON_SWEEP;
     }
 
     /**
-     * Skip LuckPerms {@code loadUser} when this player/team/completed-set was already ensured,
-     * or when there is nothing mapped and completed to grant.
+     * Skip LuckPerms {@code loadUser} when this player/completed-set was already ensured,
+     * or when there is nothing mapped and recorded to grant.
      */
     public static boolean needsLuckPermsLoad(
             boolean cacheHit,
@@ -46,6 +40,6 @@ public final class QuestRankTeamSyncLogic {
     }
 
     public static boolean shouldBackoff(String reason) {
-        return REASON_SWEEP.equals(reason) || REASON_OFFLINE.equals(reason);
+        return REASON_SWEEP.equals(reason);
     }
 }
