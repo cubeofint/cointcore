@@ -560,7 +560,7 @@
   "message.cointcore.questranks.status": "&7Квестовые ранги: &f%s",
   "message.cointcore.questranks.disabled": "&cВыдача рангов по квестам выключена в quest-ranks.json.",
   "message.cointcore.questranks.unavailable": "&cВыдача рангов по квестам недоступна: &f%s",
-  "message.cointcore.questranks.sync.all": "&aСинк квестовых рангов: &f%s &aонлайн, выдано &f%s&a, уже есть &f%s&a.",
+  "message.cointcore.questranks.sync.all": "&aСинк квестовых рангов: &f%s &aигроков, выдано &f%s&a, уже есть &f%s&a.",
   "message.cointcore.questranks.sync.player": "&aСинк квестовых рангов для &f%s&a: выдано &f%s&a, уже есть &f%s&a.",
-  "message.cointcore.questranks.player_offline": "&cИгрок &f%s &cне в сети. Офлайн игроки получат ранг при входе."
+  "message.cointcore.questranks.player_offline": "&cИгрок &f%s &cне в сети. Офлайн участники команды получают ранг на sweep."
 }

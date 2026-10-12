@@ -10,6 +10,7 @@ import net.neoforged.fml.ModList;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -63,6 +64,57 @@ public final class FtbQuestProgress {
         return teamOf(player).map(Team::getId);
     }
 
+    public static Optional<Team> teamOf(UUID playerId) {
+        if (playerId == null || !isTeamsLoaded()) {
+            return Optional.empty();
+        }
+        try {
+            if (!FTBTeamsAPI.api().isManagerLoaded()) {
+                return Optional.empty();
+            }
+            return FTBTeamsAPI.api().getManager().getTeamForPlayerID(playerId);
+        } catch (RuntimeException exception) {
+            LOGGER.debug("FTB Teams lookup failed for {}", playerId, exception);
+            return Optional.empty();
+        }
+    }
+
+    public static Collection<Team> allTeams() {
+        if (!isTeamsLoaded()) {
+            return List.of();
+        }
+        try {
+            if (!FTBTeamsAPI.api().isManagerLoaded()) {
+                return List.of();
+            }
+            Collection<Team> teams = FTBTeamsAPI.api().getManager().getTeams();
+            if (teams == null || teams.isEmpty()) {
+                return List.of();
+            }
+            List<Team> copy = new ArrayList<>();
+            for (Team team : teams) {
+                if (team != null) {
+                    copy.add(team);
+                }
+            }
+            return List.copyOf(copy);
+        } catch (RuntimeException exception) {
+            LOGGER.debug("FTB Teams getTeams failed", exception);
+            return List.of();
+        }
+    }
+
+    public static boolean isManagerLoaded() {
+        if (!isTeamsLoaded()) {
+            return false;
+        }
+        try {
+            return FTBTeamsAPI.api().isManagerLoaded();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
     public static List<ServerPlayer> onlineTeamMembers(ServerPlayer player) {
         Optional<Team> team = teamOf(player);
         if (team.isEmpty()) {
@@ -89,12 +141,33 @@ public final class FtbQuestProgress {
         if (player == null || mappedIds == null || mappedIds.isEmpty() || !isQuestsLoaded()) {
             return Set.of();
         }
+        Optional<UUID> teamId = teamId(player);
+        if (teamId.isPresent()) {
+            Set<Long> byTeam = completedMapped(teamId.get(), mappedIds);
+            if (!byTeam.isEmpty()) {
+                return byTeam;
+            }
+        }
         Object file = questFile();
         if (file == null) {
             return Set.of();
         }
-        Object teamData = teamData(file, player);
-        if (teamData == null) {
+        return collectCompleted(file, teamData(file, player), mappedIds);
+    }
+
+    public static Set<Long> completedMapped(UUID teamId, Set<Long> mappedIds) {
+        if (teamId == null || mappedIds == null || mappedIds.isEmpty() || !isQuestsLoaded()) {
+            return Set.of();
+        }
+        Object file = questFile();
+        if (file == null) {
+            return Set.of();
+        }
+        return collectCompleted(file, teamData(file, teamId), mappedIds);
+    }
+
+    private static Set<Long> collectCompleted(Object file, Object teamData, Set<Long> mappedIds) {
+        if (file == null || teamData == null) {
             return Set.of();
         }
         Set<Long> completed = new LinkedHashSet<>();
@@ -120,33 +193,37 @@ public final class FtbQuestProgress {
         }
     }
 
+    private static Object teamData(Object file, UUID teamId) {
+        return unwrap(firstNonNull(
+                invokeOrNull(file, "getNullableTeamData", teamId),
+                invokeOrNull(file, "getTeamData", teamId),
+                invokeOrNull(file, "getOrCreateTeamData", teamId)
+        ));
+    }
+
     private static Object teamData(Object file, ServerPlayer player) {
-        Object byPlayer = invokeOrNull(file, "getTeamData", player);
-        if (byPlayer instanceof Optional<?> optional) {
-            if (optional.isPresent()) {
-                return optional.get();
-            }
-        } else if (byPlayer != null) {
+        Object byPlayer = unwrap(invokeOrNull(file, "getTeamData", player));
+        if (byPlayer != null) {
             return byPlayer;
         }
         Optional<UUID> teamId = teamId(player);
         if (teamId.isPresent()) {
-            Object byTeam = firstNonNull(
-                    invokeOrNull(file, "getOrCreateTeamData", teamId.get()),
-                    invokeOrNull(file, "getNullableTeamData", teamId.get()),
-                    invokeOrNull(file, "getTeamData", teamId.get())
-            );
-            if (byTeam instanceof Optional<?> optional) {
-                return optional.orElse(null);
-            }
+            Object byTeam = teamData(file, teamId.get());
             if (byTeam != null) {
                 return byTeam;
             }
         }
         return firstNonNull(
-                invokeOrNull(file, "getOrCreateTeamData", player),
-                invokeOrNull(file, "getTeamData", player.getUUID())
+                unwrap(invokeOrNull(file, "getOrCreateTeamData", player)),
+                unwrap(invokeOrNull(file, "getTeamData", player.getUUID()))
         );
+    }
+
+    private static Object unwrap(Object value) {
+        if (value instanceof Optional<?> optional) {
+            return optional.orElse(null);
+        }
+        return value;
     }
 
     private static boolean isCompleted(Object file, Object teamData, long questId) {

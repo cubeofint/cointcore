@@ -254,12 +254,12 @@ public final class LuckPermsUsers {
         if (names.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
-        return LuckPermsUserMutations.enqueue(playerId, () -> {
-            List<String> missing = InheritanceNodes.groupsNotInherited(names, inheritedGroupNames(playerId));
+        return LuckPermsUserMutations.enqueue(playerId, () -> loadUser(playerId).thenCompose(user -> {
+            List<String> missing = InheritanceNodes.groupsNotInherited(names, inheritedGroupNamesOf(user));
             if (missing.isEmpty()) {
                 return CompletableFuture.completedFuture(null);
             }
-            return modifyUserUnlocked(playerId, user -> {
+            return modifyUserUnlocked(playerId, loaded -> {
                 try {
                     for (String name : missing) {
                         Object node = buildInheritanceNode(name);
@@ -269,35 +269,43 @@ public final class LuckPermsUsers {
                                     "Inheritance node key is not group.*: " + key + " for " + name
                             );
                         }
-                        addNode(user, node);
+                        addNode(loaded, node);
                     }
                 } catch (ReflectiveOperationException exception) {
                     throw new IllegalStateException("Failed to add groups " + missing, exception);
                 }
             });
-        });
+        }));
     }
 
     /**
-     * Inherited group names, including parents of parents. Empty if the user is not loaded.
+     * Inherited group names from the in-memory user. Empty if the user is not loaded.
+     * Offline players are not in {@code getUser}; call {@link #loadUser} first or use
+     * {@link #inheritedGroupNamesOf}.
      */
     public static Set<String> inheritedGroupNames(UUID playerId) {
         if (!LuckPermsIntegration.isAvailable() || playerId == null) {
             return Set.of();
         }
         try {
-            Object user = LuckPermsIntegration.getUser(playerId);
-            if (user == null) {
-                return Set.of();
-            }
-            Set<String> names = new LinkedHashSet<>();
-            for (HeldGroup group : inheritedGroups(user)) {
-                names.add(group.name());
-            }
-            return Set.copyOf(names);
+            return inheritedGroupNamesOf(LuckPermsIntegration.getUser(playerId));
         } catch (ReflectiveOperationException ignored) {
             return Set.of();
         }
+    }
+
+    /**
+     * Inherited group names, including parents of parents, from an already-loaded user.
+     */
+    public static Set<String> inheritedGroupNamesOf(Object user) {
+        if (user == null) {
+            return Set.of();
+        }
+        Set<String> names = new LinkedHashSet<>();
+        for (HeldGroup group : inheritedGroups(user)) {
+            names.add(group.name());
+        }
+        return Set.copyOf(names);
     }
 
     public static CompletableFuture<Void> removeGroup(UUID playerId, String group) {

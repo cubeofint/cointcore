@@ -145,6 +145,7 @@ public final class CointCoreEvents {
         }
         com.mawlee.cointcore.prefix.PrefixCatalogExporter.onServerStarted(event.getServer());
         com.mawlee.cointcore.prefix.PrefixBulkReportService.onServerStarted(event.getServer());
+        com.mawlee.cointcore.questrank.QuestRankService.onServerStarted(event.getServer());
     }
 
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {

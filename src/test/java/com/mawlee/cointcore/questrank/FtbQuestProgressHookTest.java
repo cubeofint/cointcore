@@ -25,11 +25,14 @@ class FtbQuestProgressHookTest {
             Path.of("src/main/java/com/mawlee/cointcore/questrank/FtbQuestProgress.java");
     private static final Path SERVICE =
             Path.of("src/main/java/com/mawlee/cointcore/questrank/QuestRankService.java");
+    private static final Path JOIN_HOOK =
+            Path.of("src/main/java/com/mawlee/cointcore/questrank/FtbTeamJoinHook.java");
 
     @Test
     void questRankSourcesDoNotRegisterArchitecturyCompletionProxy() throws IOException {
         String progress = Files.readString(PROGRESS);
         String service = Files.readString(SERVICE);
+        String joinHook = Files.readString(JOIN_HOOK);
 
         assertFalse(progress.contains("Proxy.newProxyInstance"));
         assertFalse(progress.contains("import java.lang.reflect.Proxy"));
@@ -37,9 +40,16 @@ class FtbQuestProgressHookTest {
         assertFalse(progress.contains("subscribeCompletedEvent"));
         assertFalse(service.contains("registerCompletionListener"));
         assertFalse(service.contains("quest-complete"));
+        assertFalse(joinHook.contains("Proxy.newProxyInstance"));
+        assertFalse(joinHook.contains("import java.lang.reflect.Proxy"));
         assertTrue(progress.contains("completedMapped"));
         assertTrue(service.contains("onPlayerJoin"));
         assertTrue(service.contains("sweep"));
+        assertTrue(joinHook.contains("PLAYER_JOINED_PARTY"));
+        assertTrue(joinHook.contains("FtbTeamJoinHook::onPlayerJoinedParty"));
+        assertTrue(joinHook.contains("server.execute"));
+        assertTrue(joinHook.contains("QuestRankService.syncTeam"));
+        assertTrue(joinHook.contains("Consumer<PlayerJoinedPartyTeamEvent>"));
     }
 
     @Test
