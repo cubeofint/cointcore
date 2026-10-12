@@ -27,9 +27,9 @@ public final class PrefixConfig {
     private static final String FILE_NAME = "prefixes.json";
     public static final String DEFAULT_STAFF_TRACK = "staff";
     public static final String DEFAULT_RANKS_TRACK = "ranks";
-    public static final String DEFAULT_META_KEY = "cointcore-quest-prefix";
+    public static final String DEFAULT_META_KEY = "cointcore-prefix-select";
     public static final String DEFAULT_RENDER_META_KEY = "cointcore-quest-render";
-    public static final int DEFAULT_PREFIX_PRIORITY = 1000;
+    public static final int DEFAULT_PREFIX_PRIORITY = 5;
     public static final int DEFAULT_CATALOG_STARTUP_DELAY_SECONDS = 45;
     public static final int DEFAULT_CATALOG_DEBOUNCE_SECONDS = 5;
     public static final int DEFAULT_CATALOG_HASH_INTERVAL_SECONDS = 900;
@@ -122,7 +122,6 @@ public final class PrefixConfig {
             int reportAllBatchPauseMs,
             int reportAllChunkSize,
             double reportAllMinTps,
-            boolean guiEnabled,
             boolean speedrunnerEnabled,
             String speedrunnerGroup,
             String speedrunnerItem
@@ -163,7 +162,6 @@ public final class PrefixConfig {
                     clamp(data.reportAllBatchPauseMs, 1000, 2000, DEFAULT_REPORT_ALL_BATCH_PAUSE_MS),
                     clamp(data.reportAllChunkSize, 100, 200, DEFAULT_REPORT_ALL_CHUNK_SIZE),
                     clampDouble(data.reportAllMinTps, 1.0D, 20.0D, DEFAULT_REPORT_ALL_MIN_TPS),
-                    data.guiEnabled == null || data.guiEnabled,
                     speedrunner.enabled == null || speedrunner.enabled,
                     normalizeName(speedrunner.group, DEFAULT_SPEEDRUNNER_GROUP),
                     normalizeItem(speedrunner.item, DEFAULT_SPEEDRUNNER_ITEM)
@@ -270,8 +268,6 @@ public final class PrefixConfig {
         Integer siteReportDebounceTicks;
         @SerializedName("site_poll_seconds")
         Integer sitePollSeconds;
-        @SerializedName("gui_enabled")
-        Boolean guiEnabled;
         SpeedrunnerData speedrunner;
 
         static FileData defaults() {
@@ -300,7 +296,6 @@ public final class PrefixConfig {
             data.reportAllBatchPauseMs = DEFAULT_REPORT_ALL_BATCH_PAUSE_MS;
             data.reportAllChunkSize = DEFAULT_REPORT_ALL_CHUNK_SIZE;
             data.reportAllMinTps = DEFAULT_REPORT_ALL_MIN_TPS;
-            data.guiEnabled = true;
             data.speedrunner = defaultSpeedrunner();
             return data;
         }
