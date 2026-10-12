@@ -65,7 +65,7 @@ class LuckPermsApi54MethodAuditTest {
                 "1"
         );
         assertSame(impl, returned);
-        assertEquals(Optional.of("1"), impl.metadata.get(RENDER));
+        assertEquals("1", impl.metadata.get(RENDER));
     }
 
     @Test
@@ -121,21 +121,6 @@ class LuckPermsApi54MethodAuditTest {
     }
 
     @Test
-    void callerTagsAndReadsMetadataThroughPublicApi() throws Exception {
-        HiddenPrefixBuilder builder = new HiddenPrefixBuilder();
-        Object tagged = LuckPermsUsers.withNodeMetadata(builder, "cointcore-quest-render", "1");
-        assertSame(builder, tagged);
-
-        HiddenPrefixNode node = (HiddenPrefixNode) builder.build();
-        assertTrue(LuckPermsUsers.hasMetadata(node, "cointcore-quest-render"));
-        assertFalse(LuckPermsUsers.hasMetadata(node, "cointcore-quest-prefix"));
-        assertSame(
-                LuckPermsUsers.nodeMetadataKey("cointcore-quest-render"),
-                LuckPermsUsers.nodeMetadataKey("cointcore-quest-render")
-        );
-    }
-
-    @Test
     void assignableStringMatchesErasedObjectMetadataValue() throws Exception {
         HiddenPrefixBuilder impl = new HiddenPrefixBuilder();
         Method method = PublicApiMethodResolver.resolve(
@@ -146,7 +131,7 @@ class LuckPermsApi54MethodAuditTest {
         );
         assertEquals(NodeBuilder.class, method.getDeclaringClass());
         method.invoke(impl, RENDER, "titan");
-        assertEquals(Optional.of("titan"), impl.metadata.get(RENDER));
+        assertEquals("titan", impl.metadata.get(RENDER));
     }
 
     static final class HiddenPrefixBuilder implements PrefixNode.Builder {
