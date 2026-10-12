@@ -30,8 +30,8 @@ class InheritanceNodesTest {
 
     @Test
     void groupsNotInheritedSkipsHeldAndDoesNotModifyWhenComplete() {
-        assertEquals(List.of(), LuckPermsUsers.groupsNotInherited(List.of("atm", "titan"), List.of("ATM", "titan")));
-        assertEquals(List.of("atm"), LuckPermsUsers.groupsNotInherited(List.of("atm", "titan"), List.of("titan")));
-        assertEquals(List.of(), LuckPermsUsers.groupsNotInherited(List.of(), List.of("atm")));
+        assertEquals(List.of(), InheritanceNodes.groupsNotInherited(List.of("atm", "titan"), List.of("ATM", "titan")));
+        assertEquals(List.of("atm"), InheritanceNodes.groupsNotInherited(List.of("atm", "titan"), List.of("titan")));
+        assertEquals(List.of(), InheritanceNodes.groupsNotInherited(List.of(), List.of("atm")));
     }
 }

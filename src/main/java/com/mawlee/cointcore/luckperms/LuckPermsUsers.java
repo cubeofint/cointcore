@@ -3,6 +3,7 @@ package com.mawlee.cointcore.luckperms;
 import com.mawlee.cointcore.config.PrefixConfig;
 import com.mawlee.cointcore.prefix.OwnPrefixNodeMatch;
 import com.mawlee.cointcore.prefix.PrefixCatalog;
+import com.mawlee.cointcore.prefix.PrefixSelectionMeta;
 import com.mawlee.cointcore.prefix.PrefixCatalogEntry;
 import com.mawlee.cointcore.prefix.PrefixOption;
 import com.mawlee.cointcore.prefix.PrefixSelectionRules;
@@ -30,8 +31,6 @@ import java.util.function.Consumer;
 public final class LuckPermsUsers {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final String GLOBAL_SERVER = "global";
-    static final String PREFIX_SELECT_KEY = "cointcore-prefix-select";
-    static final String LEGACY_QUEST_PREFIX_KEY = "cointcore-quest-prefix";
 
     private LuckPermsUsers() {
     }
@@ -180,7 +179,7 @@ public final class LuckPermsUsers {
         clearOwnOverrideNodes(user, settings);
         String group = PrefixSnapshot.normalize(selectedGroup);
         if (group != null) {
-            addNode(user, buildMetaNode(selectionMetaKey(settings), group, settings));
+            addNode(user, buildMetaNode(PrefixSelectionMeta.KEY, group, settings));
         }
         if (prefixRaw != null && !prefixRaw.isBlank()) {
             addNode(user, buildPrefixNode(prefixRaw, settings));
@@ -255,7 +254,7 @@ public final class LuckPermsUsers {
             return CompletableFuture.completedFuture(null);
         }
         return LuckPermsUserMutations.enqueue(playerId, () -> {
-            List<String> missing = groupsNotInherited(names, inheritedGroupNames(playerId));
+            List<String> missing = InheritanceNodes.groupsNotInherited(names, inheritedGroupNames(playerId));
             if (missing.isEmpty()) {
                 return CompletableFuture.completedFuture(null);
             }
@@ -476,7 +475,6 @@ public final class LuckPermsUsers {
             Object metaType = LuckPermsIntegration.getNodeType("META");
             String server = serverName();
             Set<String> rankTexts = rankPrefixTexts();
-            String canonicalMeta = selectionMetaKey(settings);
             Iterable<?> nodes = nodesOf(user);
             String selected = null;
             String prefixRaw = null;
@@ -501,7 +499,7 @@ public final class LuckPermsUsers {
                         String key = (String) LuckPermsIntegration.invoke(node, "getMetaKey");
                         if (isSelectionMetaKey(key, settings) && matchesThisServer(node, server)) {
                             metaCount++;
-                            if (!canonicalMeta.equalsIgnoreCase(key)) {
+                            if (!PrefixSelectionMeta.isCanonicalKey(key)) {
                                 staleMeta = true;
                             }
                             if (selected == null) {
@@ -696,29 +694,6 @@ public final class LuckPermsUsers {
         return applyServerContext(builder, settings);
     }
 
-    static List<String> groupsNotInherited(Collection<String> requested, Collection<String> held) {
-        if (requested == null || requested.isEmpty()) {
-            return List.of();
-        }
-        Set<String> have = new LinkedHashSet<>();
-        if (held != null) {
-            for (String name : held) {
-                String normalized = PrefixSnapshot.normalize(name);
-                if (normalized != null) {
-                    have.add(normalized);
-                }
-            }
-        }
-        List<String> missing = new ArrayList<>();
-        for (String name : requested) {
-            String normalized = PrefixSnapshot.normalize(name);
-            if (normalized != null && !have.contains(normalized) && !missing.contains(normalized)) {
-                missing.add(normalized);
-            }
-        }
-        return List.copyOf(missing);
-    }
-
     private static String nodeKey(Object node) {
         if (node == null) {
             return "";
@@ -743,18 +718,8 @@ public final class LuckPermsUsers {
         }
     }
 
-    static String selectionMetaKey(PrefixConfig.Settings settings) {
-        return PREFIX_SELECT_KEY;
-    }
-
     static boolean isSelectionMetaKey(String key, PrefixConfig.Settings settings) {
-        if (key == null || key.isBlank()) {
-            return false;
-        }
-        return PREFIX_SELECT_KEY.equalsIgnoreCase(key)
-                || LEGACY_QUEST_PREFIX_KEY.equalsIgnoreCase(key)
-                || (settings != null && settings.prefixMetaKey() != null
-                && settings.prefixMetaKey().equalsIgnoreCase(key));
+        return PrefixSelectionMeta.isSelectionKey(key, settings == null ? null : settings.prefixMetaKey());
     }
 
     private static Set<String> rankPrefixTexts() {
