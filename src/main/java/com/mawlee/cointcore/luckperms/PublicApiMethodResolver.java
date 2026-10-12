@@ -11,11 +11,16 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Looks up reflective methods on a public API type (interface or superclass)
+ * Looks up reflective methods on public API types (interfaces and superclasses)
  * so JPMS can invoke them on non-public LuckPerms implementation classes.
  *
- * <p>Resolved {@link Method}s are cached; {@code setAccessible} runs only on the
- * first fallback lookup for a key.
+ * <p>Never falls back to {@code getMethod} on the runtime impl class. Lookup walks
+ * every public interface and superinterface (BFS), then public superclasses,
+ * using exact {@link Class#getMethod} first and assignable-parameter overload
+ * matching second (needed after generic erasure, e.g.
+ * {@code NodeBuilder.withMetadata(NodeMetadataKey, Object)}).
+ *
+ * <p>Resolved {@link Method}s are cached.
  */
 public final class PublicApiMethodResolver {
     private static final ConcurrentHashMap<CacheKey, Method> CACHE = new ConcurrentHashMap<>();
@@ -82,15 +87,18 @@ public final class PublicApiMethodResolver {
 
     private static Method resolveUncached(Class<?> runtimeType, String methodName, Class<?>... parameterTypes)
             throws NoSuchMethodException {
-        for (Class<?> type : publicTypes(runtimeType)) {
+        List<Class<?>> types = publicTypes(runtimeType);
+        for (Class<?> type : types) {
             try {
                 return type.getMethod(methodName, parameterTypes);
             } catch (NoSuchMethodException ignored) {
             }
         }
-        Method fallback = runtimeType.getMethod(methodName, parameterTypes);
-        fallback.setAccessible(true);
-        return fallback;
+        Method assignable = resolveAssignable(types, methodName, parameterTypes);
+        if (assignable != null) {
+            return assignable;
+        }
+        throw new NoSuchMethodException(describe(runtimeType, methodName, parameterTypes));
     }
 
     private static Method resolveByCountUncached(Class<?> runtimeType, String methodName, int parameterCount)
@@ -101,12 +109,88 @@ public final class PublicApiMethodResolver {
                 return match;
             }
         }
-        Method fallback = firstMatching(runtimeType, methodName, parameterCount);
-        if (fallback != null) {
-            fallback.setAccessible(true);
-            return fallback;
+        throw new NoSuchMethodException(runtimeType.getName() + "#" + methodName + "/" + parameterCount);
+    }
+
+    private static Method resolveAssignable(List<Class<?>> types, String methodName, Class<?>[] parameterTypes) {
+        Method best = null;
+        int bestScore = -1;
+        for (Class<?> type : types) {
+            for (Method method : type.getMethods()) {
+                if (!method.getName().equals(methodName) || !isPublicType(method.getDeclaringClass())) {
+                    continue;
+                }
+                Class<?>[] formals = method.getParameterTypes();
+                if (formals.length != parameterTypes.length) {
+                    continue;
+                }
+                int score = compatibilityScore(formals, parameterTypes);
+                if (score > bestScore) {
+                    best = method;
+                    bestScore = score;
+                }
+            }
         }
-        throw new NoSuchMethodException(runtimeType.getName() + "#" + methodName);
+        return best;
+    }
+
+    private static int compatibilityScore(Class<?>[] formals, Class<?>[] actuals) {
+        int score = 0;
+        for (int index = 0; index < formals.length; index++) {
+            if (!isCompatible(formals[index], actuals[index])) {
+                return -1;
+            }
+            if (box(formals[index]) == box(actuals[index])) {
+                score += 2;
+            } else {
+                score += 1;
+            }
+        }
+        return score;
+    }
+
+    static boolean isCompatible(Class<?> formal, Class<?> actual) {
+        if (actual == null) {
+            return !formal.isPrimitive();
+        }
+        if (formal.isAssignableFrom(actual)) {
+            return true;
+        }
+        return box(formal).isAssignableFrom(box(actual));
+    }
+
+    private static Class<?> box(Class<?> type) {
+        if (!type.isPrimitive()) {
+            return type;
+        }
+        if (type == boolean.class) {
+            return Boolean.class;
+        }
+        if (type == byte.class) {
+            return Byte.class;
+        }
+        if (type == short.class) {
+            return Short.class;
+        }
+        if (type == char.class) {
+            return Character.class;
+        }
+        if (type == int.class) {
+            return Integer.class;
+        }
+        if (type == long.class) {
+            return Long.class;
+        }
+        if (type == float.class) {
+            return Float.class;
+        }
+        if (type == double.class) {
+            return Double.class;
+        }
+        if (type == void.class) {
+            return Void.class;
+        }
+        return type;
     }
 
     private static Method firstMatching(Class<?> type, String methodName, int parameterCount) {
@@ -122,7 +206,8 @@ public final class PublicApiMethodResolver {
     }
 
     /**
-     * Public interfaces first (BFS), then public superclasses, then the runtime type if it is public.
+     * Public interfaces first (BFS of the impl and every superinterface), then public
+     * superclasses, then the runtime type if it is itself public.
      */
     static List<Class<?>> publicTypes(Class<?> runtimeType) {
         List<Class<?>> interfaces = new ArrayList<>();
@@ -178,6 +263,22 @@ public final class PublicApiMethodResolver {
 
     private static String countKey(int parameterCount) {
         return "#" + parameterCount;
+    }
+
+    private static String describe(Class<?> runtimeType, String methodName, Class<?>[] parameterTypes) {
+        StringBuilder builder = new StringBuilder(runtimeType.getName())
+                .append('#')
+                .append(methodName)
+                .append('(');
+        if (parameterTypes != null) {
+            for (int index = 0; index < parameterTypes.length; index++) {
+                if (index > 0) {
+                    builder.append(',');
+                }
+                builder.append(parameterTypes[index] == null ? "null" : parameterTypes[index].getName());
+            }
+        }
+        return builder.append(") not found on public API types").toString();
     }
 
     private record CacheKey(Class<?> type, String name, String signature) {

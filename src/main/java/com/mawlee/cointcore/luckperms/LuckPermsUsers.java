@@ -15,11 +15,11 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
@@ -29,6 +29,8 @@ import java.util.function.Consumer;
 public final class LuckPermsUsers {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final String GLOBAL_SERVER = "global";
+    private static final String LEGACY_PREFIX_SELECT_KEY = "cointcore-prefix-select";
+    private static final ConcurrentHashMap<String, Object> METADATA_KEYS = new ConcurrentHashMap<>();
 
     private LuckPermsUsers() {
     }
@@ -492,16 +494,50 @@ public final class LuckPermsUsers {
 
     private static boolean isOurPrefixNode(Object node, PrefixConfig.Settings settings)
             throws ReflectiveOperationException {
-        @SuppressWarnings("unchecked")
-        Map<String, String> metadata = (Map<String, String>) LuckPermsIntegration.invoke(node, "getMetadata");
-        if (metadata == null || metadata.isEmpty()) {
+        return hasMetadata(node, settings.renderMetaKey())
+                || hasMetadata(node, settings.prefixMetaKey())
+                || hasMetadata(node, LEGACY_PREFIX_SELECT_KEY);
+    }
+
+    /**
+     * LuckPerms API 5.4: {@code Optional<T> Node.getMetadata(NodeMetadataKey<T>)}.
+     * Keys use reference equality, so instances are cached by name.
+     */
+    static boolean hasMetadata(Object node, String keyName) throws ReflectiveOperationException {
+        if (node == null || keyName == null || keyName.isBlank()) {
             return false;
         }
-        if (metadata.containsKey(settings.renderMetaKey()) || metadata.containsKey(settings.prefixMetaKey())) {
-            return true;
+        Object value = LuckPermsIntegration.invoke(
+                node,
+                "getMetadata",
+                new Class<?>[]{nodeMetadataKeyClass()},
+                nodeMetadataKey(keyName)
+        );
+        return value instanceof Optional<?> optional && optional.isPresent();
+    }
+
+    /**
+     * LuckPerms API 5.4: {@code NodeMetadataKey.of(String, Class)} — not a String/String pair.
+     */
+    static Object nodeMetadataKey(String name) throws ReflectiveOperationException {
+        Object cached = METADATA_KEYS.get(name);
+        if (cached != null) {
+            return cached;
         }
-        // PR #34 tagged the prefix node with cointcore-prefix-select.
-        return metadata.containsKey("cointcore-prefix-select");
+        Object created = LuckPermsIntegration.invokeExact(
+                nodeMetadataKeyClass(),
+                null,
+                "of",
+                new Class<?>[]{String.class, Class.class},
+                name,
+                String.class
+        );
+        Object raced = METADATA_KEYS.putIfAbsent(name, created);
+        return raced != null ? raced : created;
+    }
+
+    static Class<?> nodeMetadataKeyClass() throws ClassNotFoundException {
+        return Class.forName("net.luckperms.api.node.metadata.NodeMetadataKey");
     }
 
     private static boolean matchesThisServer(Object node, String server) {
@@ -548,21 +584,24 @@ public final class LuckPermsUsers {
                 prefixRaw,
                 settings.prefixPriority()
         );
-        builder = LuckPermsIntegration.invoke(
-                builder,
-                "withMetadata",
-                new Class<?>[]{String.class, String.class},
-                settings.renderMetaKey(),
-                "1"
-        );
-        builder = LuckPermsIntegration.invoke(
-                builder,
-                "withMetadata",
-                new Class<?>[]{String.class, String.class},
-                settings.prefixMetaKey(),
-                PrefixSnapshot.normalize(group) == null ? "auto" : PrefixSnapshot.normalize(group)
-        );
+        builder = withNodeMetadata(builder, settings.renderMetaKey(), "1");
+        String taggedGroup = PrefixSnapshot.normalize(group) == null ? "auto" : PrefixSnapshot.normalize(group);
+        builder = withNodeMetadata(builder, settings.prefixMetaKey(), taggedGroup);
         return applyServerContext(builder, settings);
+    }
+
+    /**
+     * LuckPerms API 5.4: {@code NodeBuilder.withMetadata(NodeMetadataKey, Object)} after erasure.
+     */
+    static Object withNodeMetadata(Object builder, String keyName, String value)
+            throws ReflectiveOperationException {
+        return LuckPermsIntegration.invoke(
+                builder,
+                "withMetadata",
+                new Class<?>[]{nodeMetadataKeyClass(), Object.class},
+                nodeMetadataKey(keyName),
+                value
+        );
     }
 
     private static Object buildMetaNode(String key, String value, PrefixConfig.Settings settings)
