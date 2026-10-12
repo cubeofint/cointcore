@@ -9,29 +9,25 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.ModList;
 import org.slf4j.Logger;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 /**
  * Soft-dep access to FTB Quests team completion and FTB Teams members.
  * Quests are reached through {@link PublicApiMethodResolver} so the API jar is optional.
+ *
+ * <p>Ranks are granted on login and by a periodic sweep. Do not hook FTB Quests
+ * {@code ObjectCompletedEvent}: Architectury {@code Event&lt;EventActor&lt;...&gt;&gt;}
+ * casts listeners to {@code EventActor}, and a reflective proxy of the
+ * wrong interface crashes the server on every quest complete.
  */
 public final class FtbQuestProgress {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final String QUESTS_API = "dev.ftb.mods.ftbquests.api.FTBQuestsAPI";
-    private static final String COMPLETED_EVENT = "dev.ftb.mods.ftbquests.events.ObjectCompletedEvent";
-    private static final String ARCHITECTURY_EVENT = "dev.architectury.event.Event";
-    private static boolean completionHookLogged;
 
     private FtbQuestProgress() {
     }
@@ -108,113 +104,6 @@ public final class FtbQuestProgress {
             }
         }
         return Set.copyOf(completed);
-    }
-
-    public static void registerCompletionListener(Consumer<List<ServerPlayer>> listener) {
-        if (!isQuestsLoaded()) {
-            logCompletionHook("FTB Quests is not loaded; quest-rank grants use login and sweep only");
-            return;
-        }
-        try {
-            if (subscribeCompletedEvent(listener)) {
-                LOGGER.info("Quest-rank hook registered on FTB Quests ObjectCompletedEvent");
-                return;
-            }
-        } catch (ReflectiveOperationException | RuntimeException exception) {
-            LOGGER.info("Quest-rank completion event hook failed: {}", exception.toString());
-        }
-        logCompletionHook("FTB Quests completion event unavailable; login and periodic sweep still grant ranks");
-    }
-
-    private static boolean subscribeCompletedEvent(Consumer<List<ServerPlayer>> listener)
-            throws ReflectiveOperationException {
-        Class<?> eventClass = Class.forName(COMPLETED_EVENT);
-        Object bus = questEventBus(eventClass);
-        if (bus == null) {
-            return false;
-        }
-        Class<?> listenerType = listenerType(eventClass, bus);
-        Object proxy = Proxy.newProxyInstance(
-                eventClass.getClassLoader(),
-                new Class<?>[]{listenerType},
-                completionHandler(listener)
-        );
-        Class<?> architectury = Class.forName(ARCHITECTURY_EVENT);
-        architectury.getMethod("register", Object.class).invoke(bus, proxy);
-        return true;
-    }
-
-    private static Object questEventBus(Class<?> eventClass) throws ReflectiveOperationException {
-        for (String name : List.of("QUEST", "GENERIC")) {
-            try {
-                Field field = eventClass.getField(name);
-                return field.get(null);
-            } catch (NoSuchFieldException ignored) {
-            }
-        }
-        return null;
-    }
-
-    private static Class<?> listenerType(Class<?> eventClass, Object bus) {
-        for (Class<?> inner : eventClass.getDeclaredClasses()) {
-            if (inner.isInterface()) {
-                return inner;
-            }
-        }
-        Class<?>[] interfaces = bus.getClass().getInterfaces();
-        if (interfaces.length > 0) {
-            return Consumer.class;
-        }
-        return Consumer.class;
-    }
-
-    private static InvocationHandler completionHandler(Consumer<List<ServerPlayer>> listener) {
-        return (proxy, method, args) -> {
-            if (args != null && args.length == 1 && method.getDeclaringClass() != Object.class) {
-                List<ServerPlayer> members = onlineMembersFromEvent(args[0]);
-                if (!members.isEmpty()) {
-                    listener.accept(members);
-                }
-            }
-            return defaultReturn(method);
-        };
-    }
-
-    private static Object defaultReturn(Method method) throws ReflectiveOperationException {
-        Class<?> type = method.getReturnType();
-        if (type == void.class) {
-            return null;
-        }
-        if (type.getName().equals("dev.architectury.event.EventResult")) {
-            return type.getMethod("pass").invoke(null);
-        }
-        if (type == boolean.class) {
-            return Boolean.TRUE;
-        }
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static List<ServerPlayer> onlineMembersFromEvent(Object event) {
-        if (event == null) {
-            return List.of();
-        }
-        List<ServerPlayer> members = new ArrayList<>();
-        Object[] sources = new Object[]{event, invokeOrNull(event, "getData")};
-        for (Object source : sources) {
-            if (source == null) {
-                continue;
-            }
-            Object online = invokeOrNull(source, "getOnlineMembers");
-            if (online instanceof Collection<?> collection) {
-                for (Object value : collection) {
-                    if (value instanceof ServerPlayer player && !members.contains(player)) {
-                        members.add(player);
-                    }
-                }
-            }
-        }
-        return List.copyOf(members);
     }
 
     private static Object questFile() {
@@ -320,13 +209,6 @@ public final class FtbQuestProgress {
                 }
             }
             return null;
-        }
-    }
-
-    private static void logCompletionHook(String message) {
-        if (!completionHookLogged) {
-            completionHookLogged = true;
-            LOGGER.info(message);
         }
     }
 }

@@ -6,7 +6,7 @@ import java.util.Map;
  * Parsed quest-rank config. No NeoForge types so unit tests can construct it.
  */
 public record QuestRankSettings(boolean enabled, int sweepIntervalSeconds, QuestRankTable table) {
-    public static final int DEFAULT_SWEEP_INTERVAL_SECONDS = 60;
+    public static final int DEFAULT_SWEEP_INTERVAL_SECONDS = 20;
 
     public QuestRankSettings {
         table = table == null ? new QuestRankTable(Map.of()) : table;
@@ -31,5 +31,9 @@ public record QuestRankSettings(boolean enabled, int sweepIntervalSeconds, Quest
             return DEFAULT_SWEEP_INTERVAL_SECONDS;
         }
         return Math.min(3600, value);
+    }
+
+    public int sweepIntervalTicks() {
+        return sweepIntervalSeconds * 20;
     }
 }
