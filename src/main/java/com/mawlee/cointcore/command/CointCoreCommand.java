@@ -118,7 +118,6 @@ public final class CointCoreCommand {
                 .then(WatchdogCommand.branch())
                 .then(SoulSurgeCommand.branch())
                 .then(GluonWalletCommand.branch())
-                .then(SpeedrunnerCommand.branch())
                 .then(PrefixAdminCommand.branch())
                 .then(QuestRankCommand.branch());
 

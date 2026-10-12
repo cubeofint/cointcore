@@ -268,13 +268,6 @@ public final class CointCoreMessages {
     public static final String PREFIX_EXPORT_FAILED = "message.cointcore.prefix.export.failed";
     public static final String PREFIX_REPORT_ALL_STARTED = "message.cointcore.prefix.report_all.started";
     public static final String PREFIX_REPORT_ALL_ALREADY = "message.cointcore.prefix.report_all.already";
-    public static final String SPEEDRUNNER_BROADCAST = "message.cointcore.speedrunner.broadcast";
-    public static final String SPEEDRUNNER_INFO = "message.cointcore.speedrunner.info";
-    public static final String SPEEDRUNNER_NONE = "message.cointcore.speedrunner.none";
-    public static final String SPEEDRUNNER_RESET = "message.cointcore.speedrunner.reset";
-    public static final String SPEEDRUNNER_SET = "message.cointcore.speedrunner.set";
-    public static final String SPEEDRUNNER_SET_NEEDS_TICKS = "message.cointcore.speedrunner.set.needs_ticks";
-    public static final String SPEEDRUNNER_PLAYER_NOT_FOUND = "message.cointcore.speedrunner.player_not_found";
     public static final String QUEST_RANKS_STATUS = "message.cointcore.questranks.status";
     public static final String QUEST_RANKS_DISABLED = "message.cointcore.questranks.disabled";
     public static final String QUEST_RANKS_UNAVAILABLE = "message.cointcore.questranks.unavailable";

@@ -20,7 +20,7 @@ import java.util.Map;
 
 /**
  * File: {@code config/cointcore/prefixes.json}.
- * Prefix picker, site sync, and ATM Star speedrunner settings.
+ * Prefix picker and site sync settings.
  */
 public final class PrefixConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -37,8 +37,6 @@ public final class PrefixConfig {
     public static final int DEFAULT_REPORT_ALL_BATCH_PAUSE_MS = 1500;
     public static final int DEFAULT_REPORT_ALL_CHUNK_SIZE = 150;
     public static final double DEFAULT_REPORT_ALL_MIN_TPS = 18.0D;
-    public static final String DEFAULT_SPEEDRUNNER_GROUP = "speedrunner";
-    public static final String DEFAULT_SPEEDRUNNER_ITEM = "allthetweaks:atm_star";
 
     private static Settings settings = Settings.defaults();
 
@@ -121,10 +119,7 @@ public final class PrefixConfig {
             int reportAllBatchSize,
             int reportAllBatchPauseMs,
             int reportAllChunkSize,
-            double reportAllMinTps,
-            boolean speedrunnerEnabled,
-            String speedrunnerGroup,
-            String speedrunnerItem
+            double reportAllMinTps
     ) {
         static Settings defaults() {
             return from(FileData.defaults());
@@ -134,7 +129,6 @@ public final class PrefixConfig {
             if (data == null) {
                 data = FileData.defaults();
             }
-            SpeedrunnerData speedrunner = data.speedrunner != null ? data.speedrunner : FileData.defaultSpeedrunner();
             return new Settings(
                     data.enabled == null || data.enabled,
                     normalizeName(data.staffTrack, DEFAULT_STAFF_TRACK),
@@ -161,10 +155,7 @@ public final class PrefixConfig {
                     clamp(data.reportAllBatchSize, 25, 50, DEFAULT_REPORT_ALL_BATCH_SIZE),
                     clamp(data.reportAllBatchPauseMs, 1000, 2000, DEFAULT_REPORT_ALL_BATCH_PAUSE_MS),
                     clamp(data.reportAllChunkSize, 100, 200, DEFAULT_REPORT_ALL_CHUNK_SIZE),
-                    clampDouble(data.reportAllMinTps, 1.0D, 20.0D, DEFAULT_REPORT_ALL_MIN_TPS),
-                    speedrunner.enabled == null || speedrunner.enabled,
-                    normalizeName(speedrunner.group, DEFAULT_SPEEDRUNNER_GROUP),
-                    normalizeItem(speedrunner.item, DEFAULT_SPEEDRUNNER_ITEM)
+                    clampDouble(data.reportAllMinTps, 1.0D, 20.0D, DEFAULT_REPORT_ALL_MIN_TPS)
             );
         }
     }
@@ -197,13 +188,6 @@ public final class PrefixConfig {
     }
 
     private static String normalizeName(String value, String fallback) {
-        if (value == null || value.isBlank()) {
-            return fallback;
-        }
-        return value.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private static String normalizeItem(String value, String fallback) {
         if (value == null || value.isBlank()) {
             return fallback;
         }
@@ -268,7 +252,6 @@ public final class PrefixConfig {
         Integer siteReportDebounceTicks;
         @SerializedName("site_poll_seconds")
         Integer sitePollSeconds;
-        SpeedrunnerData speedrunner;
 
         static FileData defaults() {
             FileData data = new FileData();
@@ -296,15 +279,6 @@ public final class PrefixConfig {
             data.reportAllBatchPauseMs = DEFAULT_REPORT_ALL_BATCH_PAUSE_MS;
             data.reportAllChunkSize = DEFAULT_REPORT_ALL_CHUNK_SIZE;
             data.reportAllMinTps = DEFAULT_REPORT_ALL_MIN_TPS;
-            data.speedrunner = defaultSpeedrunner();
-            return data;
-        }
-
-        static SpeedrunnerData defaultSpeedrunner() {
-            SpeedrunnerData data = new SpeedrunnerData();
-            data.enabled = true;
-            data.group = DEFAULT_SPEEDRUNNER_GROUP;
-            data.item = DEFAULT_SPEEDRUNNER_ITEM;
             return data;
         }
 
@@ -319,11 +293,5 @@ public final class PrefixConfig {
         static List<String> defaultBuilderGroups() {
             return List.of("builder");
         }
-    }
-
-    static final class SpeedrunnerData {
-        Boolean enabled;
-        String group;
-        String item;
     }
 }
