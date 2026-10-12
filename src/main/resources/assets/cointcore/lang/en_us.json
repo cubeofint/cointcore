@@ -565,5 +565,11 @@
   "message.cointcore.speedrunner.reset": "&aSpeedrunner record cleared.",
   "message.cointcore.speedrunner.set": "&aSpeedrunner set: &f%s &7(%s, %s ticks).",
   "message.cointcore.speedrunner.set.needs_ticks": "&cPlayer &f%s &cis offline. Pass ticks: /cointcore speedrunner set <player> <ticks>",
-  "message.cointcore.speedrunner.player_not_found": "&cPlayer &f%s &cwas not found."
+  "message.cointcore.speedrunner.player_not_found": "&cPlayer &f%s &cwas not found.",
+  "message.cointcore.questranks.status": "&7Quest ranks: &f%s",
+  "message.cointcore.questranks.disabled": "&cQuest-rank grants are disabled in quest-ranks.json.",
+  "message.cointcore.questranks.unavailable": "&cQuest-rank grants are unavailable: &f%s",
+  "message.cointcore.questranks.sync.all": "&aQuest-rank sync: &f%s &aonline, granted &f%s&a, already held &f%s&a.",
+  "message.cointcore.questranks.sync.player": "&aQuest-rank sync for &f%s&a: granted &f%s&a, already held &f%s&a.",
+  "message.cointcore.questranks.player_offline": "&cPlayer &f%s &cis not online. Offline players are granted on login."
 }

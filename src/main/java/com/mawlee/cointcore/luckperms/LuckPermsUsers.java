@@ -216,17 +216,57 @@ public final class LuckPermsUsers {
     }
 
     public static CompletableFuture<Void> addGroup(UUID playerId, String group) {
-        String name = PrefixSnapshot.normalize(group);
-        if (name == null) {
+        return addGroups(playerId, group == null ? List.of() : List.of(group));
+    }
+
+    /**
+     * Adds inheritance nodes ({@code lp parent add} equivalent) in one {@code modifyUser}.
+     * Does not mark {@link RecalcSuppressor}: LuckPerms recalc still reaches prefix site sync.
+     */
+    public static CompletableFuture<Void> addGroups(UUID playerId, Collection<String> groups) {
+        List<String> names = new ArrayList<>();
+        if (groups != null) {
+            for (String group : groups) {
+                String name = PrefixSnapshot.normalize(group);
+                if (name != null && !names.contains(name)) {
+                    names.add(name);
+                }
+            }
+        }
+        if (names.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
         return modifyUser(playerId, user -> {
             try {
-                addNode(user, buildInheritanceNode(name));
+                for (String name : names) {
+                    addNode(user, buildInheritanceNode(name));
+                }
             } catch (ReflectiveOperationException exception) {
-                throw new IllegalStateException("Failed to add group " + name, exception);
+                throw new IllegalStateException("Failed to add groups " + names, exception);
             }
         });
+    }
+
+    /**
+     * Inherited group names, including parents of parents. Empty if the user is not loaded.
+     */
+    public static Set<String> inheritedGroupNames(UUID playerId) {
+        if (!LuckPermsIntegration.isAvailable() || playerId == null) {
+            return Set.of();
+        }
+        try {
+            Object user = LuckPermsIntegration.getUser(playerId);
+            if (user == null) {
+                return Set.of();
+            }
+            Set<String> names = new LinkedHashSet<>();
+            for (HeldGroup group : inheritedGroups(user)) {
+                names.add(group.name());
+            }
+            return Set.copyOf(names);
+        } catch (ReflectiveOperationException ignored) {
+            return Set.of();
+        }
     }
 
     public static CompletableFuture<Void> removeGroup(UUID playerId, String group) {

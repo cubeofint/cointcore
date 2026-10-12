@@ -19,17 +19,19 @@ public final class PrefixGui {
     }
 
     public static void open(ServerPlayer player, PrefixSnapshot snapshot) {
-        SimpleContainer container = new SimpleContainer(27);
-        List<String> slotGroups = new ArrayList<>();
-        slotGroups.add(null);
+        SimpleContainer container = new SimpleContainer(PrefixGuiSlots.MENU_SIZE);
+        List<String> groups = new ArrayList<>();
+        for (PrefixOption option : snapshot.available()) {
+            groups.add(option.group());
+        }
+        List<String> slotGroups = PrefixGuiSlots.of(groups);
         container.setItem(0, autoItem(player, snapshot));
 
         int slot = 1;
         for (PrefixOption option : snapshot.available()) {
-            if (slot >= 27) {
+            if (slot >= PrefixGuiSlots.MENU_SIZE) {
                 break;
             }
-            slotGroups.add(option.group());
             container.setItem(slot, prefixItem(player, option, option.group().equals(snapshot.selected())));
             slot++;
         }

@@ -97,6 +97,13 @@ ordering="AFTER"
 side="SERVER"
 
 [[dependencies.${mod_id}]]
+modId="ftbquests"
+type="optional"
+versionRange="[2101.1.0,)"
+ordering="AFTER"
+side="SERVER"
+
+[[dependencies.${mod_id}]]
 modId="ftbteams"
 type="required"
 versionRange="[2101.1.0,)"

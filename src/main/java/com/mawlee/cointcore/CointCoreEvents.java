@@ -43,6 +43,7 @@ import com.mawlee.cointcore.watchdog.probes.WatchdogProbeConfig;
 import com.mawlee.cointcore.config.TraderOffersConfig;
 import com.mawlee.cointcore.config.CurrencyMovementConfig;
 import com.mawlee.cointcore.config.PrefixConfig;
+import com.mawlee.cointcore.config.QuestRankConfig;
 import com.mawlee.cointcore.config.DimensionWipeConfig;
 import com.mawlee.cointcore.config.StarterKitConfig;
 import com.mawlee.cointcore.kit.StarterKitService;
@@ -96,6 +97,7 @@ public final class CointCoreEvents {
             TraderOffersConfig.load();
             CurrencyMovementConfig.load();
             PrefixConfig.load();
+            QuestRankConfig.load();
             TickThrottleConfigs.load();
             SoulSurgePerfConfig.load();
             SoulSurgeDenyConfig.load();
@@ -130,6 +132,7 @@ public final class CointCoreEvents {
         FtbRanksLuckPermsBridge.init(event.getServer());
         com.mawlee.cointcore.prefix.PrefixSelectionService.init(event.getServer());
         com.mawlee.cointcore.prefix.PrefixCatalogExporter.init(event.getServer());
+        com.mawlee.cointcore.questrank.QuestRankService.init(event.getServer());
         ChatSpyManager.loadFromSavedData(event.getServer());
         com.mawlee.cointcore.watchdog.TickWatchdogService.instance().start(event.getServer());
     }
@@ -161,6 +164,7 @@ public final class CointCoreEvents {
             ClaimFlagEditSync.sync(player);
             ChunkBonusService.onPlayerJoin(player);
             com.mawlee.cointcore.prefix.PrefixSelectionService.onPlayerJoin(player);
+            com.mawlee.cointcore.questrank.QuestRankService.onPlayerJoin(player);
             JoinMessageService.sendJoinMessages(player);
             StarterKitService.onPlayerJoin(player);
         });
