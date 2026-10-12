@@ -18,9 +18,11 @@ import java.nio.file.Path;
 
 /**
  * Soul Surge intervention flags ({@code config/cointcore/soul-surge-perf.json}).
- * When {@code enabled}, each surge accelerates only its attached block entity
- * at the mod's {@code ACCELERATION_TICK} (default 4 extra ticks). Acceleration
- * is not configurable here.
+ * When {@code enabled}, each surge accelerates only its attached block entity.
+ * Extra ticker calls are admitted while that target is still under 3 extra
+ * ticks this game tick (4x including the normal tick). IF Souls still loops
+ * {@code ACCELERATION_TICK}; surplus calls are dropped. Acceleration is not
+ * configurable here.
  * <p>
  * Unused / obsolete keys are not bound: {@code maxAccelerationTicks} never
  * capped the IF Souls tick count and is ignored if present, as are

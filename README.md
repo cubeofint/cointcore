@@ -199,7 +199,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/cointcore claim flag ...` | Флаги чанков FTB (если FTB Chunks установлен) |
 | `/cointcore kit balance\|add\|set\|take\|list\|clear` | Кредиты на киты (не сгорают). `add` — ник, UUID (с дефисами или 32 hex) или ник, которого ещё не было на сервере (usercache / Mojang). `list` / `clear [кит]` — админский просмотр и сброс |
 | `/cointcore watchdog ...` | Tick watchdog: отчёт, топ, телепорт к виновнику |
-| `/cointcore soulsurge debug <pos>` | Админ (уровень 2): у сёрджа — facing, цель, `souls=yes/no`; у машины — владелец claim и `active=yes/no` |
+| `/cointcore soulsurge debug <pos>` | Админ (уровень 2): у сёрджа — facing, цель и `extra=N/3`; у машины — сколько extra-тиков уже наложено в этом тике |
 | `/cointcore gluons get\|set\|add` | Админ-кошелёк глюонов (`cointcore.gluons.admin`) |
 | `/cointcore speedrunner info\|reset\|set` | Рекорд спидранера (`cointcore.speedrunner.admin`) |
 | `/cointcore prefixes export` | Выгрузить полный каталог квестовых префиксов на сайт (`cointcore.prefix.admin`) |
@@ -470,7 +470,7 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/me-unique-filter.json` | Уникальные фильтры ME (AE2) |
 | `config/cointcore/storage-perf.json` | Кэш AE2 fuzzy search, RS importer idle-skip |
 | `config/cointcore/tick-throttles.json` | Throttle машин (MGU Saw, RFTools Builder и др.) |
-| `config/cointcore/soul-surge-perf.json` | Soul Surge: `enabled` + `singleTarget` (один присоединённый блок, полная скорость) |
+| `config/cointcore/soul-surge-perf.json` | Soul Surge: `enabled` + `singleTarget` (один присоединённый блок, до 4x на цель за тик) |
 | `config/cointcore/soul-surge-deny.json` | Устарел и не используется; старые файлы читаются без ошибки |
 | `config/cointcore/tick-acceleration-deny.json` | Deny для Time Wand и прочих ускорителей (**не** Soul Surge) |
 | `config/cointcore/lag-fixes.json` | Лаг-фиксы ATM10 8.2 (см. ниже) |
@@ -861,14 +861,14 @@ Industrial Foregoing Souls: каждый Soul Surge ускоряет **ровн�
 
 В IF Souls блок направленный: Titanium `RotatableBlock.FACING_ALL` — отдельный `DirectionProperty` с именем `facing` (не тот же объект, что `BlockStateProperties.FACING`; сравнение `hasProperty` по identity его не видит). Направление читается по имени свойства. Сопло смотрит в `facing.opposite`, цель = `surgePos.relative(facing.opposite)` — клетка, к которой сёрдж приставлен. Если у блока нет `facing`, берётся `up` (цель — блок снизу), как у сёрджа, поставленного сверху на машину.
 
-Админ-команда `/cointcore soulsurge debug <pos>` (permission 2): для позиции сёрджа показывает resolved facing, клетку-цель и есть ли души (`souls=yes/no` — leftover `tickingTime` или души в soul network); для позиции машины — какой сёрдж держит per-tick claim и активен ли он в этом тике (`active=yes` — уже ускорял, `active=no` — только sticky с прошлого тика).
+Админ-команда `/cointcore soulsurge debug <pos>` (permission 2): для позиции сёрджа показывает resolved facing, клетку-цель и сколько extra-тиков цель уже получила в этом игровом тике (`extra=N/3`); для позиции машины — тот же счётчик.
 
-- Полная скорость мода: `ACCELERATION_TICK` из конфига IF Souls (по умолчанию 4 лишних тика).
+- Цель ускоряется не больше чем в **4 раза** за игровой тик (1 обычный + 3 extra), сколько бы сёрджей ни смотрело на неё. IF Souls по-прежнему крутит цикл `ACCELERATION_TICK`; лишние вызовы отсекаются, карта extra-тиков сбрасывается каждый `gameTime`.
 - Ограничений по типу машины нет: deny-списки, block tag (`cointcore:soul_surge_no_accelerate`, `industrialforegoingsouls:cant_accelerate`) и лимиты на чанк для Soul Surge не применяются. Общий `tick-acceleration-deny.json` (Time Wand и др.) **не** читается.
-- Исключение: другой `industrialforegoingsouls:soul_surge` не ускоряется (античейн). Воздух и блок без Block Entity — ничего не делают, души не тратятся.
+- Исключение: другой `industrialforegoingsouls:soul_surge` не ускоряется (античейн). Воздух и блок без Block Entity — ничего не делают.
 - Сущности и random-tick соседей не ускоряются. Area-сканов за тик нет.
-- Души списываются как в моде: только пока реально крутится валидный Block Entity.
-- Несколько сёрджей на одной машине: за игровой тик цель ускоряет **не больше одного** сёрджа. Остальные в этот тик простаивают и души не тратят. Claim берётся только если сёрдж в этот тик реально может ускорять — как в IF Souls 1.10.7: после попытки списать душу из сети `tickingTime > 0` (уже оплаченный leftover или `getSoulAmount() > 0`). Сёрдж без душ / без трубы claim не берёт. Владелец «липкий»: пока тот же сёрдж на месте и продолжает ускорять, он удерживает право, чтобы души не списывались по очереди. Если владелец не ускорил (нет душ, снят, чанк выгружен, сменил цель), claim отпускается сразу — другой валидный сёрдж забирает его в тот же или следующий тик.
+- Души списывает сам IF Souls: cointcore не проверяет `tickingTime` / SoulNetwork и не держит claim на цель.
+- Несколько сёрджей на одной машине делят общий бюджет из 3 extra-тиков. Когда бюджет исчерпан, следующие сёрджи видят воздух и не крутят ticker.
 
 `config/cointcore/soul-surge-perf.json`:
 
@@ -879,7 +879,7 @@ Industrial Foregoing Souls: каждый Soul Surge ускоряет **ровн�
 }
 ```
 
-`enabled: false` полностью отдаёт тик ванильному IF Souls (теги мода, random-tick, сущности). `singleTarget` — режим «одна цель»; при `enabled` mixin всегда держит одну присоединённую клетку. Скорость не задаётся в этом файле: используется `ACCELERATION_TICK` мода (по умолчанию 4). Ключ `maxAccelerationTicks` не используется и при наличии в старом файле игнорируется вместе с `denyBlockIds`, `denyBlockTags`, `respectChunkLimits`.
+`enabled: false` полностью отдаёт тик ванильному IF Souls (теги мода, random-tick, сущности). `singleTarget` — режим «одна цель»; при `enabled` mixin всегда держит одну присоединённую клетку. Скорость не задаётся в этом файле: цель ограничена 3 extra-тиками за игровой тик (4x вместе с обычным). Ключ `maxAccelerationTicks` не используется и при наличии в старом файле игнорируется вместе с `denyBlockIds`, `denyBlockTags`, `respectChunkLimits`.
 
 `soul-surge-deny.json` помечен как deprecated/unused: файл по-прежнему читается при старте и `/cointcore reload`, чтобы старые списки не роняли сервер, но на ускорение не влияет.
 
