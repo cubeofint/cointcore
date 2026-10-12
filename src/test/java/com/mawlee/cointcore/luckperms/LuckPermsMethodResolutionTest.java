@@ -229,9 +229,29 @@ class LuckPermsMethodResolutionTest {
         assertEquals(PublicInheritanceNode.class, inheritance.getDeclaringClass());
         assertEquals(PublicMetaNode.class, meta.getDeclaringClass());
         assertEquals(PublicPrefixNode.class, prefix.getDeclaringClass());
-        assertEquals("vip", inheritance.invoke(null, "vip"));
+        assertEquals("group.vip", inheritance.invoke(null, "vip"));
         assertEquals("k=v", meta.invoke(null, "k", "v"));
         assertEquals("p:100", prefix.invoke(null, "p", 100));
+    }
+
+    @Test
+    void publicTypesPreferTheRequestedPublicType() {
+        List<Class<?>> types = PublicApiMethodResolver.publicTypes(PublicInheritanceNode.class);
+        assertEquals(PublicInheritanceNode.class, types.get(0));
+        assertTrue(types.contains(PublicGenericNode.class));
+    }
+
+    @Test
+    void inheritanceBuilderIsNotGenericNodeBuilder() throws Exception {
+        Method generic = PublicApiMethodResolver.resolve(PublicGenericNode.class, "builder", String.class);
+        Method inheritance = PublicApiMethodResolver.resolve(PublicInheritanceNode.class, "builder", String.class);
+
+        assertEquals(PublicGenericNode.class, generic.getDeclaringClass());
+        assertEquals(PublicInheritanceNode.class, inheritance.getDeclaringClass());
+        assertEquals("atm", generic.invoke(null, "atm"));
+        assertEquals("group.atm", inheritance.invoke(null, "atm"));
+        assertTrue(InheritanceNodes.isInheritanceKey((String) inheritance.invoke(null, "atm")));
+        assertFalse(InheritanceNodes.isInheritanceKey((String) generic.invoke(null, "atm")));
     }
 
     @Test
@@ -291,9 +311,22 @@ class LuckPermsMethodResolutionTest {
         Optional<Object> getMetadata(PublicNodeMetadataKey key);
     }
 
-    public interface PublicInheritanceNode {
+    /**
+     * Mirrors LuckPerms {@code Node.builder(String)} — a generic permission node.
+     */
+    public interface PublicGenericNode {
+        static String builder(String permission) {
+            return permission;
+        }
+    }
+
+    /**
+     * Mirrors LuckPerms {@code InheritanceNode extends Node} with its own
+     * {@code builder(String group)} that must win over {@link PublicGenericNode#builder(String)}.
+     */
+    public interface PublicInheritanceNode extends PublicGenericNode {
         static String builder(String group) {
-            return group;
+            return "group." + group;
         }
     }
 

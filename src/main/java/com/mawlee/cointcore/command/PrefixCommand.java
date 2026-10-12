@@ -7,7 +7,6 @@ import com.mawlee.cointcore.luckperms.LuckPermsIntegration;
 import com.mawlee.cointcore.luckperms.LuckPermsUsers;
 import com.mawlee.cointcore.permission.CointPermissionNodes;
 import com.mawlee.cointcore.permission.PermissionService;
-import com.mawlee.cointcore.prefix.PrefixGui;
 import com.mawlee.cointcore.prefix.PrefixOption;
 import com.mawlee.cointcore.prefix.PrefixSelectionRules;
 import com.mawlee.cointcore.prefix.PrefixSelectionService;
@@ -39,7 +38,6 @@ public final class PrefixCommand {
                         .requires(PrefixCommand::canUse)
                         .executes(PrefixCommand::list)
                         .then(Commands.literal("auto").executes(PrefixCommand::auto))
-                        .then(Commands.literal("gui").executes(PrefixCommand::gui))
                         .then(Commands.literal("set")
                                 .then(Commands.argument("group", StringArgumentType.word())
                                         .suggests((context, builder) -> SharedSuggestionProvider.suggest(
@@ -48,11 +46,6 @@ public final class PrefixCommand {
                                         ))
                                         .executes(PrefixCommand::set)))
         );
-    }
-
-    public static void notifyDecision(ServerPlayer player, PrefixSelectionRules.Decision decision) {
-        CommandSourceStack source = player.createCommandSourceStack();
-        source.sendSuccess(() -> messageFor(player, decision), false);
     }
 
     private static boolean canUse(CommandSourceStack source) {
@@ -81,9 +74,6 @@ public final class PrefixCommand {
         for (PrefixOption option : snapshot.available()) {
             player.sendSystemMessage(optionLine(player, option, option.group().equals(snapshot.selected())));
         }
-        if (PrefixConfig.get().guiEnabled()) {
-            player.sendSystemMessage(guiLine(player));
-        }
     }
 
     private static int set(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
@@ -104,25 +94,6 @@ public final class PrefixCommand {
         }
         PrefixSelectionService.selectAuto(player.server, player.getUUID(), decision ->
                 context.getSource().sendSuccess(() -> messageFor(player, decision), false));
-        return Command.SINGLE_SUCCESS;
-    }
-
-    private static int gui(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        ServerPlayer player = context.getSource().getPlayerOrException();
-        if (!ready(player)) {
-            return 0;
-        }
-        if (!PrefixConfig.get().guiEnabled()) {
-            context.getSource().sendFailure(CointCoreMessages.forPlayer(player, CointCoreMessages.PREFIX_GUI_DISABLED));
-            return 0;
-        }
-        LuckPermsUsers.loadSnapshot(player.getUUID()).whenComplete((snapshot, error) -> player.server.execute(() -> {
-            if (error != null || snapshot == null) {
-                player.sendSystemMessage(CointCoreMessages.forPlayer(player, CointCoreMessages.PREFIX_UNAVAILABLE));
-                return;
-            }
-            PrefixGui.open(player, snapshot);
-        }));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -185,16 +156,6 @@ public final class PrefixCommand {
         return prefix.append(Component.literal(" ")).append(line).withStyle(style -> style
                 .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/prefix set " + option.group()))
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hover)));
-    }
-
-    private static Component guiLine(ServerPlayer player) {
-        return CointCoreMessages.forPlayer(player, CointCoreMessages.PREFIX_OPEN_GUI).copy()
-                .withStyle(style -> style
-                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/prefix gui"))
-                        .withHoverEvent(new HoverEvent(
-                                HoverEvent.Action.SHOW_TEXT,
-                                CointCoreMessages.forPlayer(player, CointCoreMessages.PREFIX_HOVER_GUI)
-                        )));
     }
 
     private static List<String> suggestGroups(CommandSourceStack source) {

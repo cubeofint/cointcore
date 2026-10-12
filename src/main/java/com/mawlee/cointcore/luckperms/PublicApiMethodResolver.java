@@ -206,8 +206,9 @@ public final class PublicApiMethodResolver {
     }
 
     /**
-     * Public interfaces first (BFS of the impl and every superinterface), then public
-     * superclasses, then the runtime type if it is itself public.
+     * The runtime type first when it is public (so {@code InheritanceNode.builder(String)}
+     * wins over generic {@code Node.builder(String)}), then public interfaces (BFS of every
+     * superinterface), then public superclasses.
      */
     static List<Class<?>> publicTypes(Class<?> runtimeType) {
         List<Class<?>> interfaces = new ArrayList<>();
@@ -236,11 +237,11 @@ public final class PublicApiMethodResolver {
             }
         }
         List<Class<?>> result = new ArrayList<>(interfaces.size() + classes.size() + 1);
-        result.addAll(interfaces);
-        result.addAll(classes);
         if (isPublicType(runtimeType)) {
             result.add(runtimeType);
         }
+        result.addAll(interfaces);
+        result.addAll(classes);
         return result;
     }
 

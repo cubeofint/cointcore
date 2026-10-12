@@ -123,8 +123,12 @@ public final class QuestRankService {
                     teamKey,
                     ignored -> FtbQuestProgress.completedMapped(player, table.questIds())
             );
-            Set<String> held = LuckPermsUsers.inheritedGroupNames(player.getUUID());
+            UUID playerId = player.getUUID();
+            Set<String> held = LuckPermsUsers.inheritedGroupNames(playerId);
             List<String> missing = QuestRankGrantLogic.groupsToGrant(completed, held, table);
+            if ("sweep".equals(reason)) {
+                missing = QuestRankGrantBackoff.filter(playerId, missing);
+            }
             already += Math.max(0, completed.size() - missing.size());
             if (missing.isEmpty()) {
                 continue;
@@ -189,15 +193,30 @@ public final class QuestRankService {
                 }
                 return;
             }
+            Set<String> held = LuckPermsUsers.inheritedGroupNames(playerId);
             for (String group : groups) {
-                LOGGER.info(
-                        "Quest rank granted: player={} uuid={} group={} quest={} reason={}",
-                        name,
-                        playerId,
-                        group,
-                        questHex(group, completed, table),
-                        reason
-                );
+                if (held.contains(group)) {
+                    QuestRankGrantBackoff.clear(playerId, group);
+                    LOGGER.info(
+                            "Quest rank granted: player={} uuid={} group={} quest={} reason={}",
+                            name,
+                            playerId,
+                            group,
+                            questHex(group, completed, table),
+                            reason
+                    );
+                    continue;
+                }
+                if (QuestRankGrantBackoff.markMissingAfterWrite(playerId, group)) {
+                    LOGGER.warn(
+                            "Quest rank grant wrote no inheritance node: player={} uuid={} group={} quest={} reason={}",
+                            name,
+                            playerId,
+                            group,
+                            questHex(group, completed, table),
+                            reason
+                    );
+                }
             }
         });
     }

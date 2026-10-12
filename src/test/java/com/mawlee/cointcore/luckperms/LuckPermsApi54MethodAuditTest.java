@@ -9,6 +9,7 @@ import net.luckperms.api.node.Node;
 import net.luckperms.api.node.NodeBuilder;
 import net.luckperms.api.node.NodeEqualityPredicate;
 import net.luckperms.api.node.metadata.NodeMetadataKey;
+import net.luckperms.api.node.types.InheritanceNode;
 import net.luckperms.api.node.types.PrefixNode;
 import net.luckperms.api.util.Tristate;
 import org.junit.jupiter.api.BeforeEach;
@@ -118,6 +119,21 @@ class LuckPermsApi54MethodAuditTest {
 
         assertEquals(NodeMap.class, clear.getDeclaringClass());
         assertEquals(NodeMap.class, add.getDeclaringClass());
+    }
+
+    @Test
+    void inheritanceBuilderResolvesOnInheritanceNodeNotGenericNode() throws Exception {
+        Method inheritance = PublicApiMethodResolver.resolve(
+                InheritanceNode.class,
+                "builder",
+                String.class
+        );
+        Method generic = PublicApiMethodResolver.resolve(Node.class, "builder", String.class);
+
+        assertEquals(InheritanceNode.class, inheritance.getDeclaringClass());
+        assertEquals(Node.class, generic.getDeclaringClass());
+        assertTrue(InheritanceNodes.isInheritanceKey(InheritanceNodes.permissionKey("atm")));
+        assertFalse(InheritanceNodes.isInheritanceKey("atm"));
     }
 
     @Test

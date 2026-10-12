@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.luckperms;
 
 import com.mawlee.cointcore.config.PrefixConfig;
+import com.mawlee.cointcore.prefix.OwnPrefixNodeMatch;
 import com.mawlee.cointcore.prefix.PrefixCatalog;
 import com.mawlee.cointcore.prefix.PrefixCatalogEntry;
 import com.mawlee.cointcore.prefix.PrefixOption;
@@ -10,6 +11,7 @@ import com.mawlee.cointcore.prefix.QuestPrefixState;
 import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -19,7 +21,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
@@ -29,8 +30,8 @@ import java.util.function.Consumer;
 public final class LuckPermsUsers {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final String GLOBAL_SERVER = "global";
-    private static final String LEGACY_PREFIX_SELECT_KEY = "cointcore-prefix-select";
-    private static final ConcurrentHashMap<String, Object> METADATA_KEYS = new ConcurrentHashMap<>();
+    static final String PREFIX_SELECT_KEY = "cointcore-prefix-select";
+    static final String LEGACY_QUEST_PREFIX_KEY = "cointcore-quest-prefix";
 
     private LuckPermsUsers() {
     }
@@ -97,8 +98,9 @@ public final class LuckPermsUsers {
     }
 
     public static CompletableFuture<PrefixSnapshot> loadSnapshot(UUID playerId) {
-        return loadUser(playerId).thenCompose(user -> persistLostSelection(user)
-                .handle((ignored, error) -> snapshotOf(user)));
+        return LuckPermsUserMutations.enqueue(playerId, () -> loadUser(playerId)
+                .thenCompose(user -> persistLostSelectionUnlocked(user)
+                        .handle((ignored, error) -> snapshotOf(user))));
     }
 
     /**
@@ -107,6 +109,14 @@ public final class LuckPermsUsers {
      * users on the next {@code loadUser}.
      */
     public static CompletableFuture<Void> persistLostSelection(Object user) {
+        UUID playerId = uniqueIdOf(user);
+        if (playerId == null) {
+            return persistLostSelectionUnlocked(user);
+        }
+        return LuckPermsUserMutations.enqueue(playerId, () -> persistLostSelectionUnlocked(user));
+    }
+
+    private static CompletableFuture<Void> persistLostSelectionUnlocked(Object user) {
         if (user == null) {
             return CompletableFuture.completedFuture(null);
         }
@@ -127,16 +137,16 @@ public final class LuckPermsUsers {
             return CompletableFuture.failedFuture(exception);
         }
         markOwnWrite(user);
-        return saveUser(user);
+        return saveUserUnlocked(user);
     }
 
     /**
-     * Writes user meta {@code cointcore-quest-prefix} (when selected) and a user-level PrefixNode
+     * Writes user meta {@code cointcore-prefix-select} (when selected) and a user-level PrefixNode
      * that LuckPerms stacking can render via {@code highest_own}.
      * No-ops (no {@code saveUser}) when own prefix/meta already match.
      */
     public static CompletableFuture<Void> syncQuestPrefix(UUID playerId, String selectedGroup, String prefixRaw) {
-        return loadUser(playerId).thenCompose(user -> {
+        return LuckPermsUserMutations.enqueue(playerId, () -> loadUser(playerId).thenCompose(user -> {
             try {
                 if (!applyQuestNodesIfChanged(user, selectedGroup, prefixRaw)) {
                     return CompletableFuture.completedFuture(null);
@@ -145,8 +155,8 @@ public final class LuckPermsUsers {
                 return CompletableFuture.failedFuture(exception);
             }
             RecalcSuppressor.markOwnWrite(playerId, System.currentTimeMillis());
-            return saveUser(user);
-        });
+            return saveUserUnlocked(user);
+        }));
     }
 
     static boolean applyQuestNodesIfChanged(Object user, String selectedGroup, String prefixRaw)
@@ -170,10 +180,10 @@ public final class LuckPermsUsers {
         clearOwnOverrideNodes(user, settings);
         String group = PrefixSnapshot.normalize(selectedGroup);
         if (group != null) {
-            addNode(user, buildMetaNode(settings.prefixMetaKey(), group, settings));
+            addNode(user, buildMetaNode(selectionMetaKey(settings), group, settings));
         }
         if (prefixRaw != null && !prefixRaw.isBlank()) {
-            addNode(user, buildPrefixNode(prefixRaw, group == null ? "auto" : group, settings));
+            addNode(user, buildPrefixNode(prefixRaw, settings));
         }
     }
 
@@ -186,6 +196,14 @@ public final class LuckPermsUsers {
     }
 
     public static CompletableFuture<Void> saveUser(Object user) {
+        UUID playerId = uniqueIdOf(user);
+        if (playerId == null) {
+            return saveUserUnlocked(user);
+        }
+        return LuckPermsUserMutations.enqueue(playerId, () -> saveUserUnlocked(user));
+    }
+
+    private static CompletableFuture<Void> saveUserUnlocked(Object user) {
         if (!LuckPermsIntegration.isAvailable() || user == null) {
             return CompletableFuture.completedFuture(null);
         }
@@ -236,14 +254,27 @@ public final class LuckPermsUsers {
         if (names.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
-        return modifyUser(playerId, user -> {
-            try {
-                for (String name : names) {
-                    addNode(user, buildInheritanceNode(name));
-                }
-            } catch (ReflectiveOperationException exception) {
-                throw new IllegalStateException("Failed to add groups " + names, exception);
+        return LuckPermsUserMutations.enqueue(playerId, () -> {
+            List<String> missing = groupsNotInherited(names, inheritedGroupNames(playerId));
+            if (missing.isEmpty()) {
+                return CompletableFuture.completedFuture(null);
             }
+            return modifyUserUnlocked(playerId, user -> {
+                try {
+                    for (String name : missing) {
+                        Object node = buildInheritanceNode(name);
+                        String key = nodeKey(node);
+                        if (!InheritanceNodes.isInheritanceKey(key)) {
+                            throw new IllegalStateException(
+                                    "Inheritance node key is not group.*: " + key + " for " + name
+                            );
+                        }
+                        addNode(user, node);
+                    }
+                } catch (ReflectiveOperationException exception) {
+                    throw new IllegalStateException("Failed to add groups " + missing, exception);
+                }
+            });
         });
     }
 
@@ -288,6 +319,10 @@ public final class LuckPermsUsers {
     }
 
     public static CompletableFuture<Void> modifyUser(UUID playerId, Consumer<Object> mutator) {
+        return LuckPermsUserMutations.enqueue(playerId, () -> modifyUserUnlocked(playerId, mutator));
+    }
+
+    private static CompletableFuture<Void> modifyUserUnlocked(UUID playerId, Consumer<Object> mutator) {
         if (!LuckPermsIntegration.isAvailable() || playerId == null) {
             return CompletableFuture.failedFuture(new IllegalStateException("LuckPerms unavailable"));
         }
@@ -440,11 +475,14 @@ public final class LuckPermsUsers {
             Object prefixType = LuckPermsIntegration.getNodeType("PREFIX");
             Object metaType = LuckPermsIntegration.getNodeType("META");
             String server = serverName();
+            Set<String> rankTexts = rankPrefixTexts();
+            String canonicalMeta = selectionMetaKey(settings);
             Iterable<?> nodes = nodesOf(user);
             String selected = null;
             String prefixRaw = null;
             int prefixCount = 0;
             int metaCount = 0;
+            boolean staleMeta = false;
             if (nodes != null) {
                 for (Object node : nodes) {
                     if (Boolean.TRUE.equals(LuckPermsIntegration.invoke(node, "hasExpired"))) {
@@ -452,7 +490,7 @@ public final class LuckPermsUsers {
                     }
                     Object type = LuckPermsIntegration.invoke(node, "getType");
                     if (prefixType.equals(type)) {
-                        if (isOurPrefixNode(node, settings) && matchesThisServer(node, server)) {
+                        if (isOurPrefixNode(node, settings, rankTexts) && matchesThisServer(node, server)) {
                             prefixCount++;
                             if (prefixRaw == null) {
                                 String value = (String) LuckPermsIntegration.invoke(node, "getMetaValue");
@@ -461,8 +499,11 @@ public final class LuckPermsUsers {
                         }
                     } else if (metaType.equals(type)) {
                         String key = (String) LuckPermsIntegration.invoke(node, "getMetaKey");
-                        if (settings.prefixMetaKey().equalsIgnoreCase(key) && matchesThisServer(node, server)) {
+                        if (isSelectionMetaKey(key, settings) && matchesThisServer(node, server)) {
                             metaCount++;
+                            if (!canonicalMeta.equalsIgnoreCase(key)) {
+                                staleMeta = true;
+                            }
                             if (selected == null) {
                                 selected = PrefixSnapshot.normalize(
                                         (String) LuckPermsIntegration.invoke(node, "getMetaValue")
@@ -472,7 +513,7 @@ public final class LuckPermsUsers {
                     }
                 }
             }
-            return QuestPrefixState.current(selected, prefixRaw, prefixCount, metaCount);
+            return QuestPrefixState.current(selected, prefixRaw, prefixCount, metaCount, staleMeta);
         } catch (ReflectiveOperationException ignored) {
             return QuestPrefixState.current(null, null, 0, 0);
         }
@@ -494,7 +535,7 @@ public final class LuckPermsUsers {
                     continue;
                 }
                 String key = (String) LuckPermsIntegration.invoke(node, "getMetaKey");
-                if (!settings.prefixMetaKey().equalsIgnoreCase(key) || !matchesThisServer(node, server)) {
+                if (!isSelectionMetaKey(key, settings) || !matchesThisServer(node, server)) {
                     continue;
                 }
                 String value = (String) LuckPermsIntegration.invoke(node, "getMetaValue");
@@ -510,6 +551,7 @@ public final class LuckPermsUsers {
         Object prefixType = LuckPermsIntegration.getNodeType("PREFIX");
         Object metaType = LuckPermsIntegration.getNodeType("META");
         String server = serverName();
+        Set<String> rankTexts = rankPrefixTexts();
         Object data = LuckPermsIntegration.invoke(user, "data");
         Class<?> predicateClass = Class.forName("java.util.function.Predicate");
         LuckPermsIntegration.invoke(data, "clear", new Class<?>[]{predicateClass}, (java.util.function.Predicate<Object>) node -> {
@@ -519,11 +561,11 @@ public final class LuckPermsUsers {
                 }
                 Object type = LuckPermsIntegration.invoke(node, "getType");
                 if (prefixType.equals(type)) {
-                    return isOurPrefixNode(node, settings) && matchesThisServer(node, server);
+                    return isOurPrefixNode(node, settings, rankTexts) && matchesThisServer(node, server);
                 }
                 if (metaType.equals(type)) {
                     String key = (String) LuckPermsIntegration.invoke(node, "getMetaKey");
-                    return settings.prefixMetaKey().equalsIgnoreCase(key) && matchesThisServer(node, server);
+                    return isSelectionMetaKey(key, settings) && matchesThisServer(node, server);
                 }
                 return false;
             } catch (ReflectiveOperationException ignored) {
@@ -532,52 +574,14 @@ public final class LuckPermsUsers {
         });
     }
 
-    private static boolean isOurPrefixNode(Object node, PrefixConfig.Settings settings)
-            throws ReflectiveOperationException {
-        return hasMetadata(node, settings.renderMetaKey())
-                || hasMetadata(node, settings.prefixMetaKey())
-                || hasMetadata(node, LEGACY_PREFIX_SELECT_KEY);
-    }
-
-    /**
-     * LuckPerms API 5.4: {@code Optional<T> Node.getMetadata(NodeMetadataKey<T>)}.
-     * Keys use reference equality, so instances are cached by name.
-     */
-    static boolean hasMetadata(Object node, String keyName) throws ReflectiveOperationException {
-        if (node == null || keyName == null || keyName.isBlank()) {
-            return false;
-        }
-        Object value = LuckPermsIntegration.invoke(
-                node,
-                "getMetadata",
-                new Class<?>[]{nodeMetadataKeyClass()},
-                nodeMetadataKey(keyName)
-        );
-        return value instanceof Optional<?> optional && optional.isPresent();
-    }
-
-    /**
-     * LuckPerms API 5.4: {@code NodeMetadataKey.of(String, Class)} — not a String/String pair.
-     */
-    static Object nodeMetadataKey(String name) throws ReflectiveOperationException {
-        Object cached = METADATA_KEYS.get(name);
-        if (cached != null) {
-            return cached;
-        }
-        Object created = LuckPermsIntegration.invokeExact(
-                nodeMetadataKeyClass(),
-                null,
-                "of",
-                new Class<?>[]{String.class, Class.class},
-                name,
-                String.class
-        );
-        Object raced = METADATA_KEYS.putIfAbsent(name, created);
-        return raced != null ? raced : created;
-    }
-
-    static Class<?> nodeMetadataKeyClass() throws ClassNotFoundException {
-        return Class.forName("net.luckperms.api.node.metadata.NodeMetadataKey");
+    private static boolean isOurPrefixNode(
+            Object node,
+            PrefixConfig.Settings settings,
+            Set<String> rankPrefixTexts
+    ) throws ReflectiveOperationException {
+        int priority = ((Number) LuckPermsIntegration.invoke(node, "getPriority")).intValue();
+        String value = (String) LuckPermsIntegration.invoke(node, "getMetaValue");
+        return OwnPrefixNodeMatch.matches(priority, value, settings.prefixPriority(), rankPrefixTexts);
     }
 
     private static boolean matchesThisServer(Object node, String server) {
@@ -613,7 +617,7 @@ public final class LuckPermsUsers {
         LuckPermsIntegration.invoke(data, "add", new Class<?>[]{nodeClass}, node);
     }
 
-    private static Object buildPrefixNode(String prefixRaw, String group, PrefixConfig.Settings settings)
+    private static Object buildPrefixNode(String prefixRaw, PrefixConfig.Settings settings)
             throws ReflectiveOperationException {
         Class<?> prefixNode = Class.forName("net.luckperms.api.node.types.PrefixNode");
         Object builder = LuckPermsIntegration.invokeExact(
@@ -624,24 +628,7 @@ public final class LuckPermsUsers {
                 prefixRaw,
                 settings.prefixPriority()
         );
-        builder = withNodeMetadata(builder, settings.renderMetaKey(), "1");
-        String taggedGroup = PrefixSnapshot.normalize(group) == null ? "auto" : PrefixSnapshot.normalize(group);
-        builder = withNodeMetadata(builder, settings.prefixMetaKey(), taggedGroup);
         return applyServerContext(builder, settings);
-    }
-
-    /**
-     * LuckPerms API 5.4: {@code NodeBuilder.withMetadata(NodeMetadataKey, Object)} after erasure.
-     */
-    static Object withNodeMetadata(Object builder, String keyName, String value)
-            throws ReflectiveOperationException {
-        return LuckPermsIntegration.invoke(
-                builder,
-                "withMetadata",
-                new Class<?>[]{nodeMetadataKeyClass(), Object.class},
-                nodeMetadataKey(keyName),
-                value
-        );
     }
 
     private static Object buildMetaNode(String key, String value, PrefixConfig.Settings settings)
@@ -673,16 +660,112 @@ public final class LuckPermsUsers {
         return LuckPermsIntegration.invoke(builder, "build");
     }
 
-    private static Object buildInheritanceNode(String group) throws ReflectiveOperationException {
-        Class<?> inheritance = Class.forName("net.luckperms.api.node.types.InheritanceNode");
-        Object builder = LuckPermsIntegration.invokeExact(
-                inheritance,
-                null,
-                "builder",
-                new Class<?>[]{String.class},
-                group
-        );
-        return applyServerContext(builder, PrefixConfig.get());
+    /**
+     * Prefer {@code InheritanceNode.builder(String)} declared on that type. The public-API
+     * resolver used to pick generic {@code Node.builder(String)} and write permission
+     * {@code atm} instead of {@code group.atm}. Fall back to {@code Node.builder("group."+name)}.
+     */
+    static Object buildInheritanceNode(String group) throws ReflectiveOperationException {
+        PrefixConfig.Settings settings = PrefixConfig.get();
+        Object node = tryTypedInheritanceBuilder(group, settings);
+        if (node != null && InheritanceNodes.isInheritanceKey(nodeKey(node))) {
+            return node;
+        }
+        return buildGroupPermissionNode(group, settings);
+    }
+
+    private static Object tryTypedInheritanceBuilder(String group, PrefixConfig.Settings settings) {
+        try {
+            Class<?> inheritance = Class.forName("net.luckperms.api.node.types.InheritanceNode");
+            Method builderMethod = inheritance.getMethod("builder", String.class);
+            if (!builderMethod.getDeclaringClass().getName().equals("net.luckperms.api.node.types.InheritanceNode")) {
+                return null;
+            }
+            Object builder = builderMethod.invoke(null, group);
+            return applyServerContext(builder, settings);
+        } catch (ReflectiveOperationException ignored) {
+            return null;
+        }
+    }
+
+    private static Object buildGroupPermissionNode(String group, PrefixConfig.Settings settings)
+            throws ReflectiveOperationException {
+        Class<?> nodeClass = Class.forName("net.luckperms.api.node.Node");
+        Method builderMethod = nodeClass.getMethod("builder", String.class);
+        Object builder = builderMethod.invoke(null, InheritanceNodes.permissionKey(group));
+        return applyServerContext(builder, settings);
+    }
+
+    static List<String> groupsNotInherited(Collection<String> requested, Collection<String> held) {
+        if (requested == null || requested.isEmpty()) {
+            return List.of();
+        }
+        Set<String> have = new LinkedHashSet<>();
+        if (held != null) {
+            for (String name : held) {
+                String normalized = PrefixSnapshot.normalize(name);
+                if (normalized != null) {
+                    have.add(normalized);
+                }
+            }
+        }
+        List<String> missing = new ArrayList<>();
+        for (String name : requested) {
+            String normalized = PrefixSnapshot.normalize(name);
+            if (normalized != null && !have.contains(normalized) && !missing.contains(normalized)) {
+                missing.add(normalized);
+            }
+        }
+        return List.copyOf(missing);
+    }
+
+    private static String nodeKey(Object node) {
+        if (node == null) {
+            return "";
+        }
+        try {
+            Object key = LuckPermsIntegration.invoke(node, "getKey");
+            return key == null ? "" : key.toString();
+        } catch (ReflectiveOperationException ignored) {
+            return "";
+        }
+    }
+
+    private static UUID uniqueIdOf(Object user) {
+        if (user == null) {
+            return null;
+        }
+        try {
+            Object id = LuckPermsIntegration.invoke(user, "getUniqueId");
+            return id instanceof UUID uuid ? uuid : null;
+        } catch (ReflectiveOperationException ignored) {
+            return null;
+        }
+    }
+
+    static String selectionMetaKey(PrefixConfig.Settings settings) {
+        return PREFIX_SELECT_KEY;
+    }
+
+    static boolean isSelectionMetaKey(String key, PrefixConfig.Settings settings) {
+        if (key == null || key.isBlank()) {
+            return false;
+        }
+        return PREFIX_SELECT_KEY.equalsIgnoreCase(key)
+                || LEGACY_QUEST_PREFIX_KEY.equalsIgnoreCase(key)
+                || (settings != null && settings.prefixMetaKey() != null
+                && settings.prefixMetaKey().equalsIgnoreCase(key));
+    }
+
+    private static Set<String> rankPrefixTexts() {
+        Set<String> texts = new LinkedHashSet<>();
+        for (String group : ranksTrackGroups()) {
+            String raw = readOwnPrefix(findGroup(group)).raw();
+            if (raw != null && !raw.isBlank()) {
+                texts.add(raw);
+            }
+        }
+        return texts;
     }
 
     private static boolean isInheritanceGroup(Object node, Object inheritanceType, String group) {

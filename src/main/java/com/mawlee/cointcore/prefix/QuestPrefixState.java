@@ -10,7 +10,8 @@ public record QuestPrefixState(
         String selectedGroup,
         String prefixRaw,
         int ourPrefixNodes,
-        int ourMetaNodes
+        int ourMetaNodes,
+        boolean staleMeta
 ) {
     public QuestPrefixState {
         selectedGroup = PrefixSnapshot.normalize(selectedGroup);
@@ -26,7 +27,8 @@ public record QuestPrefixState(
                 group,
                 prefix,
                 prefix == null ? 0 : 1,
-                group == null ? 0 : 1
+                group == null ? 0 : 1,
+                false
         );
     }
 
@@ -36,14 +38,25 @@ public record QuestPrefixState(
             int ourPrefixNodes,
             int ourMetaNodes
     ) {
-        return new QuestPrefixState(selectedGroup, prefixRaw, ourPrefixNodes, ourMetaNodes);
+        return current(selectedGroup, prefixRaw, ourPrefixNodes, ourMetaNodes, false);
+    }
+
+    public static QuestPrefixState current(
+            String selectedGroup,
+            String prefixRaw,
+            int ourPrefixNodes,
+            int ourMetaNodes,
+            boolean staleMeta
+    ) {
+        return new QuestPrefixState(selectedGroup, prefixRaw, ourPrefixNodes, ourMetaNodes, staleMeta);
     }
 
     public boolean needsWrite(QuestPrefixState desired) {
         if (desired == null) {
             return false;
         }
-        return ourPrefixNodes != desired.ourPrefixNodes
+        return staleMeta
+                || ourPrefixNodes != desired.ourPrefixNodes
                 || ourMetaNodes != desired.ourMetaNodes
                 || !Objects.equals(selectedGroup, desired.selectedGroup)
                 || !Objects.equals(prefixRaw, desired.prefixRaw);
