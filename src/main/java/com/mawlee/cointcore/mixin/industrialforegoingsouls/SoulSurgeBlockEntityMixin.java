@@ -24,7 +24,6 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -39,22 +38,15 @@ import java.util.List;
  * Facing is read by property name {@code facing} (Titanium
  * {@code RotatableBlock.FACING_ALL}), not {@code BlockStateProperties} identity.
  * A target may be claimed by at most one surge per game tick (sticky owner),
- * and only after IF Souls 1.10.7 has {@code tickingTime > 0} (soul already
- * paid or just consumed from the pipe network). A surge that fails to
- * accelerate releases immediately.
+ * and only when IF Souls will accelerate this tick: leftover {@code tickingTime}
+ * or souls on the pipe {@code SoulNetwork} (not a local tank). A surge that
+ * fails to accelerate releases immediately.
  * No deny lists, no chunk-limit gate, no entity / random-tick / neighbour scans.
  */
 @Mixin(targets = "com.buuz135.industrialforegoingsouls.block.tile.SoulSurgeBlockEntity", remap = false)
 public abstract class SoulSurgeBlockEntityMixin {
     private static final String SERVER_TICK =
             "serverTick(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lcom/buuz135/industrialforegoingsouls/block/tile/SoulSurgeBlockEntity;)V";
-
-    /**
-     * Leftover paid soul duration. IF Souls refills this from the network
-     * before {@code getBlockState} / ticker calls when it was {@code <= 0}.
-     */
-    @Shadow(remap = false)
-    private int tickingTime;
 
     @Unique
     private long cointcore$claimedTargetPacked;
@@ -100,8 +92,10 @@ public abstract class SoulSurgeBlockEntityMixin {
             cointcore$releaseClaim(level);
             return Blocks.AIR.defaultBlockState();
         }
-        // After IF Souls soul refill: only tickingTime > 0 may reserve the target.
-        if (!cointcore$tryAccelerate(level, queryPos, this.tickingTime > 0)) {
+        // This invoke is inside IF Souls `if (tickingTime > 0)` after the
+        // SoulNetwork refill. Do not re-test a @Shadow tickingTime: compat
+        // defaultRequire 0 can leave a dummy 0 and starve a fed surge.
+        if (!cointcore$tryAccelerate(level, queryPos, true)) {
             return Blocks.AIR.defaultBlockState();
         }
         return queried;
@@ -159,7 +153,7 @@ public abstract class SoulSurgeBlockEntityMixin {
             cointcore$releaseClaim(level);
             return;
         }
-        if (!cointcore$tryAccelerate(level, targetPos, this.tickingTime > 0)) {
+        if (!cointcore$tryAccelerate(level, targetPos, true)) {
             return;
         }
         cointcore$acceleratedThisTick = true;

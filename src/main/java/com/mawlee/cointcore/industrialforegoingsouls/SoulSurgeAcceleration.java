@@ -4,17 +4,18 @@ package com.mawlee.cointcore.industrialforegoingsouls;
  * When a Soul Surge may take the per-tick claim, matching Industrial
  * Foregoing Souls 1.10.7 {@code SoulSurgeBlockEntity.serverTick}.
  * <p>
- * IF Souls works this tick only after the soul refill attempt: if
- * {@code tickingTime <= 0} it consumes one soul from the pipe network
- * ({@code getSoulAmount() > 0} then {@code useSoul}) and sets
- * {@code tickingTime = SOUL_TIME}. Acceleration (and soul-time spend)
- * runs only when {@code tickingTime > 0} afterwards. An isolated surge
- * still has a network element, but {@code getSoulAmount()} is 0, so it
- * never enters that block.
+ * The surge has no local soul tank. Each tick IF Souls does: if
+ * {@code tickingTime <= 0} it reads {@code SoulNetwork} via
+ * {@code getNetwork()} / {@code NetworkManager.get(level).getElement(pos)}
+ * and, when {@code getSoulAmount() > 0}, {@code useSoul} then
+ * {@code tickingTime = SOUL_TIME}. {@code getBlockState} / ticker run
+ * only inside {@code if (tickingTime > 0)} afterwards. Pre-1.10.2 builds
+ * pulled the same soul from connected laser bases
+ * ({@code getSoulLaserDrills()}) instead of the network tank.
  * <p>
  * Equivalent pre-refill test: leftover {@code tickingTime > 0} or the
- * network can supply a soul. Claim only when that is true; otherwise
- * release immediately so another surge can take over this tick.
+ * network (or laser bases) can supply a soul. Claim only when that is
+ * true; otherwise release immediately so another surge can take over.
  */
 public final class SoulSurgeAcceleration {
     private SoulSurgeAcceleration() {
