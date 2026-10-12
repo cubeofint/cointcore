@@ -38,6 +38,7 @@ import com.mawlee.cointcore.watchdog.probes.WatchdogProbeConfig;
 import com.mawlee.cointcore.config.TraderOffersConfig;
 import com.mawlee.cointcore.config.CurrencyMovementConfig;
 import com.mawlee.cointcore.config.PrefixConfig;
+import com.mawlee.cointcore.config.QuestRankConfig;
 import com.mawlee.cointcore.config.DimensionWipeConfig;
 import com.mawlee.cointcore.config.StarterKitConfig;
 import com.mawlee.cointcore.server.PeriodicMessageService;
@@ -118,7 +119,8 @@ public final class CointCoreCommand {
                 .then(SoulSurgeCommand.branch())
                 .then(GluonWalletCommand.branch())
                 .then(SpeedrunnerCommand.branch())
-                .then(PrefixAdminCommand.branch());
+                .then(PrefixAdminCommand.branch())
+                .then(QuestRankCommand.branch());
 
         var claimFlags = ClaimFlagCommand.claimFlagCommand();
         if (claimFlags != null) {
@@ -180,7 +182,8 @@ public final class CointCoreCommand {
                 && WatchdogProbeConfig.reload()
                 && TraderOffersConfig.reload()
                 && CurrencyMovementConfig.reload()
-                && PrefixConfig.reload()) {
+                && PrefixConfig.reload()
+                && QuestRankConfig.reload()) {
             CrushRecipeCache.invalidate();
             ArsGlyphThrottle.clear();
             NonStackableItemTagPack.ensureGenerated();

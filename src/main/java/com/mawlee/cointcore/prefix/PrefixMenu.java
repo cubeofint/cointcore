@@ -55,7 +55,7 @@ public final class PrefixMenu extends ChestMenu {
         }
         String group = slotGroups.get(slotId);
         selecting = true;
-        if (group == null) {
+        if (PrefixGuiSlots.isAuto(group)) {
             PrefixSelectionService.selectAuto(player.server, player.getUUID(), decision -> {
                 PrefixCommand.notifyDecision(player, decision);
                 player.closeContainer();

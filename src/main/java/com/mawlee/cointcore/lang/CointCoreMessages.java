@@ -284,6 +284,12 @@ public final class CointCoreMessages {
     public static final String SPEEDRUNNER_SET = "message.cointcore.speedrunner.set";
     public static final String SPEEDRUNNER_SET_NEEDS_TICKS = "message.cointcore.speedrunner.set.needs_ticks";
     public static final String SPEEDRUNNER_PLAYER_NOT_FOUND = "message.cointcore.speedrunner.player_not_found";
+    public static final String QUEST_RANKS_STATUS = "message.cointcore.questranks.status";
+    public static final String QUEST_RANKS_DISABLED = "message.cointcore.questranks.disabled";
+    public static final String QUEST_RANKS_UNAVAILABLE = "message.cointcore.questranks.unavailable";
+    public static final String QUEST_RANKS_SYNC_ALL = "message.cointcore.questranks.sync.all";
+    public static final String QUEST_RANKS_SYNC_PLAYER = "message.cointcore.questranks.sync.player";
+    public static final String QUEST_RANKS_PLAYER_OFFLINE = "message.cointcore.questranks.player_offline";
 
     private CointCoreMessages() {
     }

@@ -75,6 +75,7 @@ public class CointCore {
                     com.mawlee.cointcore.prefix.PrefixSiteBridge.tick(event.getServer());
                     com.mawlee.cointcore.prefix.PrefixCatalogExporter.tick(event.getServer());
                     com.mawlee.cointcore.prefix.PrefixBulkReportService.tick(event.getServer());
+                    com.mawlee.cointcore.questrank.QuestRankService.tick(event.getServer());
                 });
     }
 }

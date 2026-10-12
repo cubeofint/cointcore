@@ -565,5 +565,11 @@
   "message.cointcore.speedrunner.reset": "&aРекорд спидранера сброшен.",
   "message.cointcore.speedrunner.set": "&aСпидранер установлен: &f%s &7(%s, %s тиков).",
   "message.cointcore.speedrunner.set.needs_ticks": "&cИгрок &f%s &cофлайн. Укажите тики: /cointcore speedrunner set <игрок> <тики>",
-  "message.cointcore.speedrunner.player_not_found": "&cИгрок &f%s &cне найден."
+  "message.cointcore.speedrunner.player_not_found": "&cИгрок &f%s &cне найден.",
+  "message.cointcore.questranks.status": "&7Квестовые ранги: &f%s",
+  "message.cointcore.questranks.disabled": "&cВыдача рангов по квестам выключена в quest-ranks.json.",
+  "message.cointcore.questranks.unavailable": "&cВыдача рангов по квестам недоступна: &f%s",
+  "message.cointcore.questranks.sync.all": "&aСинк квестовых рангов: &f%s &aонлайн, выдано &f%s&a, уже есть &f%s&a.",
+  "message.cointcore.questranks.sync.player": "&aСинк квестовых рангов для &f%s&a: выдано &f%s&a, уже есть &f%s&a.",
+  "message.cointcore.questranks.player_offline": "&cИгрок &f%s &cне в сети. Офлайн игроки получат ранг при входе."
 }
