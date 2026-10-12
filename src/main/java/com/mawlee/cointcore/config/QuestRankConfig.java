@@ -19,7 +19,9 @@ import java.util.Map;
 
 /**
  * File: {@code config/cointcore/quest-ranks.json}.
- * Maps FTB Quests ids (hex) to LuckPerms groups.
+ * Maps FTB Quests ids (hex) to LuckPerms groups. Rank completions are per-player;
+ * {@code resetRankQuestTeamProgress} (default true) clears that quest on the FTB team
+ * after crediting so a teammate can complete it themselves.
  */
 public final class QuestRankConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -49,13 +51,14 @@ public final class QuestRankConfig {
             return false;
         }
         apply(loaded);
-        LOGGER.info(
-                "Reloaded quest-rank config (enabled={}, mappings={}, sweep={}s) from {}",
-                settings.enabled(),
-                settings.table().size(),
-                settings.sweepIntervalSeconds(),
-                getConfigPath()
-        );
+                LOGGER.info(
+                        "Reloaded quest-rank config (enabled={}, mappings={}, sweep={}s, resetTeamProgress={}) from {}",
+                        settings.enabled(),
+                        settings.table().size(),
+                        settings.sweepIntervalSeconds(),
+                        settings.resetRankQuestTeamProgress(),
+                        getConfigPath()
+                );
         return true;
     }
 
@@ -80,10 +83,11 @@ public final class QuestRankConfig {
                 QuestRankSettings parsed = fromFile(data);
                 if (!reloading) {
                     LOGGER.info(
-                            "Loaded quest-rank config (enabled={}, mappings={}, sweep={}s) from {}",
+                            "Loaded quest-rank config (enabled={}, mappings={}, sweep={}s, resetTeamProgress={}) from {}",
                             parsed.enabled(),
                             parsed.table().size(),
                             parsed.sweepIntervalSeconds(),
+                            parsed.resetRankQuestTeamProgress(),
                             path
                     );
                 }
@@ -99,19 +103,27 @@ public final class QuestRankConfig {
         if (data == null) {
             return QuestRankSettings.defaults();
         }
-        return QuestRankSettings.from(data.enabled, data.sweepIntervalSeconds, data.quests);
+        return QuestRankSettings.from(
+                data.enabled,
+                data.sweepIntervalSeconds,
+                data.resetRankQuestTeamProgress,
+                data.quests
+        );
     }
 
     static final class FileData {
         Boolean enabled;
         @SerializedName("sweepIntervalSeconds")
         Integer sweepIntervalSeconds;
+        @SerializedName("resetRankQuestTeamProgress")
+        Boolean resetRankQuestTeamProgress;
         Map<String, String> quests;
 
         static FileData defaults() {
             FileData data = new FileData();
             data.enabled = true;
             data.sweepIntervalSeconds = DEFAULT_SWEEP_INTERVAL_SECONDS;
+            data.resetRankQuestTeamProgress = true;
             data.quests = defaultQuests();
             return data;
         }

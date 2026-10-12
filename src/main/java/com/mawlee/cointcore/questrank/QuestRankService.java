@@ -4,16 +4,14 @@ import com.mawlee.cointcore.config.QuestRankConfig;
 import com.mawlee.cointcore.luckperms.LuckPermsIntegration;
 import com.mawlee.cointcore.luckperms.LuckPermsUsers;
 import com.mojang.logging.LogUtils;
-import dev.ftb.mods.ftbteams.api.Team;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -21,13 +19,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Grants LuckPerms groups for completed FTB team quests to every team member,
- * including offline players. Players who later join a team with completed rank
- * quests are granted on the next sweep (uuid→teamId change) or immediately via
- * {@link FtbTeamJoinHook}. Groups are never removed.
+ * Grants LuckPerms groups for mapped FTB rank quests to the player who completed them.
+ * FTB Quests progress is team-shared, so completion is attributed via
+ * {@code ServerQuestFile.getCurrentPlayer()} and stored per player. Groups are never removed.
  *
- * <p>There is no FTB Quests completion-event hook (Architectury EventActor
- * mismatch crashed the server in #49).
+ * <p>Login and sweep only replay already recorded per-player completions. They do not
+ * infer ranks from team quest progress, grant teammates, or grant on team join.
  *
  * <p>Prefix sync path: {@link LuckPermsUsers#addGroups} uses LuckPerms {@code modifyUser}
  * (console-level API, not a player command). That save fires {@code UserDataRecalculateEvent}.
@@ -54,6 +51,7 @@ public final class QuestRankService {
         fullPassTicks = 0;
         pendingFullPass = true;
         CACHE.reset();
+        QuestRankOnce.reset();
         if (minecraftServer == null) {
             return;
         }
@@ -64,54 +62,115 @@ public final class QuestRankService {
         if (!LuckPermsIntegration.isAvailable()) {
             LOGGER.info("Quest-rank grants inactive: LuckPerms is not loaded");
         }
-        if (!FtbQuestProgress.isAvailable()) {
-            LOGGER.info("Quest-rank grants inactive until FTB Quests and FTB Teams are loaded");
+        if (!FtbQuestProgress.isQuestsLoaded()) {
+            LOGGER.info("Quest-rank grants inactive until FTB Quests is loaded");
         }
-        if (FtbQuestProgress.isTeamsLoaded()) {
-            FtbTeamJoinHook.register();
+        try {
+            FtbQuestCompletionHook.register();
+        } catch (Throwable exception) {
+            warnOnce("register-hook", exception);
         }
         LOGGER.info(
-                "Quest-rank grants ready (mappings={}, sweep={}s, full-pass={}s)",
+                "Quest-rank grants ready (mappings={}, sweep={}s, resetTeamProgress={})",
                 QuestRankConfig.get().table().size(),
                 QuestRankConfig.get().sweepIntervalSeconds(),
-                QuestRankGrantCache.FULL_PASS_INTERVAL_SECONDS
+                QuestRankConfig.get().resetRankQuestTeamProgress()
         );
     }
 
     public static void onServerStarted(MinecraftServer minecraftServer) {
-        server = minecraftServer;
-        if (!ready()) {
-            return;
+        try {
+            server = minecraftServer;
+            if (!ready()) {
+                return;
+            }
+            sweep(minecraftServer, QuestRankTeamSyncLogic.REASON_SWEEP, true);
+            pendingFullPass = false;
+            fullPassTicks = 0;
+        } catch (Throwable exception) {
+            warnOnce("server-started", exception);
         }
-        sweep(minecraftServer, QuestRankTeamSyncLogic.REASON_SWEEP, true);
-        pendingFullPass = false;
-        fullPassTicks = 0;
     }
 
     public static void onPlayerJoin(ServerPlayer player) {
-        if (!ready()) {
-            return;
+        try {
+            if (!ready()) {
+                return;
+            }
+            syncPlayer(player, QuestRankTeamSyncLogic.REASON_LOGIN);
+        } catch (Throwable exception) {
+            warnOnce(playerKey(player == null ? null : player.getUUID()), exception);
         }
-        syncPlayer(player, QuestRankTeamSyncLogic.REASON_LOGIN);
     }
 
     public static void tick(MinecraftServer minecraftServer) {
-        if (!ready()) {
-            return;
+        try {
+            if (!ready()) {
+                return;
+            }
+            int intervalTicks = QuestRankConfig.get().sweepIntervalTicks();
+            sweepTicks++;
+            fullPassTicks++;
+            if (sweepTicks < intervalTicks) {
+                return;
+            }
+            sweepTicks = 0;
+            int fullPassIntervalTicks = QuestRankGrantCache.FULL_PASS_INTERVAL_SECONDS * 20;
+            boolean fullPass = pendingFullPass || fullPassTicks >= fullPassIntervalTicks;
+            sweep(minecraftServer, QuestRankTeamSyncLogic.REASON_SWEEP, fullPass);
+            if (fullPass) {
+                pendingFullPass = false;
+                fullPassTicks = 0;
+            }
+        } catch (Throwable exception) {
+            warnOnce("tick", exception);
         }
-        int intervalTicks = QuestRankConfig.get().sweepIntervalTicks();
-        sweepTicks++;
-        fullPassTicks++;
-        if (sweepTicks < intervalTicks) {
-            return;
-        }
-        sweepTicks = 0;
-        int fullPassIntervalTicks = QuestRankGrantCache.FULL_PASS_INTERVAL_SECONDS * 20;
-        boolean fullPass = pendingFullPass || fullPassTicks >= fullPassIntervalTicks;
-        sweep(minecraftServer, QuestRankTeamSyncLogic.REASON_SWEEP, fullPass);
-        if (fullPass) {
-            pendingFullPass = false;
-            fullPassTicks = 0;
+    }
+
+    public static void onMappedQuestCompleted(
+            long questId,
+            UUID currentPlayerId,
+            List<UUID> notifiedPlayers,
+            List<UUID> onlineMembers,
+            UUID teamId
+    ) {
+        try {
+            if (!QuestRankConfig.get().enabled()) {
+                return;
+            }
+            QuestRankTable table = QuestRankConfig.get().table();
+            Optional<String> group = table.groupFor(questId);
+            if (group.isEmpty()) {
+                return;
+            }
+            Optional<UUID> playerId = QuestRankAttribution.completingPlayer(
+                    currentPlayerId,
+                    notifiedPlayers,
+                    onlineMembers
+            );
+            if (playerId.isEmpty()) {
+                LOGGER.debug(
+                        "Quest-rank skip unattributed completion quest={}",
+                        QuestRankIds.toHex(questId)
+                );
+                return;
+            }
+            MinecraftServer minecraftServer = server != null ? server : FtbQuestProgress.questServer();
+            if (minecraftServer == null) {
+                return;
+            }
+            QuestRankSavedData.get(minecraftServer).record(playerId.get(), questId);
+            CACHE.invalidatePlayer(playerId.get());
+            if (QuestRankConfig.get().resetRankQuestTeamProgress() && teamId != null) {
+                try {
+                    FtbQuestProgress.resetMappedQuest(teamId, questId, playerId.get());
+                } catch (Throwable exception) {
+                    warnOnce("reset:" + teamId, exception);
+                }
+            }
+            grantRecorded(minecraftServer, playerId.get(), QuestRankTeamSyncLogic.REASON_QUEST_COMPLETE);
+        } catch (Throwable exception) {
+            warnOnce(playerKey(currentPlayerId), exception);
         }
     }
 
@@ -120,82 +179,64 @@ public final class QuestRankService {
     }
 
     public static SyncSummary sweep(MinecraftServer minecraftServer, String reason, boolean fullPass) {
-        if (minecraftServer == null || !ready()) {
-            return remember(SyncSummary.unavailable(reason));
+        try {
+            if (minecraftServer == null || !ready()) {
+                return remember(SyncSummary.unavailable(reason));
+            }
+            List<UUID> players = new ArrayList<>();
+            for (ServerPlayer player : minecraftServer.getPlayerList().getPlayers()) {
+                if (player != null) {
+                    players.add(player.getUUID());
+                }
+            }
+            if (fullPass) {
+                LOGGER.debug("Quest-rank full-pass sweep of {} online players", players.size());
+            }
+            return remember(grantPlayers(minecraftServer, players, reason));
+        } catch (Throwable exception) {
+            warnOnce("sweep", exception);
+            return remember(SyncSummary.failed(reason));
         }
-        return remember(syncTeams(minecraftServer, collectTeams(minecraftServer, fullPass), reason));
     }
 
     public static SyncSummary syncPlayer(ServerPlayer player, String reason) {
-        if (player == null || !ready()) {
-            return player == null ? SyncSummary.EMPTY : remember(SyncSummary.unavailable(reason));
+        try {
+            if (player == null || !ready()) {
+                return player == null ? SyncSummary.EMPTY : remember(SyncSummary.unavailable(reason));
+            }
+            return remember(grantRecorded(player.server, player.getUUID(), reason));
+        } catch (Throwable exception) {
+            UUID playerId = player == null ? null : player.getUUID();
+            warnOnce(playerKey(playerId), exception);
+            return remember(SyncSummary.failed(reason));
         }
-        Optional<Team> team = FtbQuestProgress.teamOf(player);
-        if (team.isEmpty()) {
-            return remember(syncPlayers(List.of(player), reason));
-        }
-        return remember(syncTeamMembers(
-                player.server,
-                team.get(),
-                Set.of(player.getUUID()),
-                reason
-        ));
-    }
-
-    public static SyncSummary syncTeam(MinecraftServer minecraftServer, Team team, String reason) {
-        if (minecraftServer == null || team == null || !ready()) {
-            return remember(SyncSummary.unavailable(reason));
-        }
-        return remember(syncTeams(minecraftServer, List.of(team), reason));
     }
 
     public static SyncSummary syncPlayers(Collection<ServerPlayer> players, String reason) {
-        if (!ready() || players == null || players.isEmpty()) {
-            return SyncSummary.unavailable(reason);
-        }
-        Map<UUID, Team> teams = new LinkedHashMap<>();
-        List<ServerPlayer> withoutTeam = new ArrayList<>();
-        for (ServerPlayer player : players) {
-            if (player == null) {
-                continue;
+        try {
+            if (!ready() || players == null || players.isEmpty()) {
+                return SyncSummary.unavailable(reason);
             }
-            Optional<Team> team = FtbQuestProgress.teamOf(player);
-            if (team.isPresent()) {
-                teams.put(team.get().getId(), team.get());
-            } else {
-                withoutTeam.add(player);
-            }
-        }
-        SyncSummary teamSummary = teams.isEmpty()
-                ? SyncSummary.EMPTY
-                : syncTeams(serverOf(players), teams.values(), reason);
-        if (withoutTeam.isEmpty()) {
-            return teamSummary;
-        }
-        return merge(teamSummary, grantOnlineWithoutTeam(withoutTeam, reason));
-    }
-
-    private static Collection<Team> collectTeams(MinecraftServer minecraftServer, boolean fullPass) {
-        Map<UUID, Team> teams = new LinkedHashMap<>();
-        if (fullPass && FtbQuestProgress.isManagerLoaded()) {
-            for (Team team : FtbQuestProgress.allTeams()) {
-                if (team != null) {
-                    teams.put(team.getId(), team);
+            MinecraftServer minecraftServer = serverOf(players);
+            List<UUID> ids = new ArrayList<>();
+            for (ServerPlayer player : players) {
+                if (player != null) {
+                    ids.add(player.getUUID());
                 }
             }
+            return remember(grantPlayers(minecraftServer, ids, reason));
+        } catch (Throwable exception) {
+            warnOnce("sync-players", exception);
+            return remember(SyncSummary.failed(reason));
         }
-        for (ServerPlayer player : minecraftServer.getPlayerList().getPlayers()) {
-            FtbQuestProgress.teamOf(player).ifPresent(team -> teams.put(team.getId(), team));
-        }
-        return teams.values();
     }
 
-    private static SyncSummary syncTeams(
+    private static SyncSummary grantPlayers(
             MinecraftServer minecraftServer,
-            Collection<Team> teams,
+            Collection<UUID> playerIds,
             String reason
     ) {
-        if (minecraftServer == null || teams == null || teams.isEmpty()) {
+        if (minecraftServer == null || playerIds == null || playerIds.isEmpty()) {
             return new SyncSummary(reason, 0, 0, 0, 0, List.of(), "ok");
         }
         int granted = 0;
@@ -203,156 +244,89 @@ public final class QuestRankService {
         int failed = 0;
         int scanned = 0;
         List<String> grantedNames = new ArrayList<>();
-        for (Team team : teams) {
-            if (team == null) {
+        for (UUID playerId : playerIds) {
+            if (playerId == null) {
                 continue;
             }
-            SyncSummary part = syncTeamMembers(minecraftServer, team, team.getMembers(), reason);
-            scanned += part.scanned();
-            granted += part.granted();
-            already += part.already();
-            failed += part.failed();
-            grantedNames.addAll(part.grantedNames());
+            try {
+                SyncSummary part = grantRecorded(minecraftServer, playerId, reason);
+                scanned += part.scanned();
+                granted += part.granted();
+                already += part.already();
+                failed += part.failed();
+                grantedNames.addAll(part.grantedNames());
+            } catch (Throwable exception) {
+                failed++;
+                scanned++;
+                warnOnce(playerKey(playerId), exception);
+            }
         }
         SyncSummary summary = new SyncSummary(reason, scanned, granted, already, failed, grantedNames, "ok");
         LOGGER.debug("Quest-rank {} scanned={} granted={} already={}", reason, scanned, granted, already);
         return summary;
     }
 
-    private static SyncSummary syncTeamMembers(
-            MinecraftServer minecraftServer,
-            Team team,
-            Collection<UUID> members,
-            String callerReason
-    ) {
+    private static SyncSummary grantRecorded(MinecraftServer minecraftServer, UUID playerId, String callerReason) {
         QuestRankTable table = QuestRankConfig.get().table();
-        if (table.isEmpty() || members == null || members.isEmpty()) {
+        if (minecraftServer == null || playerId == null || table.isEmpty()) {
             return new SyncSummary(callerReason, 0, 0, 0, 0, List.of(), table.isEmpty() ? "no mappings" : "ok");
         }
-        UUID teamId = team.getId();
-        Set<Long> completed = FtbQuestProgress.completedMapped(teamId, table.questIds());
-        int completedHash = QuestRankGrantCache.hashCompleted(completed);
-        Set<UUID> memberSet = Set.copyOf(members);
-        CACHE.updateTeamState(teamId, memberSet, completedHash);
-
-        int granted = 0;
-        int already = 0;
-        int failed = 0;
-        int scanned = 0;
-        List<String> grantedNames = new ArrayList<>();
-        for (UUID memberId : memberSet) {
-            if (memberId == null) {
-                continue;
+        Set<Long> recorded = mappedCompletions(QuestRankSavedData.get(minecraftServer).completed(playerId), table);
+        int hash = QuestRankGrantCache.hashCompleted(recorded);
+        String reason = QuestRankTeamSyncLogic.grantReason(callerReason);
+        boolean cacheHit = CACHE.alreadyGranted(playerId, hash);
+        int mapped = QuestRankGrantLogic.groupsToGrant(recorded, Set.of(), table).size();
+        if (!QuestRankTeamSyncLogic.needsLuckPermsLoad(cacheHit, recorded, table)) {
+            if (!cacheHit && mapped == 0) {
+                CACHE.markGranted(playerId, hash);
             }
-            scanned++;
-            boolean teamChanged = CACHE.trackTeam(memberId, teamId).isPresent();
-            boolean online = minecraftServer.getPlayerList().getPlayer(memberId) != null;
-            String reason = QuestRankTeamSyncLogic.grantReason(teamChanged, online, callerReason);
-            boolean cacheHit = CACHE.alreadyGranted(memberId, teamId, completedHash);
-            int mapped = QuestRankGrantLogic.groupsToGrant(completed, Set.of(), table).size();
-            if (!QuestRankTeamSyncLogic.needsLuckPermsLoad(cacheHit, completed, table)) {
-                already += mapped;
-                if (!cacheHit) {
-                    CACHE.markGranted(memberId, teamId, completedHash);
-                }
-                continue;
-            }
-            MemberGrant result = ensureGroups(
-                    minecraftServer,
-                    memberId,
-                    teamId,
-                    completed,
-                    completedHash,
-                    table,
-                    reason,
-                    mapped
-            );
-            granted += result.granted();
-            already += result.already();
-            failed += result.failed();
-            if (!result.label().isEmpty()) {
-                grantedNames.add(result.label());
-            }
+            return new SyncSummary(reason, 1, 0, mapped, 0, List.of(), "ok");
         }
-        return new SyncSummary(callerReason, scanned, granted, already, failed, grantedNames, "ok");
-    }
-
-    private static SyncSummary grantOnlineWithoutTeam(Collection<ServerPlayer> players, String reason) {
-        QuestRankTable table = QuestRankConfig.get().table();
-        int granted = 0;
-        int already = 0;
-        int failed = 0;
-        int scanned = 0;
-        List<String> grantedNames = new ArrayList<>();
-        for (ServerPlayer player : players) {
-            scanned++;
-            UUID playerId = player.getUUID();
-            Set<Long> completed = FtbQuestProgress.completedMapped(player, table.questIds());
-            int hash = QuestRankGrantCache.hashCompleted(completed);
-            boolean cacheHit = CACHE.alreadyGranted(playerId, playerId, hash);
-            int mapped = QuestRankGrantLogic.groupsToGrant(completed, Set.of(), table).size();
-            if (!QuestRankTeamSyncLogic.needsLuckPermsLoad(cacheHit, completed, table)) {
-                already += mapped;
-                if (!cacheHit) {
-                    CACHE.markGranted(playerId, playerId, hash);
-                }
-                continue;
-            }
-            MemberGrant result = ensureGroups(
-                    player.server,
-                    playerId,
-                    playerId,
-                    completed,
-                    hash,
-                    table,
-                    reason,
-                    mapped
-            );
-            granted += result.granted();
-            already += result.already();
-            failed += result.failed();
-            if (!result.label().isEmpty()) {
-                grantedNames.add(result.label());
-            }
-        }
-        return new SyncSummary(reason, scanned, granted, already, failed, grantedNames, "ok");
-    }
-
-    private static MemberGrant ensureGroups(
-            MinecraftServer minecraftServer,
-            UUID playerId,
-            UUID teamId,
-            Set<Long> completed,
-            int completedHash,
-            QuestRankTable table,
-            String reason,
-            int mapped
-    ) {
         ServerPlayer onlinePlayer = minecraftServer.getPlayerList().getPlayer(playerId);
         boolean online = onlinePlayer != null;
         String fallbackName = online ? onlinePlayer.getGameProfile().getName() : "offline";
         if (online) {
             Set<String> held = LuckPermsUsers.inheritedGroupNames(playerId);
-            List<String> missing = QuestRankGrantLogic.groupsToGrant(completed, held, table);
+            List<String> missing = QuestRankGrantLogic.groupsToGrant(recorded, held, table);
             if (QuestRankTeamSyncLogic.shouldBackoff(reason)) {
                 missing = QuestRankGrantBackoff.filter(playerId, missing);
             }
             int already = Math.max(0, mapped - missing.size());
             if (missing.isEmpty()) {
-                CACHE.markGranted(playerId, teamId, completedHash);
-                return new MemberGrant(0, already, 0, "");
+                CACHE.markGranted(playerId, hash);
+                return new SyncSummary(reason, 1, 0, already, 0, List.of(), "ok");
             }
-            scheduleGrant(minecraftServer, playerId, teamId, completed, completedHash, table, reason, missing, fallbackName);
-            return new MemberGrant(missing.size(), already, 0, fallbackName + "=" + String.join(",", missing));
+            scheduleGrant(minecraftServer, playerId, recorded, hash, table, reason, missing, fallbackName);
+            return new SyncSummary(
+                    reason,
+                    1,
+                    missing.size(),
+                    already,
+                    0,
+                    List.of(fallbackName + "=" + String.join(",", missing)),
+                    "ok"
+            );
         }
-        scheduleGrant(minecraftServer, playerId, teamId, completed, completedHash, table, reason, null, fallbackName);
-        return new MemberGrant(0, 0, 0, "");
+        scheduleGrant(minecraftServer, playerId, recorded, hash, table, reason, null, fallbackName);
+        return new SyncSummary(reason, 1, 0, 0, 0, List.of(), "ok");
+    }
+
+    private static Set<Long> mappedCompletions(Set<Long> recorded, QuestRankTable table) {
+        if (recorded == null || recorded.isEmpty() || table == null || table.isEmpty()) {
+            return Set.of();
+        }
+        Set<Long> mapped = new LinkedHashSet<>();
+        for (long questId : recorded) {
+            if (table.groupFor(questId).isPresent()) {
+                mapped.add(questId);
+            }
+        }
+        return Set.copyOf(mapped);
     }
 
     private static void scheduleGrant(
             MinecraftServer minecraftServer,
             UUID playerId,
-            UUID teamId,
             Set<Long> completed,
             int completedHash,
             QuestRankTable table,
@@ -372,7 +346,7 @@ public final class QuestRankService {
                 missing = QuestRankGrantBackoff.filter(playerId, missing);
             }
             if (missing.isEmpty()) {
-                CACHE.markGranted(playerId, teamId, completedHash);
+                CACHE.markGranted(playerId, completedHash);
                 cleanupIfOffline(minecraftServer, playerId, user);
                 return CompletableFuture.completedFuture(null);
             }
@@ -382,7 +356,7 @@ public final class QuestRankService {
                 try {
                     finishGrant(playerId, name, toGrant, completed, table, reason, error);
                     if (error == null) {
-                        CACHE.markGranted(playerId, teamId, completedHash);
+                        CACHE.markGranted(playerId, completedHash);
                     }
                 } finally {
                     cleanupIfOffline(minecraftServer, playerId, user);
@@ -468,21 +442,7 @@ public final class QuestRankService {
                 return player.server;
             }
         }
-        return null;
-    }
-
-    private static SyncSummary merge(SyncSummary left, SyncSummary right) {
-        List<String> names = new ArrayList<>(left.grantedNames());
-        names.addAll(right.grantedNames());
-        return new SyncSummary(
-                left.reason().isEmpty() ? right.reason() : left.reason(),
-                left.scanned() + right.scanned(),
-                left.granted() + right.granted(),
-                left.already() + right.already(),
-                left.failed() + right.failed(),
-                names,
-                "ok"
-        );
+        return FtbQuestProgress.questServer();
     }
 
     public static SyncSummary lastSummary() {
@@ -495,8 +455,8 @@ public final class QuestRankService {
         return "enabled=" + settings.enabled()
                 + " mappings=" + settings.table().size()
                 + " sweep=" + settings.sweepIntervalSeconds() + "s"
+                + " resetTeamProgress=" + settings.resetRankQuestTeamProgress()
                 + " ftbquests=" + (FtbQuestProgress.isQuestsLoaded() ? "yes" : "no")
-                + " ftbteams=" + (FtbQuestProgress.isTeamsLoaded() ? "yes" : "no")
                 + " luckperms=" + (LuckPermsIntegration.isAvailable() ? "yes" : "no")
                 + " last=[" + last.reason()
                 + " scanned=" + last.scanned()
@@ -508,8 +468,22 @@ public final class QuestRankService {
     public static boolean ready() {
         return QuestRankConfig.get().enabled()
                 && LuckPermsIntegration.isAvailable()
-                && FtbQuestProgress.isAvailable()
                 && !QuestRankConfig.get().table().isEmpty();
+    }
+
+    public static void warnOnce(String key, Throwable error) {
+        if (!QuestRankOnce.first(key)) {
+            return;
+        }
+        if (error == null) {
+            LOGGER.warn("Quest-rank {} failed", key);
+            return;
+        }
+        LOGGER.warn("Quest-rank {} failed: {}", key, error.toString(), error);
+    }
+
+    private static String playerKey(UUID playerId) {
+        return "player:" + (playerId == null ? "unknown" : playerId);
     }
 
     private static String questHex(String group, Set<Long> completed, QuestRankTable table) {
@@ -524,9 +498,6 @@ public final class QuestRankService {
     private static SyncSummary remember(SyncSummary summary) {
         LAST.set(summary);
         return summary;
-    }
-
-    private record MemberGrant(int granted, int already, int failed, String label) {
     }
 
     public record SyncSummary(
@@ -552,12 +523,14 @@ public final class QuestRankService {
                 note = "disabled";
             } else if (!LuckPermsIntegration.isAvailable()) {
                 note = "luckperms missing";
-            } else if (!FtbQuestProgress.isAvailable()) {
-                note = "ftbquests/ftbteams missing";
             } else {
                 note = "unavailable";
             }
             return new SyncSummary(reason, 0, 0, 0, 0, List.of(), note);
+        }
+
+        static SyncSummary failed(String reason) {
+            return new SyncSummary(reason, 0, 0, 0, 1, List.of(), "error");
         }
     }
 }

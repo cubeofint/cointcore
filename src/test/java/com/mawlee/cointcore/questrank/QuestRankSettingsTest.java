@@ -11,8 +11,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class QuestRankSettingsTest {
     @Test
     void missingKeysKeepEnabledDefaultsAndNineMappings() {
-        QuestRankSettings settings = QuestRankSettings.from(null, null, null);
+        QuestRankSettings settings = QuestRankSettings.from(null, null, null, null);
         assertTrue(settings.enabled());
+        assertTrue(settings.resetRankQuestTeamProgress());
         assertEquals(20, settings.sweepIntervalSeconds());
         assertEquals(400, settings.sweepIntervalTicks());
         assertEquals(9, settings.table().size());
@@ -27,9 +28,11 @@ class QuestRankSettingsTest {
         QuestRankSettings settings = QuestRankSettings.from(
                 false,
                 15,
+                false,
                 Map.of("6491B39FBC0C53B2", "Titan")
         );
         assertFalse(settings.enabled());
+        assertFalse(settings.resetRankQuestTeamProgress());
         assertEquals(15, settings.sweepIntervalSeconds());
         assertEquals(1, settings.table().size());
         assertEquals(
@@ -52,5 +55,6 @@ class QuestRankSettingsTest {
     void defaultSweepIsTwentySecondsForLoginPlusSweepPath() {
         assertEquals(20, QuestRankSettings.DEFAULT_SWEEP_INTERVAL_SECONDS);
         assertEquals(400, QuestRankSettings.defaults().sweepIntervalTicks());
+        assertTrue(QuestRankSettings.defaults().resetRankQuestTeamProgress());
     }
 }

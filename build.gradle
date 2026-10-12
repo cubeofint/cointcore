@@ -36,6 +36,13 @@ repositories {
         }
     }
     maven {
+        name = 'Architectury'
+        url = 'https://maven.architectury.dev/'
+        content {
+            includeGroup 'dev.architectury'
+        }
+    }
+    maven {
         name = 'Illusive Soulworks'
         url = 'https://maven.theillusivec4.top/'
         content {
@@ -153,6 +160,12 @@ dependencies {
         transitive = false
     }
     compileOnly("dev.ftb.mods:ftb-ranks-neoforge:${ftb_ranks_version}") {
+        transitive = false
+    }
+    compileOnly("dev.ftb.mods:ftb-quests-neoforge:${ftb_quests_version}") {
+        transitive = false
+    }
+    compileOnly("dev.architectury:architectury-neoforge:${architectury_api_version}") {
         transitive = false
     }
     compileOnly("top.theillusivec4.curios:curios-neoforge:${curios_version}:api") {
