@@ -22,7 +22,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Server-thread watchdog: tick stats, BE/entity attribution, reports, admin alerts.
@@ -31,7 +30,6 @@ public final class TickWatchdogService {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final DateTimeFormatter FILE_DAY = DateTimeFormatter.ofPattern("yyyy-MM-dd")
             .withZone(ZoneOffset.UTC);
-    private static final AtomicBoolean TIMING_ENABLED = new AtomicBoolean();
 
     private static final TickWatchdogService INSTANCE = new TickWatchdogService();
 
@@ -42,7 +40,10 @@ public final class TickWatchdogService {
     private long lastNotifyAtMs;
     private long lastSustainedAverageAtMs;
     private int consecutiveSlow;
-    private boolean detailedArmed;
+    private int holdRemaining;
+    private int holdCooldown;
+    private int tickIndex;
+    private boolean holdJustStarted;
     private volatile boolean running;
     private List<OffenderAggregator.OffenderSnapshot> lastTop = List.of();
 
@@ -54,7 +55,7 @@ public final class TickWatchdogService {
     }
 
     public static boolean isTimingEnabled() {
-        return TIMING_ENABLED.get();
+        return WatchdogHotFlags.TIME_BLOCK_ENTITIES || WatchdogHotFlags.TIME_ENTITIES;
     }
 
     public void start(MinecraftServer server) {
@@ -64,11 +65,17 @@ public final class TickWatchdogService {
                 TickWatchdogConfig.getSlowTickThresholdNanos()
         );
         aggregator.clear();
+        aggregator.setLabels(WatchdogWorldContext.LABELS);
+        TickProbe.setLabels(WatchdogWorldContext.LABELS);
         sampler.resetAggregator();
         lastTop = List.of();
         consecutiveSlow = 0;
-        detailedArmed = TickWatchdogConfig.isDetailedAlways();
-        TIMING_ENABLED.set(running && detailedArmed);
+        holdRemaining = 0;
+        holdCooldown = 0;
+        tickIndex = 0;
+        holdJustStarted = false;
+        WatchdogHotFlags.RUNNING = running;
+        WatchdogHotFlags.setTiming(false, false);
         WatchdogProbeConfig.load();
         if (running) {
             WatchdogProbeHub.instance().start();
@@ -77,17 +84,18 @@ public final class TickWatchdogService {
             indexer.setDaemon(true);
             indexer.start();
             LOGGER.info(
-                    "Tick watchdog started (threshold={} ms, mode={}, sampling={} ms)",
+                    "Tick watchdog started (threshold={} ms, mode={}, sampleEvery={}, hold={})",
                     TickWatchdogConfig.getSlowTickThresholdMs(),
                     TickWatchdogConfig.getDetailedTimingMode(),
-                    TickWatchdogConfig.getSamplingIntervalMs()
+                    TickWatchdogConfig.getSampleEveryNTicks(),
+                    TickWatchdogConfig.getDetailedHoldTicks()
             );
         }
     }
 
     public void stop() {
         running = false;
-        TIMING_ENABLED.set(false);
+        WatchdogHotFlags.clear();
         sampler.stop();
         WatchdogProbeHub.instance().stop();
         TickProbe.clear();
@@ -95,11 +103,12 @@ public final class TickWatchdogService {
 
     public void setEnabled(boolean enabled) {
         running = enabled;
+        WatchdogHotFlags.RUNNING = enabled;
         if (running) {
             WatchdogProbeHub.instance().start();
             sampler.start();
         } else {
-            TIMING_ENABLED.set(false);
+            WatchdogHotFlags.setTiming(false, false);
             sampler.stop();
             WatchdogProbeHub.instance().stop();
         }
@@ -111,13 +120,35 @@ public final class TickWatchdogService {
 
     public void onServerTickStart() {
         if (!isRunning()) {
-            TIMING_ENABLED.set(false);
+            WatchdogHotFlags.RUNNING = false;
+            WatchdogHotFlags.setTiming(false, false);
             return;
         }
-        boolean next = TickWatchdogConfig.isDetailedAlways()
-                || (TickWatchdogConfig.isDetailedOff() ? false : detailedArmed);
-        TIMING_ENABLED.set(next && (TickWatchdogConfig.isAttributeBlockEntities()
-                || TickWatchdogConfig.isAttributeEntities()));
+        tickIndex++;
+        boolean armed = WatchdogSampling.isArmed(
+                TickWatchdogConfig.isDetailedAlways(),
+                TickWatchdogConfig.isDetailedOff(),
+                holdRemaining
+        );
+        boolean sample = WatchdogSampling.shouldSampleDetails(
+                armed,
+                holdJustStarted,
+                tickIndex,
+                TickWatchdogConfig.getSampleEveryNTicks()
+        );
+        holdJustStarted = false;
+        if (holdRemaining > 0) {
+            holdRemaining--;
+            if (holdRemaining == 0) {
+                holdCooldown = TickWatchdogConfig.getSampleEveryNTicks();
+            }
+        } else if (holdCooldown > 0) {
+            holdCooldown--;
+        }
+        WatchdogHotFlags.setTiming(
+                sample && TickWatchdogConfig.isAttributeBlockEntities(),
+                sample && TickWatchdogConfig.isAttributeEntities()
+        );
         WatchdogProbeHub.instance().onTickStart(Thread.currentThread());
     }
 
@@ -131,14 +162,15 @@ public final class TickWatchdogService {
         if (slow) {
             consecutiveSlow++;
             if (consecutiveSlow >= TickWatchdogConfig.getAutoDetailedAfterSlowTicks()
-                    && !TickWatchdogConfig.isDetailedOff()) {
-                detailedArmed = true;
+                    && !TickWatchdogConfig.isDetailedOff()
+                    && !TickWatchdogConfig.isDetailedAlways()
+                    && holdRemaining <= 0
+                    && holdCooldown <= 0) {
+                holdRemaining = TickWatchdogConfig.getDetailedHoldTicks();
+                holdJustStarted = true;
             }
         } else {
             consecutiveSlow = 0;
-            if (!TickWatchdogConfig.isDetailedAlways()) {
-                detailedArmed = false;
-            }
         }
 
         long now = System.currentTimeMillis();
@@ -165,34 +197,18 @@ public final class TickWatchdogService {
         }
     }
 
-    public void recordBlockEntity(BlockEntityTiming timing) {
-        if (!isRunning() || !TickWatchdogConfig.isAttributeBlockEntities() || timing == null) {
+    public void recordBlockEntity(Object type, Object dimension, int x, int y, int z, long nanos) {
+        if (!isRunning() || !TickWatchdogConfig.isAttributeBlockEntities()) {
             return;
         }
-        aggregator.addBlockEntity(
-                timing.typeId(),
-                timing.modId(),
-                timing.dimension(),
-                timing.x(),
-                timing.y(),
-                timing.z(),
-                timing.nanos()
-        );
+        aggregator.addBlockEntity(type, dimension, x, y, z, nanos);
     }
 
-    public void recordEntity(EntityTiming timing) {
-        if (!isRunning() || !TickWatchdogConfig.isAttributeEntities() || timing == null) {
+    public void recordEntity(Object type, Object dimension, int x, int y, int z, long nanos) {
+        if (!isRunning() || !TickWatchdogConfig.isAttributeEntities()) {
             return;
         }
-        aggregator.addEntity(
-                timing.typeId(),
-                timing.modId(),
-                timing.dimension(),
-                timing.x(),
-                timing.y(),
-                timing.z(),
-                timing.nanos()
-        );
+        aggregator.addEntity(type, dimension, x, y, z, nanos);
     }
 
     public List<OffenderAggregator.OffenderSnapshot> currentTop(int limit) {
@@ -229,12 +245,6 @@ public final class TickWatchdogService {
 
     public String probeStatusText() {
         return WatchdogProbeHub.instance().statusText();
-    }
-
-    public record BlockEntityTiming(String typeId, String modId, String dimension, int x, int y, int z, long nanos) {
-    }
-
-    public record EntityTiming(String typeId, String modId, String dimension, int x, int y, int z, long nanos) {
     }
 
     private String writeReport(MinecraftServer server) {

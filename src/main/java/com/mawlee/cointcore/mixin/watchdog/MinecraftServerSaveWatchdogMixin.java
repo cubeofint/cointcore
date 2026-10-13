@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.mixin.watchdog;
 
+import com.mawlee.cointcore.watchdog.WatchdogHotFlags;
 import com.mawlee.cointcore.watchdog.probes.ProbeHooks;
 import net.minecraft.server.MinecraftServer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,6 +17,9 @@ public abstract class MinecraftServerSaveWatchdogMixin {
             boolean force,
             CallbackInfoReturnable<Boolean> cir
     ) {
+        if (!WatchdogHotFlags.PROBE_DISK_SAVE) {
+            return;
+        }
         ProbeHooks.onWorldSaveStart();
     }
 
@@ -26,6 +30,9 @@ public abstract class MinecraftServerSaveWatchdogMixin {
             boolean force,
             CallbackInfoReturnable<Boolean> cir
     ) {
+        if (!WatchdogHotFlags.PROBE_DISK_SAVE) {
+            return;
+        }
         ProbeHooks.onWorldSaveEnd("everything");
     }
 
@@ -36,6 +43,9 @@ public abstract class MinecraftServerSaveWatchdogMixin {
             boolean force,
             CallbackInfoReturnable<Boolean> cir
     ) {
+        if (!WatchdogHotFlags.PROBE_DISK_SAVE) {
+            return;
+        }
         ProbeHooks.onWorldSaveStart();
     }
 
@@ -46,6 +56,9 @@ public abstract class MinecraftServerSaveWatchdogMixin {
             boolean force,
             CallbackInfoReturnable<Boolean> cir
     ) {
+        if (!WatchdogHotFlags.PROBE_DISK_SAVE) {
+            return;
+        }
         ProbeHooks.onWorldSaveEnd("chunks");
     }
 }

@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.mixin;
 
 import com.mawlee.cointcore.vanish.VanishServerStatus;
+import com.mawlee.cointcore.watchdog.WatchdogHotFlags;
 import com.mawlee.cointcore.watchdog.WatchdogHooks;
 import net.minecraft.network.protocol.status.ServerStatus;
 import net.minecraft.server.MinecraftServer;
@@ -16,11 +17,17 @@ import java.util.function.BooleanSupplier;
 public abstract class MinecraftServerMixin {
     @Inject(method = "tickServer", at = @At("HEAD"))
     private void cointcore$watchdogTickStart(BooleanSupplier hasTimeLeft, CallbackInfo ci) {
+        if (!WatchdogHotFlags.RUNNING) {
+            return;
+        }
         WatchdogHooks.onServerTickStart();
     }
 
     @Inject(method = "tickServer", at = @At("RETURN"))
     private void cointcore$watchdogTickEnd(BooleanSupplier hasTimeLeft, CallbackInfo ci) {
+        if (!WatchdogHotFlags.RUNNING) {
+            return;
+        }
         WatchdogHooks.onServerTickEnd((MinecraftServer) (Object) this);
     }
 

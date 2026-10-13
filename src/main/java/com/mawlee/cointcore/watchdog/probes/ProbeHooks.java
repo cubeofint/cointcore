@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.watchdog.probes;
 
+import com.mawlee.cointcore.watchdog.WatchdogHotFlags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -12,7 +13,7 @@ public final class ProbeHooks {
     }
 
     public static void onPathRecompute(Entity entity) {
-        if (!WatchdogProbeHub.isActive() || !WatchdogProbeSettings.current().pathfinding() || entity == null) {
+        if (!WatchdogHotFlags.PROBE_PATHFINDING || entity == null) {
             return;
         }
         Level level = entity.level();
@@ -27,7 +28,7 @@ public final class ProbeHooks {
     }
 
     public static void onRandomTickChunk(Level level, LevelChunk chunk, int randomTickSpeed) {
-        if (!WatchdogProbeHub.isActive() || !WatchdogProbeSettings.current().blockUpdates() || chunk == null) {
+        if (!WatchdogHotFlags.PROBE_BLOCK_UPDATES || chunk == null) {
             return;
         }
         if (level == null || level.isClientSide()) {
@@ -46,28 +47,28 @@ public final class ProbeHooks {
     }
 
     public static void onWorldSaveStart() {
-        if (!WatchdogProbeHub.isActive() || !WatchdogProbeSettings.current().diskSave()) {
+        if (!WatchdogHotFlags.PROBE_DISK_SAVE) {
             return;
         }
         WatchdogProbeHub.instance().diskSave().onWorldSaveStart();
     }
 
     public static void onWorldSaveEnd(String label) {
-        if (!WatchdogProbeHub.isActive() || !WatchdogProbeSettings.current().diskSave()) {
+        if (!WatchdogHotFlags.PROBE_DISK_SAVE) {
             return;
         }
         WatchdogProbeHub.instance().diskSave().onWorldSaveEnd(label);
     }
 
     public static void onSavedDataStart() {
-        if (!WatchdogProbeHub.isActive() || !WatchdogProbeSettings.current().diskSave()) {
+        if (!WatchdogHotFlags.PROBE_DISK_SAVE) {
             return;
         }
         WatchdogProbeHub.instance().diskSave().onSavedDataStart();
     }
 
     public static void onSavedDataEnd(String className) {
-        if (!WatchdogProbeHub.isActive() || !WatchdogProbeSettings.current().diskSave()) {
+        if (!WatchdogHotFlags.PROBE_DISK_SAVE) {
             return;
         }
         WatchdogProbeHub.instance().diskSave().onSavedDataEnd(className);

@@ -20,10 +20,11 @@ import java.nio.file.Path;
  * Server config for the tick watchdog.
  *
  * <p>Defaults are production-safe: always-on tick stats (~2× nanoTime/tick),
- * detailed BE/entity timing only after recent slow ticks, stack sampling only
- * during armed slow-tick windows. Estimated idle overhead: &lt;0.01 ms/tick;
- * detailed mode typically 0.05–0.3 ms/tick depending on BE/entity count;
- * sampling ~0.01–0.05 ms per sample on the sampler thread (not server thread).
+ * detailed BE/entity timing on every {@code sampleEveryNTicks} (default 20)
+ * while armed, plus a short hold window after a slow tick. Estimated idle
+ * overhead: a volatile read per BE/entity tick (&lt;0.01 ms/tick at 1.4k chunks);
+ * sampled detailed ticks are allocation-free after warmup; stack sampling stays
+ * on the sampler thread.
  */
 public final class TickWatchdogConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -37,6 +38,8 @@ public final class TickWatchdogConfig {
     private static int sustainedAverageWindowSeconds = 60;
     private static String detailedTimingMode = "auto";
     private static int autoDetailedAfterSlowTicks = 1;
+    private static int sampleEveryNTicks = 20;
+    private static int detailedHoldTicks = 20;
     private static int samplingIntervalMs = 1;
     private static int samplingMaxDurationMs = 80;
     private static int topEntries = 15;
@@ -97,6 +100,14 @@ public final class TickWatchdogConfig {
 
     public static int getAutoDetailedAfterSlowTicks() {
         return autoDetailedAfterSlowTicks;
+    }
+
+    public static int getSampleEveryNTicks() {
+        return sampleEveryNTicks;
+    }
+
+    public static int getDetailedHoldTicks() {
+        return detailedHoldTicks;
     }
 
     public static int getSamplingIntervalMs() {
@@ -172,6 +183,8 @@ public final class TickWatchdogConfig {
         sustainedAverageWindowSeconds = loaded.sustainedAverageWindowSeconds();
         detailedTimingMode = loaded.detailedTimingMode();
         autoDetailedAfterSlowTicks = loaded.autoDetailedAfterSlowTicks();
+        sampleEveryNTicks = loaded.sampleEveryNTicks();
+        detailedHoldTicks = loaded.detailedHoldTicks();
         samplingIntervalMs = loaded.samplingIntervalMs();
         samplingMaxDurationMs = loaded.samplingMaxDurationMs();
         topEntries = loaded.topEntries();
@@ -223,6 +236,8 @@ public final class TickWatchdogConfig {
                 clampInt(data.sustainedAverageWindowSeconds, 10, 3600, 60),
                 mode,
                 clampInt(data.autoDetailedAfterSlowTicks, 1, 50, 1),
+                clampInt(data.sampleEveryNTicks, 1, 200, 20),
+                clampInt(data.detailedHoldTicks, 1, 200, 20),
                 clampInt(data.samplingIntervalMs, 1, 50, 1),
                 clampInt(data.samplingMaxDurationMs, 5, 1000, 80),
                 clampInt(data.topEntries, 3, 100, 15),
@@ -270,6 +285,8 @@ public final class TickWatchdogConfig {
         data.sustainedAverageWindowSeconds = 60;
         data.detailedTimingMode = "auto";
         data.autoDetailedAfterSlowTicks = 1;
+        data.sampleEveryNTicks = 20;
+        data.detailedHoldTicks = 20;
         data.samplingIntervalMs = 1;
         data.samplingMaxDurationMs = 80;
         data.topEntries = 15;
@@ -292,6 +309,8 @@ public final class TickWatchdogConfig {
             int sustainedAverageWindowSeconds,
             String detailedTimingMode,
             int autoDetailedAfterSlowTicks,
+            int sampleEveryNTicks,
+            int detailedHoldTicks,
             int samplingIntervalMs,
             int samplingMaxDurationMs,
             int topEntries,
@@ -330,6 +349,12 @@ public final class TickWatchdogConfig {
 
         @SerializedName("autoDetailedAfterSlowTicks")
         private int autoDetailedAfterSlowTicks = 1;
+
+        @SerializedName("sampleEveryNTicks")
+        int sampleEveryNTicks = 20;
+
+        @SerializedName("detailedHoldTicks")
+        int detailedHoldTicks = 20;
 
         @SerializedName("samplingIntervalMs")
         private int samplingIntervalMs = 1;

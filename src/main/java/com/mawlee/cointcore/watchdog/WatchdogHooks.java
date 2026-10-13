@@ -1,131 +1,130 @@
 package com.mawlee.cointcore.watchdog;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityType;
 
 /**
  * Thin hooks used by mixins. Keep work here so mixin classes stay tiny.
+ *
+ * <p>Server-thread only: start timestamps are plain longs (no ThreadLocal boxing).
+ * {@code System.nanoTime} around BE/entity runs only when the matching hot flag is set.
  */
 public final class WatchdogHooks {
-    private static final ThreadLocal<Long> BLOCK_ENTITY_START = ThreadLocal.withInitial(() -> 0L);
-    private static final ThreadLocal<Long> ENTITY_START = ThreadLocal.withInitial(() -> 0L);
-    private static final ThreadLocal<Long> SERVER_TICK_START = ThreadLocal.withInitial(() -> 0L);
+    private static long blockEntityStartNanos;
+    private static long entityStartNanos;
+    private static long serverTickStartNanos;
 
     private WatchdogHooks() {
     }
 
     public static void onServerTickStart() {
         TickWatchdogService.instance().onServerTickStart();
-        SERVER_TICK_START.set(System.nanoTime());
-        if (TickWatchdogService.instance().isRunning()) {
-            TickWatchdogService.instance().sampler().onTickStart(Thread.currentThread());
+        if (!WatchdogHotFlags.RUNNING) {
+            return;
         }
+        serverTickStartNanos = System.nanoTime();
+        TickWatchdogService.instance().sampler().onTickStart(Thread.currentThread());
     }
 
     public static void onServerTickEnd(net.minecraft.server.MinecraftServer server) {
         TickWatchdogService.instance().sampler().onTickEnd();
-        long started = SERVER_TICK_START.get();
+        long started = serverTickStartNanos;
+        serverTickStartNanos = 0L;
         long nanos = started == 0L ? 0L : System.nanoTime() - started;
-        SERVER_TICK_START.set(0L);
         TickWatchdogService.instance().onServerTickEnd(server, nanos);
         TickProbe.clear();
     }
 
     public static void beforeBlockEntityTick(BlockEntity blockEntity) {
-        if (!TickWatchdogService.isTimingEnabled() || blockEntity == null) {
+        if (!WatchdogHotFlags.TIME_BLOCK_ENTITIES || blockEntity == null) {
             return;
         }
         Level level = blockEntity.getLevel();
-        if (!(level instanceof ServerLevel serverLevel)) {
+        if (level == null || level.isClientSide()) {
             return;
         }
-        BlockPos pos = blockEntity.getBlockPos();
-        String typeId = typeId(blockEntity);
-        String dim = WatchdogWorldContext.dimensionId(serverLevel);
-        String mod = WatchdogWorldContext.owningMod(typeId);
-        TickProbe.enterBlockEntity(typeId, mod, dim, pos.getX(), pos.getY(), pos.getZ());
-        BLOCK_ENTITY_START.set(System.nanoTime());
+        blockEntityStartNanos = System.nanoTime();
+        if (StackSampler.isCapturing()) {
+            BlockPos pos = blockEntity.getBlockPos();
+            TickProbe.enter(
+                    "block_entity",
+                    blockEntity.getType(),
+                    level.dimension(),
+                    pos.getX(),
+                    pos.getY(),
+                    pos.getZ()
+            );
+        }
     }
 
     public static void afterBlockEntityTick(BlockEntity blockEntity) {
-        if (!TickWatchdogService.isTimingEnabled() || blockEntity == null) {
+        if (!WatchdogHotFlags.TIME_BLOCK_ENTITIES || blockEntity == null) {
             TickProbe.exit();
             return;
         }
-        long started = BLOCK_ENTITY_START.get();
-        BLOCK_ENTITY_START.set(0L);
+        long started = blockEntityStartNanos;
+        blockEntityStartNanos = 0L;
         TickProbe.exit();
         if (started == 0L) {
             return;
         }
         long nanos = System.nanoTime() - started;
         Level level = blockEntity.getLevel();
-        if (!(level instanceof ServerLevel serverLevel)) {
+        if (level == null || level.isClientSide()) {
             return;
         }
         BlockPos pos = blockEntity.getBlockPos();
-        String typeId = typeId(blockEntity);
-        TickWatchdogService.instance().recordBlockEntity(new TickWatchdogService.BlockEntityTiming(
-                typeId,
-                WatchdogWorldContext.owningMod(typeId),
-                WatchdogWorldContext.dimensionId(serverLevel),
+        TickWatchdogService.instance().recordBlockEntity(
+                blockEntity.getType(),
+                level.dimension(),
                 pos.getX(),
                 pos.getY(),
                 pos.getZ(),
                 nanos
-        ));
+        );
     }
 
     public static void beforeEntityTick(Entity entity) {
-        if (!TickWatchdogService.isTimingEnabled() || entity == null || entity.level().isClientSide()) {
+        if (!WatchdogHotFlags.TIME_ENTITIES || entity == null || entity.level().isClientSide()) {
             return;
         }
-        if (!(entity.level() instanceof ServerLevel serverLevel)) {
-            return;
+        entityStartNanos = System.nanoTime();
+        if (StackSampler.isCapturing()) {
+            TickProbe.enter(
+                    "entity",
+                    entity.getType(),
+                    entity.level().dimension(),
+                    entity.getBlockX(),
+                    entity.getBlockY(),
+                    entity.getBlockZ()
+            );
         }
-        String typeId = WatchdogWorldContext.entityTypeId(entity);
-        String dim = WatchdogWorldContext.dimensionId(serverLevel);
-        String mod = WatchdogWorldContext.owningMod(typeId);
-        BlockPos pos = entity.blockPosition();
-        TickProbe.enterEntity(typeId, mod, dim, pos.getX(), pos.getY(), pos.getZ());
-        ENTITY_START.set(System.nanoTime());
     }
 
     public static void afterEntityTick(Entity entity) {
-        if (!TickWatchdogService.isTimingEnabled() || entity == null) {
+        if (!WatchdogHotFlags.TIME_ENTITIES || entity == null) {
             TickProbe.exit();
             return;
         }
-        long started = ENTITY_START.get();
-        ENTITY_START.set(0L);
+        long started = entityStartNanos;
+        entityStartNanos = 0L;
         TickProbe.exit();
         if (started == 0L) {
             return;
         }
         long nanos = System.nanoTime() - started;
-        if (!(entity.level() instanceof ServerLevel serverLevel)) {
+        if (entity.level().isClientSide()) {
             return;
         }
-        String typeId = WatchdogWorldContext.entityTypeId(entity);
-        BlockPos pos = entity.blockPosition();
-        TickWatchdogService.instance().recordEntity(new TickWatchdogService.EntityTiming(
-                typeId,
-                WatchdogWorldContext.owningMod(typeId),
-                WatchdogWorldContext.dimensionId(serverLevel),
-                pos.getX(),
-                pos.getY(),
-                pos.getZ(),
+        TickWatchdogService.instance().recordEntity(
+                entity.getType(),
+                entity.level().dimension(),
+                entity.getBlockX(),
+                entity.getBlockY(),
+                entity.getBlockZ(),
                 nanos
-        ));
-    }
-
-    private static String typeId(BlockEntity blockEntity) {
-        ResourceLocation key = BlockEntityType.getKey(blockEntity.getType());
-        return key == null ? "unknown" : key.toString();
+        );
     }
 }
