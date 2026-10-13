@@ -17,17 +17,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Soul Surge intervention flags ({@code config/cointcore/soul-surge-perf.json}).
- * When {@code enabled}, each surge accelerates only its attached block entity.
- * Extra ticker calls are admitted while that target is still under 3 extra
- * ticks this game tick (4x including the normal tick). IF Souls still loops
- * {@code ACCELERATION_TICK}; surplus calls are dropped. Acceleration is not
- * configurable here.
- * <p>
- * Unused / obsolete keys are not bound: {@code maxAccelerationTicks} never
- * capped the IF Souls tick count and is ignored if present, as are
- * {@code denyBlockIds}, {@code denyBlockTags} and {@code respectChunkLimits}.
- * Old files keep loading.
+ * Soul Surge intervention flag ({@code config/cointcore/soul-surge-perf.json}).
+ * When {@code enabled}, each surge accelerates only its attached block entity
+ * and extra ticks are admitted while that target is under 3 extra ticks this
+ * game tick (4x including the normal tick). Speed is not configurable here.
+ * Extra keys in old files are ignored.
  */
 public final class SoulSurgePerfConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -40,10 +34,6 @@ public final class SoulSurgePerfConfig {
 
     public static boolean isEnabled() {
         return settings.enabled();
-    }
-
-    public static boolean isSingleTarget() {
-        return settings.singleTarget();
     }
 
     public static Settings get() {
@@ -64,11 +54,7 @@ public final class SoulSurgePerfConfig {
             return false;
         }
         apply(loaded);
-        LOGGER.info(
-                "Reloaded soul surge perf config (enabled={} singleTarget={})",
-                settings.enabled(),
-                settings.singleTarget()
-        );
+        LOGGER.info("Reloaded soul surge perf config (enabled={})", settings.enabled());
         return true;
     }
 
@@ -110,9 +96,9 @@ public final class SoulSurgePerfConfig {
         return FMLPaths.CONFIGDIR.get().resolve(CointCore.MOD_ID).resolve("soul-surge-perf.json");
     }
 
-    public record Settings(boolean enabled, boolean singleTarget) {
+    public record Settings(boolean enabled) {
         public static Settings defaults() {
-            return new Settings(true, true);
+            return new Settings(true);
         }
 
         public static Settings from(FileData data) {
@@ -120,26 +106,17 @@ public final class SoulSurgePerfConfig {
                 return defaults();
             }
             boolean on = data.enabled == null || data.enabled;
-            boolean single = data.singleTarget == null || data.singleTarget;
-            return new Settings(on, single);
+            return new Settings(on);
         }
     }
 
-    /**
-     * On-disk shape. {@code maxAccelerationTicks} is intentionally absent so
-     * new files do not write it; Gson drops the leftover key on load.
-     */
     static final class FileData {
         @SerializedName("enabled")
         Boolean enabled;
 
-        @SerializedName("singleTarget")
-        Boolean singleTarget;
-
         static FileData defaults() {
             FileData data = new FileData();
             data.enabled = true;
-            data.singleTarget = true;
             return data;
         }
     }

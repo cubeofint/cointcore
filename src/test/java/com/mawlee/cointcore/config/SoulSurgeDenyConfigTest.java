@@ -2,6 +2,8 @@ package com.mawlee.cointcore.config;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -9,44 +11,71 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SoulSurgeDenyConfigTest {
     @Test
-    void deprecatedStubParses() {
+    void emptyDefaultDoesNotDeny() {
         SoulSurgeDenyParse.Parsed parsed = SoulSurgeDenyParse.parseJson(
                 """
                         {
-                          "deprecated": true,
-                          "unused": true,
                           "denyBlockIds": [],
-                          "denyBlockNamespaces": [],
                           "denyBlockTags": []
                         }
                         """
         );
-        assertTrue(parsed.deprecated());
         assertTrue(parsed.denyBlockIds().isEmpty());
         assertTrue(parsed.denyBlockTags().isEmpty());
+        assertFalse(parsed.containsId("minecraft:furnace"));
     }
 
     @Test
-    void leftoverDenyListsDoNotCrash() {
+    void denyBlockIdsAreCachedForLookup() {
+        SoulSurgeDenyParse.Parsed parsed = SoulSurgeDenyParse.parseJson(
+                """
+                        {
+                          "denyBlockIds": ["justdirethings:clickert1", "sfm:manager", ""]
+                        }
+                        """
+        );
+        assertEquals(2, parsed.denyBlockIds().size());
+        assertTrue(parsed.containsId("justdirethings:clickert1"));
+        assertTrue(parsed.containsId("sfm:manager"));
+        assertFalse(parsed.containsId("minecraft:furnace"));
+    }
+
+    @Test
+    void denyBlockTagsStripHashPrefix() {
+        SoulSurgeDenyParse.Parsed parsed = SoulSurgeDenyParse.parseJson(
+                """
+                        {
+                          "denyBlockTags": ["#cointcore:custom_no_surge", "minecraft:impermeable"]
+                        }
+                        """
+        );
+        assertEquals(List.of("cointcore:custom_no_surge", "minecraft:impermeable"), parsed.denyBlockTags());
+    }
+
+    @Test
+    void leftoverKeysAreIgnored() {
         SoulSurgeDenyParse.Parsed parsed = assertDoesNotThrow(() -> SoulSurgeDenyParse.parseJson(
                 """
                         {
-                          "denyBlockIds": ["justdirethings:clickert1", "sfm:manager"],
+                          "deprecated": true,
+                          "unused": true,
+                          "denyBlockIds": ["mekanism:enrichment_chamber"],
                           "denyBlockNamespaces": ["mekanism", "ae2"],
-                          "denyBlockTags": ["#cointcore:soul_surge_no_accelerate"]
+                          "denyBlockTags": ["#cointcore:custom_no_surge"]
                         }
                         """
         ));
-        assertFalse(parsed.deprecated());
-        assertEquals(2, parsed.denyBlockIds().size());
-        assertEquals(2, parsed.denyBlockNamespaces().size());
+        assertEquals(1, parsed.denyBlockIds().size());
+        assertTrue(parsed.containsId("mekanism:enrichment_chamber"));
         assertEquals(1, parsed.denyBlockTags().size());
+        assertEquals("cointcore:custom_no_surge", parsed.denyBlockTags().get(0));
     }
 
     @Test
     void emptyObjectIsTolerant() {
         SoulSurgeDenyParse.Parsed parsed = SoulSurgeDenyParse.parseJson("{}");
-        assertFalse(parsed.deprecated());
         assertTrue(parsed.denyBlockIds().isEmpty());
+        assertTrue(parsed.denyBlockTags().isEmpty());
+        assertFalse(parsed.containsId("minecraft:furnace"));
     }
 }

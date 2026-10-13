@@ -1,7 +1,4 @@
 {
-  "deprecated": true,
-  "unused": true,
   "denyBlockIds": [],
-  "denyBlockNamespaces": [],
   "denyBlockTags": []
 }
