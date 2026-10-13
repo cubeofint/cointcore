@@ -10,52 +10,49 @@ class SoulSurgePerfConfigTest {
     private static final Gson GSON = new Gson();
 
     @Test
-    void defaultsAreEnabledSingleTarget() {
+    void defaultsAreEnabled() {
         SoulSurgePerfConfig.Settings settings = SoulSurgePerfConfig.Settings.from(
                 SoulSurgePerfConfig.FileData.defaults()
         );
         assertTrue(settings.enabled());
-        assertTrue(settings.singleTarget());
     }
 
     @Test
     void nullFileUsesDefaults() {
         SoulSurgePerfConfig.Settings settings = SoulSurgePerfConfig.Settings.from(null);
         assertTrue(settings.enabled());
-        assertTrue(settings.singleTarget());
     }
 
     @Test
-    void leftoverDenyAndCapFieldsAreIgnored() {
+    void leftoverFieldsAreIgnored() {
         SoulSurgePerfConfig.FileData data = GSON.fromJson(
                 """
                         {
                           "enabled": true,
+                          "singleTarget": false,
                           "maxAccelerationTicks": 1,
                           "respectChunkLimits": true,
                           "allowEntityAcceleration": true,
                           "allowBlockRandomTickAcceleration": true,
                           "denyBlockIds": ["mekanism:enrichment_chamber"],
-                          "denyBlockTags": ["#cointcore:soul_surge_no_accelerate"]
+                          "denyBlockTags": ["#cointcore:custom_no_surge"]
                         }
                         """,
                 SoulSurgePerfConfig.FileData.class
         );
         SoulSurgePerfConfig.Settings settings = SoulSurgePerfConfig.Settings.from(data);
         assertTrue(settings.enabled());
-        assertTrue(settings.singleTarget());
     }
 
     @Test
-    void explicitFlagsAreHonored() {
+    void explicitEnabledFalseIsHonored() {
         SoulSurgePerfConfig.FileData data = GSON.fromJson(
                 """
-                        {"enabled": false, "singleTarget": false}
+                        {"enabled": false}
                         """,
                 SoulSurgePerfConfig.FileData.class
         );
         SoulSurgePerfConfig.Settings settings = SoulSurgePerfConfig.Settings.from(data);
         assertFalse(settings.enabled());
-        assertFalse(settings.singleTarget());
     }
 }

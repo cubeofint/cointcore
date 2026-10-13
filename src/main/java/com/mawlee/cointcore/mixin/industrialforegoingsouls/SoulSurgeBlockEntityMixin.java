@@ -2,6 +2,7 @@ package com.mawlee.cointcore.mixin.industrialforegoingsouls;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.mawlee.cointcore.config.SoulSurgeDenyConfig;
 import com.mawlee.cointcore.config.SoulSurgePerfConfig;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeAccelerationTracker;
 import com.mawlee.cointcore.industrialforegoingsouls.SoulSurgeFacing;
@@ -34,8 +35,9 @@ import java.util.List;
  * {@code RotatableBlock.FACING_ALL}), not {@code BlockStateProperties} identity.
  * Extra ticker calls on a target are admitted while that cell is still under
  * 3 extra ticks this game tick (4x including the normal tick). Soul spend
- * stays in IF Souls. No owner/claim, no deny lists, no chunk-limit gate,
- * no entity / random-tick / neighbour scans.
+ * stays in IF Souls. Denied targets from {@code soul-surge-deny.json} get no
+ * extra ticks. No owner/claim, no chunk-limit gate, no entity / random-tick
+ * / neighbour scans.
  */
 @Mixin(targets = "com.buuz135.industrialforegoingsouls.block.tile.SoulSurgeBlockEntity", remap = false)
 public abstract class SoulSurgeBlockEntityMixin {
@@ -44,8 +46,8 @@ public abstract class SoulSurgeBlockEntityMixin {
 
     /**
      * IF Souls reads the target via {@code level.getBlockState(attached)}.
-     * Invalid targets (not the attached cell, air, no BE, another surge)
-     * and targets already at the extra-tick cap become air so the vanilla
+     * Invalid targets (not the attached cell, air, no BE, another surge,
+     * denylisted, or already at the extra-tick cap) become air so the vanilla
      * method skips BE ticks, random ticks, and soul spend.
      */
     @WrapOperation(
@@ -74,6 +76,9 @@ public abstract class SoulSurgeBlockEntityMixin {
                 level.getBlockEntity(queryPos) != null,
                 cointcore$blockId(queried)
         )) {
+            return Blocks.AIR.defaultBlockState();
+        }
+        if (SoulSurgeDenyConfig.isDenied(queried)) {
             return Blocks.AIR.defaultBlockState();
         }
         if (!SoulSurgeAccelerationTracker.hasRemaining(level, queryPos)) {
@@ -131,6 +136,9 @@ public abstract class SoulSurgeBlockEntityMixin {
                 blockEntity != null,
                 cointcore$blockId(targetState)
         )) {
+            return;
+        }
+        if (SoulSurgeDenyConfig.isDenied(targetState)) {
             return;
         }
         if (!SoulSurgeAccelerationTracker.tryApplyExtraTick(level, targetPos)) {

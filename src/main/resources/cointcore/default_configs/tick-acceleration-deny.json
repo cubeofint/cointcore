@@ -129,8 +129,6 @@
     "sfm:manager",
     "sfm:tunnelled_manager",
     "modularrouters:modular_router",
-    "industrialforegoing:simulated_hydroponic_bed",
-    "industrialforegoing:hydroponic_bed",
     "industrialforegoing:plant_sower",
     "industrialforegoing:plant_gatherer",
     "industrialforegoing:animal_rancher",

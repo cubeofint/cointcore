@@ -466,8 +466,8 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/me-unique-filter.json` | Уникальные фильтры ME (AE2) |
 | `config/cointcore/storage-perf.json` | Кэш AE2 fuzzy search, RS importer idle-skip |
 | `config/cointcore/tick-throttles.json` | Throttle машин (MGU Saw, RFTools Builder и др.) |
-| `config/cointcore/soul-surge-perf.json` | Soul Surge: `enabled` + `singleTarget` (один присоединённый блок, до 4x на цель за тик) |
-| `config/cointcore/soul-surge-deny.json` | Устарел и не используется; старые файлы читаются без ошибки |
+| `config/cointcore/soul-surge-perf.json` | Soul Surge: только `enabled` (один присоединённый блок, до 4x на цель за тик) |
+| `config/cointcore/soul-surge-deny.json` | Deny для Soul Surge: `denyBlockIds` + опционально `denyBlockTags`. Пустой по умолчанию, без merge defaults |
 | `config/cointcore/tick-acceleration-deny.json` | Deny для Time Wand и прочих ускорителей (**не** Soul Surge) |
 | `config/cointcore/lag-fixes.json` | Лаг-фиксы ATM10 8.2 (см. ниже) |
 | `config/relpchatprefix/config.json` | Префиксы relay-чата |
@@ -858,7 +858,7 @@ Industrial Foregoing Souls: каждый Soul Surge ускоряет **ровн�
 Админ-команда `/cointcore soulsurge debug <pos>` (permission 2): для позиции сёрджа показывает resolved facing, клетку-цель и сколько extra-тиков цель уже получила в этом игровом тике (`extra=N/3`); для позиции машины — тот же счётчик.
 
 - Цель ускоряется не больше чем в **4 раза** за игровой тик (1 обычный + 3 extra), сколько бы сёрджей ни смотрело на неё. IF Souls по-прежнему крутит цикл `ACCELERATION_TICK`; лишние вызовы отсекаются, карта extra-тиков сбрасывается каждый `gameTime`.
-- Ограничений по типу машины нет: deny-списки, block tag (`cointcore:soul_surge_no_accelerate`, `industrialforegoingsouls:cant_accelerate`) и лимиты на чанк для Soul Surge не применяются. Общий `tick-acceleration-deny.json` (Time Wand и др.) **не** читается.
+- Тип машины можно запретить в `soul-surge-deny.json` (`denyBlockIds`, опционально `denyBlockTags` с `#`). Запрещённая цель не получает extra-тики. Тег `industrialforegoingsouls:cant_accelerate` и лимиты на чанк для Soul Surge не применяются. Общий `tick-acceleration-deny.json` (Time Wand и др.) **не** читается.
 - Исключение: другой `industrialforegoingsouls:soul_surge` не ускоряется (античейн). Воздух и блок без Block Entity — ничего не делают.
 - Сущности и random-tick соседей не ускоряются. Area-сканов за тик нет.
 - Души списывает сам IF Souls: cointcore не проверяет `tickingTime` / SoulNetwork и не держит claim на цель.
@@ -868,14 +868,22 @@ Industrial Foregoing Souls: каждый Soul Surge ускоряет **ровн�
 
 ```json
 {
-  "enabled": true,
-  "singleTarget": true
+  "enabled": true
 }
 ```
 
-`enabled: false` полностью отдаёт тик ванильному IF Souls (теги мода, random-tick, сущности). `singleTarget` — режим «одна цель»; при `enabled` mixin всегда держит одну присоединённую клетку. Скорость не задаётся в этом файле: цель ограничена 3 extra-тиками за игровой тик (4x вместе с обычным). Ключ `maxAccelerationTicks` не используется и при наличии в старом файле игнорируется вместе с `denyBlockIds`, `denyBlockTags`, `respectChunkLimits`.
+`enabled: false` полностью отдаёт тик ванильному IF Souls (теги мода, random-tick, сущности). При `enabled` mixin всегда ускоряет одну присоединённую клетку. Скорость не задаётся в этом файле: цель ограничена 3 extra-тиками за игровой тик (4x вместе с обычным). Лишние ключи в старом файле (`singleTarget`, `maxAccelerationTicks`, `denyBlockIds`, `denyBlockTags`, `respectChunkLimits`) игнорируются.
 
-`soul-surge-deny.json` помечен как deprecated/unused: файл по-прежнему читается при старте и `/cointcore reload`, чтобы старые списки не роняли сервер, но на ускорение не влияет.
+`config/cointcore/soul-surge-deny.json` — единственный рабочий deny для Soul Surge. Читается при старте и `/cointcore reload`. Списки не мержатся с бандлом: то, что админ удалил, не вернётся.
+
+```json
+{
+  "denyBlockIds": [],
+  "denyBlockTags": []
+}
+```
+
+`denyBlockIds` — список id блоков. `denyBlockTags` опционален (теги с `#` или без). По умолчанию оба списка пустые.
 
 ## Интеграции
 
