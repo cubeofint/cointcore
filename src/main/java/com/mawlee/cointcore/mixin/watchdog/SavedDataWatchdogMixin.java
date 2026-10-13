@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.mixin.watchdog;
 
+import com.mawlee.cointcore.watchdog.WatchdogHotFlags;
 import com.mawlee.cointcore.watchdog.probes.ProbeHooks;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.world.level.saveddata.SavedData;
@@ -27,6 +28,9 @@ public abstract class SavedDataWatchdogMixin {
             HolderLookup.Provider registries,
             CallbackInfo ci
     ) {
+        if (!WatchdogHotFlags.PROBE_DISK_SAVE) {
+            return;
+        }
         ProbeHooks.onSavedDataStart();
     }
 
@@ -40,6 +44,9 @@ public abstract class SavedDataWatchdogMixin {
             HolderLookup.Provider registries,
             CallbackInfo ci
     ) {
+        if (!WatchdogHotFlags.PROBE_DISK_SAVE) {
+            return;
+        }
         ProbeHooks.onSavedDataEnd(this.getClass().getName());
     }
 }

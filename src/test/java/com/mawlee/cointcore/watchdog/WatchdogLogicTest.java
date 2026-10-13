@@ -59,6 +59,25 @@ class ClassToModMapperTest {
     }
 }
 
+class WatchdogSamplingTest {
+    @Test
+    void autoStaysIdleUntilHoldWindow() {
+        assertFalse(WatchdogSampling.isArmed(false, false, 0));
+        assertTrue(WatchdogSampling.isArmed(false, false, 3));
+        assertTrue(WatchdogSampling.isArmed(true, false, 0));
+        assertFalse(WatchdogSampling.isArmed(true, true, 5));
+    }
+
+    @Test
+    void samplesEveryNthTickOrForced() {
+        assertFalse(WatchdogSampling.shouldSampleDetails(false, false, 20, 20));
+        assertTrue(WatchdogSampling.shouldSampleDetails(true, true, 3, 20));
+        assertTrue(WatchdogSampling.shouldSampleDetails(true, false, 20, 20));
+        assertFalse(WatchdogSampling.shouldSampleDetails(true, false, 21, 20));
+        assertTrue(WatchdogSampling.shouldSampleDetails(true, false, 7, 1));
+    }
+}
+
 class OffenderAggregatorTest {
     @Test
     void ranksBlockEntitiesByTotalTime() {
@@ -90,6 +109,23 @@ class OffenderAggregatorTest {
         List<OffenderAggregator.OffenderSnapshot> dims = aggregator.top(OffenderAggregator.Kind.DIMENSION, 5);
         assertEquals("minecraft:the_nether", dims.getFirst().dimension());
         assertEquals(12_000_000L, dims.getFirst().totalNanos());
+    }
+
+    @Test
+    void hotPathAddIsCheapAfterWarmup() {
+        OffenderAggregator aggregator = new OffenderAggregator();
+        Object type = "ae2:controller";
+        Object dim = "minecraft:overworld";
+        for (int i = 0; i < 256; i++) {
+            aggregator.addBlockEntity(type, dim, i, 64, 0, 1_000L);
+        }
+        long started = System.nanoTime();
+        for (int i = 0; i < 200_000; i++) {
+            aggregator.addBlockEntity(type, dim, i & 255, 64, 0, 1_000L);
+        }
+        long elapsedMs = (System.nanoTime() - started) / 1_000_000L;
+        assertTrue(elapsedMs < 80L, "200k adds took " + elapsedMs + " ms");
+        assertEquals(256, aggregator.top(OffenderAggregator.Kind.BLOCK_ENTITY, 300).size());
     }
 }
 

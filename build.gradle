@@ -230,6 +230,7 @@ dependencies {
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
     testImplementation "com.google.code.gson:gson:2.11.0"
     testImplementation "net.luckperms:api:5.4"
+    testImplementation "it.unimi.dsi:fastutil:8.5.15"
 
     compileOnly "mezz.jei:jei-1.21.1-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"

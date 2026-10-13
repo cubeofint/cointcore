@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.watchdog.probes;
 
 import com.mawlee.cointcore.watchdog.TickWatchdogService;
+import com.mawlee.cointcore.watchdog.WatchdogHotFlags;
 import com.mawlee.cointcore.watchdog.WatchdogWorldContext;
 import com.mojang.logging.LogUtils;
 import net.minecraft.server.MinecraftServer;
@@ -71,11 +72,13 @@ public final class WatchdogProbeHub {
         lastGroundScanAtMs = 0L;
         lastTrendLogAtMs = 0L;
         lastTriggerSampleAtMs = 0L;
+        syncHotFlags();
     }
 
     public void stop() {
         ACTIVE.set(false);
         serverThread = null;
+        WatchdogHotFlags.setProbes(false, false, false, false, false);
     }
 
     public ChunkLoadProbe chunks() {
@@ -492,8 +495,19 @@ public final class WatchdogProbeHub {
         }
     }
 
+    public static void syncHotFlags() {
+        WatchdogProbeSettings.Snapshot settings = WatchdogProbeSettings.current();
+        WatchdogHotFlags.setProbes(
+                isActive(),
+                settings.pathfinding(),
+                settings.blockUpdates(),
+                settings.diskSave(),
+                settings.chunks()
+        );
+    }
+
     public static void recordChunkLoad(ServerLevel level, LevelChunk chunk, boolean isNewChunk) {
-        if (!isActive() || !WatchdogProbeSettings.current().chunks() || level == null || chunk == null) {
+        if (!WatchdogHotFlags.PROBE_CHUNKS || level == null || chunk == null) {
             return;
         }
         ChunkPos pos = chunk.getPos();
@@ -525,7 +539,7 @@ public final class WatchdogProbeHub {
     }
 
     public static void recordNeighborUpdate() {
-        if (!isActive() || !WatchdogProbeSettings.current().blockUpdates()) {
+        if (!WatchdogHotFlags.PROBE_BLOCK_UPDATES) {
             return;
         }
         instance().blockUpdates.incrementNeighbor();

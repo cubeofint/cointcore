@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 public final class StackSampler {
     private static final Logger LOGGER = LogUtils.getLogger();
 
+    private static volatile boolean capturing;
+
     private final Object lock = new Object();
     private Thread samplerThread;
     private volatile boolean running;
@@ -18,6 +20,10 @@ public final class StackSampler {
     private volatile boolean inTick;
     private volatile long tickGeneration;
     private final StackSampleAggregator aggregator = new StackSampleAggregator();
+
+    public static boolean isCapturing() {
+        return capturing;
+    }
 
     public void start() {
         synchronized (lock) {
@@ -45,6 +51,7 @@ public final class StackSampler {
         }
         aggregator.clear();
         serverThread = null;
+        capturing = false;
     }
 
     public void onTickStart(Thread thread) {
@@ -97,13 +104,18 @@ public final class StackSampler {
 
                 long until = System.nanoTime() + Math.max(1, TickWatchdogConfig.getSamplingMaxDurationMs()) * 1_000_000L;
                 long intervalMs = Math.max(1, TickWatchdogConfig.getSamplingIntervalMs());
-                while (running && inTick && tickGeneration == gen && System.nanoTime() < until) {
-                    Thread target = serverThread;
-                    if (target != null && target.isAlive()) {
-                        StackTraceElement[] stack = target.getStackTrace();
-                        aggregator.addSample(stack, WatchdogModIndex.mapper(), TickProbe.snapshot());
+                capturing = true;
+                try {
+                    while (running && inTick && tickGeneration == gen && System.nanoTime() < until) {
+                        Thread target = serverThread;
+                        if (target != null && target.isAlive()) {
+                            StackTraceElement[] stack = target.getStackTrace();
+                            aggregator.addSample(stack, WatchdogModIndex.mapper(), TickProbe.snapshot());
+                        }
+                        Thread.sleep(intervalMs);
                     }
-                    Thread.sleep(intervalMs);
+                } finally {
+                    capturing = false;
                 }
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();

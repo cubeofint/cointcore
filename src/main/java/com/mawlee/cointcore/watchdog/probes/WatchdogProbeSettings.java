@@ -59,6 +59,7 @@ public final class WatchdogProbeSettings {
 
     public static void apply(Snapshot snapshot) {
         current = snapshot == null ? Snapshot.defaults() : snapshot;
+        WatchdogProbeHub.syncHotFlags();
     }
 
     public static Snapshot parse(JsonObject root) {

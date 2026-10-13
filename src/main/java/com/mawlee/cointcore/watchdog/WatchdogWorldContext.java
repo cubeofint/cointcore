@@ -10,12 +10,50 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.fml.ModList;
 
 import java.lang.reflect.Method;
-import java.util.Locale;
 
 /**
  * Soft lookups for owner / force-load / type ids. FTB Chunks is optional (reflection).
  */
 public final class WatchdogWorldContext {
+    public static final WatchdogLabels LABELS = new WatchdogLabels() {
+        @Override
+        public String typeId(Object type) {
+            if (type == null) {
+                return "unknown";
+            }
+            if (type instanceof String string) {
+                return WatchdogLabels.stringify(string);
+            }
+            if (type instanceof BlockEntityType<?> blockEntityType) {
+                ResourceLocation key = BlockEntityType.getKey(blockEntityType);
+                return key == null ? "unknown" : key.toString();
+            }
+            if (type instanceof net.minecraft.world.entity.EntityType<?> entityType) {
+                ResourceLocation key = BuiltInRegistries.ENTITY_TYPE.getKey(entityType);
+                return key == null ? "unknown" : key.toString();
+            }
+            return "unknown";
+        }
+
+        @Override
+        public String dimensionId(Object dimension) {
+            if (dimension == null) {
+                return "unknown";
+            }
+            if (dimension instanceof String string) {
+                return WatchdogLabels.stringify(string);
+            }
+            if (dimension instanceof net.minecraft.resources.ResourceKey<?> key) {
+                ResourceLocation location = key.location();
+                return location == null ? "unknown" : location.toString();
+            }
+            if (dimension instanceof ResourceLocation location) {
+                return location.toString();
+            }
+            return "unknown";
+        }
+    };
+
     private static final Object FTB_LOCK = new Object();
     private static boolean ftbResolved;
     private static Method ftbApi;
@@ -60,14 +98,7 @@ public final class WatchdogWorldContext {
     }
 
     public static String owningMod(String typeId) {
-        if (typeId == null || typeId.isBlank()) {
-            return "unknown";
-        }
-        int colon = typeId.indexOf(':');
-        if (colon > 0) {
-            return typeId.substring(0, colon).toLowerCase(Locale.ROOT);
-        }
-        return "unknown";
+        return WatchdogLabels.owningMod(typeId);
     }
 
     public static WatchdogReportFormatter.ChunkContext describeChunk(ServerLevel level, int chunkX, int chunkZ) {

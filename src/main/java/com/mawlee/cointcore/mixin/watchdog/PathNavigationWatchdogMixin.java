@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.mixin.watchdog;
 
+import com.mawlee.cointcore.watchdog.WatchdogHotFlags;
 import com.mawlee.cointcore.watchdog.probes.ProbeHooks;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
@@ -18,6 +19,9 @@ public abstract class PathNavigationWatchdogMixin {
 
     @Inject(method = "recomputePath()V", at = @At("HEAD"), require = 0)
     private void cointcore$watchdogPathRecompute(CallbackInfo ci) {
+        if (!WatchdogHotFlags.PROBE_PATHFINDING) {
+            return;
+        }
         ProbeHooks.onPathRecompute(this.mob);
     }
 }

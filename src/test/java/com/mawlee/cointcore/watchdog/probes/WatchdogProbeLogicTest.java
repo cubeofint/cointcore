@@ -248,7 +248,20 @@ class WatchdogMixinRequireTest {
                     "src/main/java/com/mawlee/cointcore/mixin/watchdog/" + name + ".java"
             ));
             assertTrue(source.contains("require = 0") || source.contains("require=0"), name);
+            assertTrue(source.contains("WatchdogHotFlags"), name);
         }
+    }
+
+    @Test
+    void tickMixinsEarlyReturnOnHotFlags() throws Exception {
+        String be = java.nio.file.Files.readString(java.nio.file.Path.of(
+                "src/main/java/com/mawlee/cointcore/mixin/minecraft/BoundTickingBlockEntityMixin.java"
+        ));
+        String entity = java.nio.file.Files.readString(java.nio.file.Path.of(
+                "src/main/java/com/mawlee/cointcore/mixin/ServerLevelMixin.java"
+        ));
+        assertTrue(be.contains("WatchdogHotFlags.TIME_BLOCK_ENTITIES"));
+        assertTrue(entity.contains("WatchdogHotFlags.TIME_ENTITIES"));
     }
 
     @Test
