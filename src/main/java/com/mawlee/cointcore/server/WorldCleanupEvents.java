@@ -22,6 +22,7 @@ public final class WorldCleanupEvents {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         WorldCleanupService.tick(event.getServer());
+        com.mawlee.cointcore.chunklimit.TeamLimitIndex.tickRescan(event.getServer());
     }
 
     @SubscribeEvent
