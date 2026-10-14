@@ -580,8 +580,10 @@ public final class ChunkLimitConfig {
     private static void afterMutation() {
         clearResolveCache();
         rulesVersion++;
+        var loadedChunks = ChunkLimitIndex.indexedChunks();
         ChunkLimitIndex.invalidateAll();
-        TeamLimitIndex.invalidateAll();
+        // Keep persisted team contributions (unloaded claims); recount loaded chunks gradually.
+        TeamLimitIndex.scheduleRescan(loadedChunks);
         TeamMobLimitIndex.invalidateAll();
     }
 

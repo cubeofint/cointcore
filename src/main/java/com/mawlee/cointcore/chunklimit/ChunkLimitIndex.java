@@ -33,6 +33,18 @@ public final class ChunkLimitIndex {
         BY_DIMENSION.clear();
     }
 
+    /** Snapshot of indexed (loaded) chunks, used to rescan team contributions after a config change. */
+    public static Map<ResourceKey<Level>, java.util.List<Long>> indexedChunks() {
+        Map<ResourceKey<Level>, java.util.List<Long>> result = new HashMap<>();
+        BY_DIMENSION.forEach((dim, chunks) -> result.put(dim, new java.util.ArrayList<>(chunks.keySet())));
+        return result;
+    }
+
+    /** Build the bucket for a loaded chunk if missing (triggers team sync). */
+    public static void ensureIndexed(ServerLevel level, ChunkPos chunkPos) {
+        bucketFor(level, chunkPos, false);
+    }
+
     public static void removeChunk(ServerLevel level, ChunkPos chunkPos) {
         Map<Long, ChunkBucket> dim = BY_DIMENSION.get(level.dimension());
         if (dim != null) {
