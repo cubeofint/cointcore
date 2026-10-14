@@ -182,15 +182,20 @@ public final class WatchdogReportFormatter {
                         .append(item.dimension())
                         .append(' ')
                         .append(item.x()).append(' ').append(item.y()).append(' ').append(item.z())
-                        .append(String.format(Locale.ROOT, " (%.1f ms)", item.totalMillis()));
+                        .append(conciseStats(item));
             } else {
                 sb.append(item.typeId())
                         .append(' ')
                         .append(item.dimension())
-                        .append(String.format(Locale.ROOT, " (%.1f ms)", item.totalMillis()));
+                        .append(conciseStats(item));
             }
         }
         return sb.toString();
+    }
+
+    private static String conciseStats(OffenderAggregator.OffenderSnapshot item) {
+        return String.format(Locale.ROOT, ": avg %.2f ms/tick over %d ticks, total %.1f ms",
+                item.averageMillis(), item.ticks(), item.totalMillis());
     }
 
     private static void appendOffenders(
