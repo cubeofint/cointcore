@@ -15,6 +15,7 @@ import com.mawlee.cointcore.claim.ClaimFlagEditNetwork;
 import com.mawlee.cointcore.chunklimit.ClaimLimitSync;
 import com.mawlee.cointcore.ftb.FtbTeamPropertyRegistration;
 import com.mawlee.cointcore.permission.PermissionRegistration;
+import com.mawlee.cointcore.playtime.PlaytimeRewardService;
 import com.mawlee.cointcore.seeinvisible.SeeInvisibleNetwork;
 import com.mawlee.cointcore.invsee.InvSeeMenus;
 import com.mawlee.cointcore.invsee.InvSeeNetwork;
@@ -76,6 +77,7 @@ public class CointCore {
                     com.mawlee.cointcore.prefix.PrefixCatalogExporter.tick(event.getServer());
                     com.mawlee.cointcore.prefix.PrefixBulkReportService.tick(event.getServer());
                     com.mawlee.cointcore.questrank.QuestRankService.tick(event.getServer());
+                    PlaytimeRewardService.tick(event.getServer());
                 });
     }
 }

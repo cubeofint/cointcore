@@ -44,10 +44,12 @@ import com.mawlee.cointcore.config.TraderOffersConfig;
 import com.mawlee.cointcore.config.CurrencyMovementConfig;
 import com.mawlee.cointcore.config.PrefixConfig;
 import com.mawlee.cointcore.config.PrivilegeCommandsConfig;
+import com.mawlee.cointcore.config.PlaytimeRewardConfig;
 import com.mawlee.cointcore.config.QuestRankConfig;
 import com.mawlee.cointcore.config.DimensionWipeConfig;
 import com.mawlee.cointcore.config.StarterKitConfig;
 import com.mawlee.cointcore.kit.StarterKitService;
+import com.mawlee.cointcore.playtime.PlaytimeRewardService;
 import com.mawlee.cointcore.server.PeriodicMessageService;
 import com.mawlee.cointcore.server.ScheduledRestartService;
 import com.mawlee.cointcore.ignore.IgnoreManager;
@@ -99,6 +101,7 @@ public final class CointCoreEvents {
             CurrencyMovementConfig.load();
             PrefixConfig.load();
             PrivilegeCommandsConfig.load();
+            PlaytimeRewardConfig.load();
             QuestRankConfig.load();
             TickThrottleConfigs.load();
             SoulSurgePerfConfig.load();
@@ -170,6 +173,7 @@ public final class CointCoreEvents {
             com.mawlee.cointcore.questrank.QuestRankService.onPlayerJoin(player);
             JoinMessageService.sendJoinMessages(player);
             StarterKitService.onPlayerJoin(player);
+            PlaytimeRewardService.onPlayerJoin(player);
         });
     }
 
@@ -186,6 +190,7 @@ public final class CointCoreEvents {
         if (event.getEntity() instanceof ServerPlayer player) {
             PrivateMessageService.onPlayerLeave(player);
             DonorPrivilegeService.onPlayerLeave(player);
+            PlaytimeRewardService.onPlayerLeave(player);
         }
     }
 

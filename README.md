@@ -473,6 +473,7 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/dimension-wipe.json` | Расписание сброса измерений |
 | `config/cointcore/starter-kit.json` | Стартовый кит |
 | `config/cointcore/privilege-commands.json` | Кулдауны `/repair` `/charge` `/repairall` `/chargeall` `/expadd`, лимит и единица `/expadd` |
+| `config/cointcore/playtime-reward.json` | Награда глюонами за онлайн-время (`amount`, `intervalMinutes`, `enabled`) |
 | `config/cointcore/afk.json` | AFK: пометка и кик |
 | `config/cointcore/ftbranks-luckperms-bridge.json` | Мост FTB Ranks → LuckPerms (`ftbranksLuckPermsBridge`, по умолчанию `false`) |
 | `config/cointcore/me-unique-filter.json` | Уникальные фильтры ME (AE2) |
@@ -518,6 +519,14 @@ Retention старых отчётов: хранятся **7 дней или 512 
 ## Глюоны и торговец
 
 Кошелёк: overworld SavedData `cointcore_gluon_wallets`. `/pay` и `/transfer` атомарны, цель может быть офлайн (тот же resolve, что у mute). `/cointcore gluons` только для админов.
+
+**Награда за игровое время** — `config/cointcore/playtime-reward.json`, перечитывается `/cointcore reload`. Пока игрок в онлайне (и не помечен AFK), копится время; за каждый полный интервал на кошелёк падает `amount` глюонов. Неполный интервал сохраняется в SavedData `cointcore_playtime_reward` и переживает релог и рестарт. Начисление пишется в движение валют (`playtime_reward`, описание «Награда за игровое время») и уходит на сайт как остальные серверные операции. Игрок видит сообщение в чате.
+
+| Ключ | По умолчанию | Смысл |
+|------|--------------|--------|
+| `enabled` | `true` | Включить начисление |
+| `amount` | `4` | Глюоны за один полный интервал |
+| `intervalMinutes` | `60` | Длина интервала в минутах |
 
 ### Торговый терминал `cointcore:trader`
 

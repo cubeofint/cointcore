@@ -290,6 +290,8 @@ public final class CointCoreMessages {
     public static final String PRIVILEGE_EXPADD_OVER_MAX = "message.cointcore.privilege.expadd.over_max";
     public static final String PRIVILEGE_EXPADD_UNIT_POINTS = "message.cointcore.privilege.expadd.unit.points";
     public static final String PRIVILEGE_EXPADD_UNIT_LEVELS = "message.cointcore.privilege.expadd.unit.levels";
+    public static final String PLAYTIME_REWARD_GRANTED = "message.cointcore.playtime.reward.granted";
+    public static final String PLAYTIME_REWARD_NOTE = "message.cointcore.playtime.reward.note";
 
     private CointCoreMessages() {
     }

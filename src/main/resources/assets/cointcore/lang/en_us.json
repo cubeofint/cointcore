@@ -581,5 +581,7 @@
   "message.cointcore.privilege.expadd.invalid": "&cThe amount must be positive.",
   "message.cointcore.privilege.expadd.over_max": "&cMaximum per use: &f%d&c.",
   "message.cointcore.privilege.expadd.unit.points": "points",
-  "message.cointcore.privilege.expadd.unit.levels": "levels"
+  "message.cointcore.privilege.expadd.unit.levels": "levels",
+  "message.cointcore.playtime.reward.granted": "&aPlaytime reward: &f%d &agluons. Balance: &f%d",
+  "message.cointcore.playtime.reward.note": "Награда за игровое время"
 }

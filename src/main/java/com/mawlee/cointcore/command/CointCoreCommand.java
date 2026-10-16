@@ -39,6 +39,7 @@ import com.mawlee.cointcore.config.TraderOffersConfig;
 import com.mawlee.cointcore.config.CurrencyMovementConfig;
 import com.mawlee.cointcore.config.PrefixConfig;
 import com.mawlee.cointcore.config.PrivilegeCommandsConfig;
+import com.mawlee.cointcore.config.PlaytimeRewardConfig;
 import com.mawlee.cointcore.config.QuestRankConfig;
 import com.mawlee.cointcore.config.DimensionWipeConfig;
 import com.mawlee.cointcore.config.StarterKitConfig;
@@ -184,6 +185,7 @@ public final class CointCoreCommand {
                 && CurrencyMovementConfig.reload()
                 && PrefixConfig.reload()
                 && PrivilegeCommandsConfig.reload()
+                && PlaytimeRewardConfig.reload()
                 && QuestRankConfig.reload()) {
             CrushRecipeCache.invalidate();
             ArsGlyphThrottle.clear();
