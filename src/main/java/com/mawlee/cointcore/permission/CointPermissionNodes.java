@@ -396,6 +396,62 @@ public final class CointPermissionNodes {
             Component.translatable("permission.desc.cointcore.prefix.admin")
     );
 
+    public static final PermissionNode<Boolean> REPAIR = new PermissionNode<>(
+            CointCore.MOD_ID, "repair", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.repair"),
+            Component.translatable("permission.desc.cointcore.repair")
+    );
+
+    public static final PermissionNode<Boolean> CHARGE = new PermissionNode<>(
+            CointCore.MOD_ID, "charge", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.charge"),
+            Component.translatable("permission.desc.cointcore.charge")
+    );
+
+    public static final PermissionNode<Boolean> REPAIR_ALL = new PermissionNode<>(
+            CointCore.MOD_ID, "repairall", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.repairall"),
+            Component.translatable("permission.desc.cointcore.repairall")
+    );
+
+    public static final PermissionNode<Boolean> CHARGE_ALL = new PermissionNode<>(
+            CointCore.MOD_ID, "chargeall", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.chargeall"),
+            Component.translatable("permission.desc.cointcore.chargeall")
+    );
+
+    public static final PermissionNode<Boolean> EXP_ADD = new PermissionNode<>(
+            CointCore.MOD_ID, "expadd", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.expadd"),
+            Component.translatable("permission.desc.cointcore.expadd")
+    );
+
+    public static final PermissionNode<Boolean> COOLDOWN_BYPASS = new PermissionNode<>(
+            CointCore.MOD_ID, "cooldown.bypass", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.cooldown.bypass"),
+            Component.translatable("permission.desc.cointcore.cooldown.bypass")
+    );
+
+    public static final PermissionNode<Boolean> RESERVED_SLOT = new PermissionNode<>(
+            CointCore.MOD_ID, "reserved_slot", PermissionTypes.BOOLEAN, DENY_BY_DEFAULT
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.reserved_slot"),
+            Component.translatable("permission.desc.cointcore.reserved_slot")
+    );
+
+    public static final PermissionNode<Boolean> RESERVED_SLOT_BYPASS = new PermissionNode<>(
+            CointCore.MOD_ID, "reserved_slot.bypass", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.reserved_slot.bypass"),
+            Component.translatable("permission.desc.cointcore.reserved_slot.bypass")
+    );
+
     public static PermissionNode<?>[] invSeeNodes() {
         return new PermissionNode<?>[] {
                 INVSEE,
