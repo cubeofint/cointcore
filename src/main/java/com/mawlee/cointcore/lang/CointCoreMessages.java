@@ -274,6 +274,22 @@ public final class CointCoreMessages {
     public static final String QUEST_RANKS_SYNC_ALL = "message.cointcore.questranks.sync.all";
     public static final String QUEST_RANKS_SYNC_PLAYER = "message.cointcore.questranks.sync.player";
     public static final String QUEST_RANKS_PLAYER_OFFLINE = "message.cointcore.questranks.player_offline";
+    public static final String PRIVILEGE_COMMAND_COOLDOWN = "message.cointcore.privilege.cooldown";
+    public static final String PRIVILEGE_REPAIR_DONE = "message.cointcore.privilege.repair.done";
+    public static final String PRIVILEGE_REPAIR_NOT_DAMAGEABLE = "message.cointcore.privilege.repair.not_damageable";
+    public static final String PRIVILEGE_REPAIR_ALREADY = "message.cointcore.privilege.repair.already";
+    public static final String PRIVILEGE_CHARGE_DONE = "message.cointcore.privilege.charge.done";
+    public static final String PRIVILEGE_CHARGE_NO_ENERGY = "message.cointcore.privilege.charge.no_energy";
+    public static final String PRIVILEGE_CHARGE_ALREADY = "message.cointcore.privilege.charge.already";
+    public static final String PRIVILEGE_REPAIR_ALL_DONE = "message.cointcore.privilege.repairall.done";
+    public static final String PRIVILEGE_REPAIR_ALL_NONE = "message.cointcore.privilege.repairall.none";
+    public static final String PRIVILEGE_CHARGE_ALL_DONE = "message.cointcore.privilege.chargeall.done";
+    public static final String PRIVILEGE_CHARGE_ALL_NONE = "message.cointcore.privilege.chargeall.none";
+    public static final String PRIVILEGE_EXPADD_DONE = "message.cointcore.privilege.expadd.done";
+    public static final String PRIVILEGE_EXPADD_INVALID = "message.cointcore.privilege.expadd.invalid";
+    public static final String PRIVILEGE_EXPADD_OVER_MAX = "message.cointcore.privilege.expadd.over_max";
+    public static final String PRIVILEGE_EXPADD_UNIT_POINTS = "message.cointcore.privilege.expadd.unit.points";
+    public static final String PRIVILEGE_EXPADD_UNIT_LEVELS = "message.cointcore.privilege.expadd.unit.levels";
 
     private CointCoreMessages() {
     }

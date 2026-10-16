@@ -43,6 +43,7 @@ import com.mawlee.cointcore.watchdog.probes.WatchdogProbeConfig;
 import com.mawlee.cointcore.config.TraderOffersConfig;
 import com.mawlee.cointcore.config.CurrencyMovementConfig;
 import com.mawlee.cointcore.config.PrefixConfig;
+import com.mawlee.cointcore.config.PrivilegeCommandsConfig;
 import com.mawlee.cointcore.config.QuestRankConfig;
 import com.mawlee.cointcore.config.DimensionWipeConfig;
 import com.mawlee.cointcore.config.StarterKitConfig;
@@ -97,6 +98,7 @@ public final class CointCoreEvents {
             TraderOffersConfig.load();
             CurrencyMovementConfig.load();
             PrefixConfig.load();
+            PrivilegeCommandsConfig.load();
             QuestRankConfig.load();
             TickThrottleConfigs.load();
             SoulSurgePerfConfig.load();

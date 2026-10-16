@@ -54,7 +54,13 @@ public final class PermissionRegistration {
                 CointPermissionNodes.PLAYER_SHOP_USE,
                 CointPermissionNodes.PLAYER_SHOP_ADMIN,
                 CointPermissionNodes.PREFIX,
-                CointPermissionNodes.PREFIX_ADMIN
+                CointPermissionNodes.PREFIX_ADMIN,
+                CointPermissionNodes.REPAIR,
+                CointPermissionNodes.CHARGE,
+                CointPermissionNodes.REPAIR_ALL,
+                CointPermissionNodes.CHARGE_ALL,
+                CointPermissionNodes.EXP_ADD,
+                CointPermissionNodes.COOLDOWN_BYPASS
         );
         event.addNodes(CointPermissionNodes.invSeeNodes());
     }

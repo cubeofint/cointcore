@@ -180,6 +180,11 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/prefix set <группа>` | Выбрать квестовый префикс (track `ranks`) на этом сервере |
 | `/prefix auto` | Сбросить выбор (показывается высший квестовый ранг) |
 | `/prefix gui` | Простое меню выбора (сундук 9×3) |
+| `/repair` | Полностью починить предмет в основной руке (только изнашиваемые). Кулдаун, `cointcore.repair` |
+| `/charge` | Полностью зарядить предмет в основной руке (NeoForge `Capabilities.EnergyStorage.ITEM`). Кулдаун, `cointcore.charge` |
+| `/repairall` | Починить все предметы в инвентаре, броне, второй руке и слотах Curios (если мод есть). Кулдаун, `cointcore.repairall` |
+| `/chargeall` | То же покрытие, зарядка всех энергетических предметов. Кулдаун, `cointcore.chargeall` |
+| `/expadd <количество>` | Выдать себе опыт. Количество — целое число в единицах из конфига (`points` или `levels`), не больше `expAddMaxAmount`. Кулдаун, `cointcore.expadd` |
 
 ### Администрирование (`/cointcore`)
 
@@ -375,6 +380,12 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `cointcore.playershop.admin` | OP | Управление/ломка чужого автомата |
 | `cointcore.prefix` | все | `/prefix`, `/prefix set`, `/prefix auto`, `/prefix gui` |
 | `cointcore.prefix.admin` | OP | `/cointcore prefixes export`, `/cointcore prefixes report-all` |
+| `cointcore.repair` | OP | `/repair` |
+| `cointcore.charge` | OP | `/charge` |
+| `cointcore.repairall` | OP | `/repairall` |
+| `cointcore.chargeall` | OP | `/chargeall` |
+| `cointcore.expadd` | OP | `/expadd <количество>` |
+| `cointcore.cooldown.bypass` | OP | Без кулдауна у `/repair`, `/charge`, `/repairall`, `/chargeall`, `/expadd` |
 
 ## Tick watchdog
 
@@ -461,6 +472,7 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/item-perf.json` | Оптимизация item entity и защита от массового выпадения (`massDropGuard` и лимиты) |
 | `config/cointcore/dimension-wipe.json` | Расписание сброса измерений |
 | `config/cointcore/starter-kit.json` | Стартовый кит |
+| `config/cointcore/privilege-commands.json` | Кулдауны `/repair` `/charge` `/repairall` `/chargeall` `/expadd`, лимит и единица `/expadd` |
 | `config/cointcore/afk.json` | AFK: пометка и кик |
 | `config/cointcore/ftbranks-luckperms-bridge.json` | Мост FTB Ranks → LuckPerms (`ftbranksLuckPermsBridge`, по умолчанию `false`) |
 | `config/cointcore/me-unique-filter.json` | Уникальные фильтры ME (AE2) |
@@ -731,6 +743,22 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
 ```
 
 Если этих методов нет, cointcore ходит в `HttpClient.request` через поле `plugin` у того же моста (как `postMovements`).
+
+### Конфиг `config/cointcore/privilege-commands.json`
+
+Перечитывается `/cointcore reload`. Кулдауны — в секундах, на игрока и команду; пишутся в world SavedData и переживают релог и рестарт. Узел `cointcore.cooldown.bypass` снимает ожидание. Ops без узла команды команду не видят и не выполняют.
+
+| Ключ | По умолчанию | Смысл |
+|------|--------------|--------|
+| `repairCooldownSeconds` | 300 | Кулдаун `/repair` |
+| `chargeCooldownSeconds` | 300 | Кулдаун `/charge` |
+| `repairAllCooldownSeconds` | 1800 | Кулдаун `/repairall` |
+| `chargeAllCooldownSeconds` | 1800 | Кулдаун `/chargeall` |
+| `expAddCooldownSeconds` | 3600 | Кулдаун `/expadd` |
+| `expAddMaxAmount` | 1000 | Максимум аргумента `/expadd <количество>` за одно использование |
+| `expAddUnit` | `points` | Единица выдачи: `points` (очки опыта) или `levels` (уровни) |
+
+`/expadd` принимает положительное целое. Если число больше `expAddMaxAmount`, команда отказывается и пишет максимум; кулдаун при этом не стартует.
 
 ### Конфиг `config/cointcore/prefixes.json`
 
