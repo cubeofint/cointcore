@@ -82,7 +82,7 @@ public class TraderBlock extends HorizontalDirectionalBlock {
     static boolean openMenu(ServerPlayer player, Level level, BlockPos pos) {
         long balance = GluonWallet.get(player);
         var offers = TraderMenu.serverOffers(player.server);
-        OptionalInt containerId = player.openMenu(
+        OptionalInt openedId = player.openMenu(
                 new SimpleMenuProvider(
                         (containerId, inventory, opener) -> new TraderMenu(
                                 containerId,
@@ -95,7 +95,7 @@ public class TraderBlock extends HorizontalDirectionalBlock {
                 ),
                 buffer -> TraderMenu.writeOpenData(buffer, balance, offers)
         );
-        return containerId.isPresent();
+        return openedId.isPresent();
     }
 
     private static Map<Direction, VoxelShape> buildShapes() {
