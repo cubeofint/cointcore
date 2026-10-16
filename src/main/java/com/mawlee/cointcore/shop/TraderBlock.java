@@ -23,6 +23,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.OptionalInt;
 
 /**
  * Trade terminal. The model front (keypad and card slot) faces north at rotation 0.
@@ -78,10 +79,10 @@ public class TraderBlock extends HorizontalDirectionalBlock {
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
-    static void openMenu(ServerPlayer player, Level level, BlockPos pos) {
+    static boolean openMenu(ServerPlayer player, Level level, BlockPos pos) {
         long balance = GluonWallet.get(player);
         var offers = TraderMenu.serverOffers(player.server);
-        player.openMenu(
+        OptionalInt containerId = player.openMenu(
                 new SimpleMenuProvider(
                         (containerId, inventory, opener) -> new TraderMenu(
                                 containerId,
@@ -94,6 +95,7 @@ public class TraderBlock extends HorizontalDirectionalBlock {
                 ),
                 buffer -> TraderMenu.writeOpenData(buffer, balance, offers)
         );
+        return containerId.isPresent();
     }
 
     private static Map<Direction, VoxelShape> buildShapes() {

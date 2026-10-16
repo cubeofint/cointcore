@@ -195,7 +195,7 @@ public class TraderMenu extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player player) {
-        return stillValid(access, player, ShopBlocks.TRADER.get());
+        return TraderReach.stillValid(access, player, ShopBlocks.TRADER.get());
     }
 
     private void writeBalanceParts(long balance) {
