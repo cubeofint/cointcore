@@ -73,23 +73,27 @@ public class TraderBlock extends HorizontalDirectionalBlock {
             BlockHitResult hitResult
     ) {
         if (player instanceof ServerPlayer serverPlayer) {
-            long balance = GluonWallet.get(serverPlayer);
-            var offers = TraderMenu.serverOffers(serverPlayer.server);
-            serverPlayer.openMenu(
-                    new SimpleMenuProvider(
-                            (containerId, inventory, opener) -> new TraderMenu(
-                                    containerId,
-                                    inventory,
-                                    ContainerLevelAccess.create(level, pos),
-                                    balance,
-                                    offers
-                            ),
-                            Component.translatable("container.cointcore.trader")
-                    ),
-                    buffer -> TraderMenu.writeOpenData(buffer, balance, offers)
-            );
+            openMenu(serverPlayer, level, pos);
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
+    }
+
+    static void openMenu(ServerPlayer player, Level level, BlockPos pos) {
+        long balance = GluonWallet.get(player);
+        var offers = TraderMenu.serverOffers(player.server);
+        player.openMenu(
+                new SimpleMenuProvider(
+                        (containerId, inventory, opener) -> new TraderMenu(
+                                containerId,
+                                inventory,
+                                ContainerLevelAccess.create(level, pos),
+                                balance,
+                                offers
+                        ),
+                        Component.translatable("container.cointcore.trader")
+                ),
+                buffer -> TraderMenu.writeOpenData(buffer, balance, offers)
+        );
     }
 
     private static Map<Direction, VoxelShape> buildShapes() {
