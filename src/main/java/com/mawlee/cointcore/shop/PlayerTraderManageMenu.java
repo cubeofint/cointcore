@@ -202,7 +202,7 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player player) {
-        return stillValid(access, player, ShopBlocks.PLAYER_TRADER.get())
+        return TraderReach.stillValid(access, player, ShopBlocks.PLAYER_TRADER.get())
                 && (!(player instanceof net.minecraft.server.level.ServerPlayer serverPlayer)
                 || PlayerShopAccess.canUse(serverPlayer));
     }

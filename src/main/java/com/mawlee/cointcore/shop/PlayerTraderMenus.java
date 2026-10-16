@@ -10,25 +10,29 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalInt;
 
 public final class PlayerTraderMenus {
     private PlayerTraderMenus() {
     }
 
     public static void open(ServerPlayer player, PlayerTraderBlockEntity shop, boolean manage) {
-        if (manage && PlayerShopAccess.canUse(player)) {
-            openManage(player, shop);
-        } else {
-            openShop(player, shop);
-        }
+        openReturningId(player, shop, manage);
     }
 
-    public static void openShop(ServerPlayer player, PlayerTraderBlockEntity shop) {
+    static OptionalInt openReturningId(ServerPlayer player, PlayerTraderBlockEntity shop, boolean manage) {
+        if (manage && PlayerShopAccess.canUse(player)) {
+            return openManage(player, shop);
+        }
+        return openShop(player, shop);
+    }
+
+    public static OptionalInt openShop(ServerPlayer player, PlayerTraderBlockEntity shop) {
         GlobalMarketMigration.migrate(player.server, shop);
         long balance = GluonWallet.get(player);
         boolean canManage = PlayerShopAccess.canUse(player);
         List<PlayerTraderListing> listings = listingsOf(player.server);
-        player.openMenu(
+        return player.openMenu(
                 new SimpleMenuProvider(
                         (containerId, inventory, opener) -> new PlayerTraderMenu(
                                 containerId,
@@ -51,10 +55,9 @@ public final class PlayerTraderMenus {
         );
     }
 
-    public static void openManage(ServerPlayer player, PlayerTraderBlockEntity shop) {
+    public static OptionalInt openManage(ServerPlayer player, PlayerTraderBlockEntity shop) {
         if (!PlayerShopAccess.canUse(player)) {
-            openShop(player, shop);
-            return;
+            return openShop(player, shop);
         }
         GlobalMarketMigration.migrate(player.server, shop);
         List<PlayerShopOfferSnapshot> offers = GlobalMarketService.ownSnapshots(player.server, player.getUUID());
@@ -62,7 +65,7 @@ public final class PlayerTraderMenus {
         long revenue = stats.gluons();
         int returns = GlobalMarketSavedData.get(player.server).returnCount(player.getUUID());
         List<MarketPriceHint> hints = priceHints(player, offers);
-        player.openMenu(
+        return player.openMenu(
                 new SimpleMenuProvider(
                         (containerId, inventory, opener) -> new PlayerTraderManageMenu(
                                 containerId,
