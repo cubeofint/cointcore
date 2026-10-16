@@ -386,6 +386,8 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `cointcore.chargeall` | OP | `/chargeall` |
 | `cointcore.expadd` | OP | `/expadd <количество>` |
 | `cointcore.cooldown.bypass` | OP | Без кулдауна у `/repair`, `/charge`, `/repairall`, `/chargeall`, `/expadd` |
+| `cointcore.reserved_slot` | запрещено | Вход в резервные слоты, когда публичные заняты |
+| `cointcore.reserved_slot.bypass` | OP | Вход даже когда заняты и резервные слоты |
 
 ## Tick watchdog
 
@@ -474,6 +476,7 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/starter-kit.json` | Стартовый кит |
 | `config/cointcore/privilege-commands.json` | Кулдауны `/repair` `/charge` `/repairall` `/chargeall` `/expadd`, лимит и единица `/expadd` |
 | `config/cointcore/playtime-reward.json` | Награда глюонами за онлайн-время (`amount`, `intervalMinutes`, `enabled`) |
+| `config/cointcore/reserved-slots.json` | Публичные и резервные слоты (`publicSlots`, `reservedSlots`, `enabled`) |
 | `config/cointcore/afk.json` | AFK: пометка и кик |
 | `config/cointcore/ftbranks-luckperms-bridge.json` | Мост FTB Ranks → LuckPerms (`ftbranksLuckPermsBridge`, по умолчанию `false`) |
 | `config/cointcore/me-unique-filter.json` | Уникальные фильтры ME (AE2) |
@@ -527,6 +530,14 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `enabled` | `true` | Включить начисление |
 | `amount` | `4` | Глюоны за один полный интервал |
 | `intervalMinutes` | `60` | Длина интервала в минутах |
+
+**Резервные слоты** — `config/cointcore/reserved-slots.json`, перечитывается `/cointcore reload`. Онлайн считается целиком (vanish не вычитается). Пока игроков меньше `publicSlots`, заходят все. Дальше до `publicSlots + reservedSlots` пускает только `cointcore.reserved_slot`. Без узла отказ: «Сервер заполнен. Резервные слоты доступны владельцам привилегий». `cointcore.reserved_slot.bypass` пускает даже при полной занятости. Право читается в `canPlayerLogin` через LuckPerms `UserManager.loadUser` (ожидание до 2.5 с, если пользователь ещё не в памяти). `PlayerList.getMaxPlayers()` поднимается до суммы слотов, так что `max-players` в `server.properties` можно поставить равным total (или меньше — мод всё равно поднимет лимит). В server list ping max = `publicSlots`.
+
+| Ключ | По умолчанию | Смысл |
+|------|--------------|--------|
+| `enabled` | `true` | Включить лимит |
+| `publicSlots` | `30` | Публичные слоты |
+| `reservedSlots` | `10` | Резерв для `cointcore.reserved_slot` |
 
 ### Торговый терминал `cointcore:trader`
 

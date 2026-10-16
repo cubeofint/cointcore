@@ -583,5 +583,11 @@
   "message.cointcore.privilege.expadd.unit.points": "points",
   "message.cointcore.privilege.expadd.unit.levels": "levels",
   "message.cointcore.playtime.reward.granted": "&aPlaytime reward: &f%d &agluons. Balance: &f%d",
-  "message.cointcore.playtime.reward.note": "Награда за игровое время"
+  "message.cointcore.playtime.reward.note": "Награда за игровое время",
+  "permission.name.cointcore.reserved_slot": "Reserved slot",
+  "permission.desc.cointcore.reserved_slot": "Join when public slots are full",
+  "permission.name.cointcore.reserved_slot.bypass": "Slot limit bypass",
+  "permission.desc.cointcore.reserved_slot.bypass": "Join even when reserved slots are full",
+  "message.cointcore.reserved_slots.public_full": "Сервер заполнен. Резервные слоты доступны владельцам привилегий",
+  "message.cointcore.reserved_slots.total_full": "Сервер полностью заполнен."
 }

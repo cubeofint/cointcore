@@ -15,6 +15,7 @@
     "MinecraftServerMixin",
     "ServerPlayerMixin",
     "PlayerListMixin",
+    "PlayerListReservedSlotsMixin",
     "ServerCommonPacketListenerImplMixin",
     "ServerGamePacketListenerImplMixin",
     "MsgCommandMixin",

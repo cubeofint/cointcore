@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.vanish;
 
+import com.mawlee.cointcore.slots.ReservedSlotsService;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.network.protocol.status.ServerStatus;
 import net.minecraft.server.MinecraftServer;
@@ -16,8 +17,11 @@ public final class VanishServerStatus {
     }
 
     public static ServerStatus.Players filter(MinecraftServer server, ServerStatus.Players players) {
-        if (players == null || VanishManager.vanishedPlayers().isEmpty()) {
-            return players;
+        if (players == null) {
+            return null;
+        }
+        if (VanishManager.vanishedPlayers().isEmpty()) {
+            return ReservedSlotsService.adjustPing(players);
         }
 
         PlayerList playerList = server.getPlayerList();
@@ -35,7 +39,7 @@ public final class VanishServerStatus {
             }
         }
 
-        return new ServerStatus.Players(players.max(), visibleOnline, visibleSample);
+        return ReservedSlotsService.adjustPing(new ServerStatus.Players(players.max(), visibleOnline, visibleSample));
     }
 
     public static void invalidate(MinecraftServer server) {

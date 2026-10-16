@@ -583,5 +583,11 @@
   "message.cointcore.privilege.expadd.unit.points": "очки",
   "message.cointcore.privilege.expadd.unit.levels": "уровни",
   "message.cointcore.playtime.reward.granted": "&aНаграда за игровое время: &f%d &aглюонов. Баланс: &f%d",
-  "message.cointcore.playtime.reward.note": "Награда за игровое время"
+  "message.cointcore.playtime.reward.note": "Награда за игровое время",
+  "permission.name.cointcore.reserved_slot": "Резервный слот",
+  "permission.desc.cointcore.reserved_slot": "Вход, когда публичные слоты заняты",
+  "permission.name.cointcore.reserved_slot.bypass": "Обход лимита слотов",
+  "permission.desc.cointcore.reserved_slot.bypass": "Вход даже когда заняты и резервные слоты",
+  "message.cointcore.reserved_slots.public_full": "Сервер заполнен. Резервные слоты доступны владельцам привилегий",
+  "message.cointcore.reserved_slots.total_full": "Сервер полностью заполнен."
 }

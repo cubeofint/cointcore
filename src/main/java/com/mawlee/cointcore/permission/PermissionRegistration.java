@@ -60,7 +60,9 @@ public final class PermissionRegistration {
                 CointPermissionNodes.REPAIR_ALL,
                 CointPermissionNodes.CHARGE_ALL,
                 CointPermissionNodes.EXP_ADD,
-                CointPermissionNodes.COOLDOWN_BYPASS
+                CointPermissionNodes.COOLDOWN_BYPASS,
+                CointPermissionNodes.RESERVED_SLOT,
+                CointPermissionNodes.RESERVED_SLOT_BYPASS
         );
         event.addNodes(CointPermissionNodes.invSeeNodes());
     }

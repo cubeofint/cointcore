@@ -292,6 +292,8 @@ public final class CointCoreMessages {
     public static final String PRIVILEGE_EXPADD_UNIT_LEVELS = "message.cointcore.privilege.expadd.unit.levels";
     public static final String PLAYTIME_REWARD_GRANTED = "message.cointcore.playtime.reward.granted";
     public static final String PLAYTIME_REWARD_NOTE = "message.cointcore.playtime.reward.note";
+    public static final String RESERVED_SLOTS_PUBLIC_FULL = "message.cointcore.reserved_slots.public_full";
+    public static final String RESERVED_SLOTS_TOTAL_FULL = "message.cointcore.reserved_slots.total_full";
 
     private CointCoreMessages() {
     }
