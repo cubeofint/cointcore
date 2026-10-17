@@ -9,6 +9,7 @@ import com.mawlee.cointcore.shop.PlayerTraderManageLayout;
 import com.mawlee.cointcore.shop.PlayerTraderManageMenu;
 import com.mawlee.cointcore.shop.PlayerTraderManagePayload;
 import com.mawlee.cointcore.shop.PlayerTraderTabPayload;
+import com.mawlee.cointcore.shop.TraderEditorSync;
 import com.mawlee.cointcore.ui.PagerChrome;
 import com.mawlee.cointcore.ui.ScaledGuiLayout;
 import net.minecraft.client.gui.GuiGraphics;
@@ -21,7 +22,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
-import org.lwjgl.glfw.GLFW;
+import java.util.function.Consumer;
 
 public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTraderManageMenu> {
     private PlayerTraderManageLayout.Geom geom = PlayerTraderManageLayout.fit(
@@ -40,6 +41,11 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
     private PlayerTraderManageLayout.RecommendPlacement recommendPlacement;
     private Component recommendFull = Component.empty();
     private boolean recommendTruncated;
+    private String countText = "1";
+    private String dealsText = "1";
+    private String priceText = "1";
+    private int restoreCursor = -1;
+    private int restoreFocus = -1;
 
     public PlayerTraderManageScreen(PlayerTraderManageMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -50,23 +56,35 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         this.titleLabelY = PlayerTraderManageLayout.TITLE_Y;
     }
 
-    void onOffersUpdated(boolean lastActionOk) {
-        status = Component.translatable(
-                lastActionOk
-                        ? "gui.cointcore.player_trader.manage.saved"
-                        : "gui.cointcore.player_trader.manage.invalid"
-        );
-        statusColor = lastActionOk ? 0x2E7D32 : 0xAA0000;
+    void onOffersUpdated(boolean lastActionOk, boolean userAction) {
         if (selected >= menu.offers().size()) {
             selected = -1;
         }
         offerPage = Math.min(offerPage, PlayerTraderManageLayout.maxOfferPage(menu.offers().size(), geom.listPageSize));
-        deleteArmed = false;
+        boolean editorFocused = editorFocused();
+        rememberEditorFocus();
+        if (TraderEditorSync.showActionStatus(userAction)) {
+            status = Component.translatable(
+                    lastActionOk
+                            ? "gui.cointcore.player_trader.manage.saved"
+                            : "gui.cointcore.player_trader.manage.invalid"
+            );
+            statusColor = lastActionOk ? 0x2E7D32 : 0xAA0000;
+        }
+        if (TraderEditorSync.applyServerValuesToEditor(userAction, lastActionOk, editorFocused)) {
+            applyDraftFromSelection();
+            deleteArmed = false;
+            restoreFocus = -1;
+        } else {
+            captureDraftsFromBoxes();
+        }
         rebuildWidgets();
     }
 
     @Override
     protected void init() {
+        captureDraftsFromBoxes();
+        rememberEditorFocus();
         geom = PlayerTraderManageLayout.fit(width, height);
         imageWidth = geom.guiWidth;
         imageHeight = geom.guiHeight;
@@ -104,10 +122,8 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                 geom.tabH
         ).build()).active = false;
 
-        countBox = field(geom.fieldBox(0), selected >= 0 ? String.valueOf(menu.offers().get(selected).count()) : "1",
-                "gui.cointcore.player_trader.manage.count.tooltip");
-        dealsBox = field(geom.fieldBox(1), selected >= 0 ? "0" : "1",
-                "gui.cointcore.player_trader.manage.deals.tooltip");
+        countBox = field(geom.fieldBox(0), countText, "gui.cointcore.player_trader.manage.count.tooltip", text -> countText = text);
+        dealsBox = field(geom.fieldBox(1), dealsText, "gui.cointcore.player_trader.manage.deals.tooltip", text -> dealsText = text);
         dealsBox.setMaxLength(18);
         long recommended = recommendedUnitPrice();
         Component fill = Component.translatable("gui.cointcore.player_trader.manage.recommend.fill");
@@ -123,11 +139,12 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                 font.width(recommendFull)
         );
         recommendTruncated = recommendPlacement.truncated();
-        long shownPrice = selected >= 0
-                ? GlobalMarketPriceMath.unitPrice(menu.offers().get(selected).buyPrice(), menu.offers().get(selected).count())
-                : 1L;
-        priceBox = field(recommendPlacement.price(), Long.toString(Math.max(1L, shownPrice)),
-                "gui.cointcore.player_trader.manage.buy.tooltip");
+        priceBox = field(
+                recommendPlacement.price(),
+                priceText,
+                "gui.cointcore.player_trader.manage.buy.tooltip",
+                text -> priceText = text
+        );
         PlayerTraderManageLayout.Rect fillRect = recommendPlacement.fill();
         Button fillButton = addRenderableWidget(Button.builder(fill, button -> fillRecommended())
                 .bounds(leftPos + fillRect.x(), topPos + fillRect.y(), fillRect.w(), fillRect.h())
@@ -188,14 +205,21 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                     .build());
         }
         GuiCursor.restoreIfNeeded();
+        restoreEditorFocus();
     }
 
-    private EditBox field(PlayerTraderManageLayout.Rect rect, String value, String tooltipKey) {
+    private EditBox field(
+            PlayerTraderManageLayout.Rect rect,
+            String value,
+            String tooltipKey,
+            Consumer<String> onChange
+    ) {
         EditBox box = new EditBox(font, leftPos + rect.x(), topPos + rect.y(), rect.w(), rect.h(), Component.empty());
         box.setMaxLength(12);
-        box.setValue(value);
+        box.setValue(value == null ? "" : value);
         box.setFilter(text -> text.chars().allMatch(Character::isDigit) || text.isEmpty());
         box.setTooltip(Tooltip.create(Component.translatable(tooltipKey)));
+        box.setResponder(text -> onChange.accept(text == null ? "" : text));
         addRenderableWidget(box);
         return box;
     }
@@ -334,14 +358,18 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode != GLFW.GLFW_KEY_ESCAPE
-                && keyCode != GLFW.GLFW_KEY_TAB
-                && getFocused() instanceof EditBox box
-                && box.canConsumeInput()) {
-            box.keyPressed(keyCode, scanCode, modifiers);
+        if (TraderGuiInput.handleKeyPressed(this, keyCode, scanCode, modifiers)) {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char codePoint, int modifiers) {
+        if (TraderGuiInput.handleCharTyped(this, codePoint, modifiers)) {
+            return true;
+        }
+        return super.charTyped(codePoint, modifiers);
     }
 
     @Override
@@ -476,9 +504,8 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         deleteArmed = false;
         PlayerShopOfferSnapshot offer = menu.offers().get(index);
         applyGhostTemplate(offer.template());
-        countBox.setValue(Integer.toString(offer.count()));
-        dealsBox.setValue("0");
-        priceBox.setValue(Long.toString(Math.max(1L, GlobalMarketPriceMath.unitPrice(offer.buyPrice(), offer.count()))));
+        applyDraftFromSelection();
+        restoreFocus = -1;
         rebuildWidgets();
     }
 
@@ -487,7 +514,10 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         if (unit <= 0L) {
             return;
         }
-        priceBox.setValue(Long.toString(unit));
+        priceText = Long.toString(unit);
+        if (priceBox != null) {
+            priceBox.setValue(priceText);
+        }
     }
 
     private long recommendedUnitPrice() {
@@ -540,6 +570,8 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         ));
         selected = -1;
         deleteArmed = false;
+        resetDraftsForNewLot();
+        restoreFocus = -1;
         rebuildWidgets();
     }
 
@@ -560,10 +592,9 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         selected = -1;
         deleteArmed = false;
         applyGhostTemplate(ItemStack.EMPTY);
+        resetDraftsForNewLot();
+        restoreFocus = -1;
         rebuildWidgets();
-        countBox.setValue("1");
-        dealsBox.setValue("1");
-        priceBox.setValue("1");
     }
 
     private void changeOfferPage(int delta) {
@@ -575,13 +606,95 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
     }
 
     private void rebuildKeepingInput() {
-        String count = countBox.getValue();
-        String deals = dealsBox.getValue();
-        String price = priceBox.getValue();
+        rememberEditorFocus();
+        captureDraftsFromBoxes();
         rebuildWidgets();
-        countBox.setValue(count);
-        dealsBox.setValue(deals);
-        priceBox.setValue(price);
+        restoreEditorFocus();
+    }
+
+    private void captureDraftsFromBoxes() {
+        if (countBox != null) {
+            countText = countBox.getValue();
+        }
+        if (dealsBox != null) {
+            dealsText = dealsBox.getValue();
+        }
+        if (priceBox != null) {
+            priceText = priceBox.getValue();
+        }
+    }
+
+    private void applyDraftFromSelection() {
+        if (selected < 0 || selected >= menu.offers().size()) {
+            resetDraftsForNewLot();
+            return;
+        }
+        PlayerShopOfferSnapshot offer = menu.offers().get(selected);
+        countText = Integer.toString(offer.count());
+        dealsText = "0";
+        priceText = Long.toString(Math.max(1L, GlobalMarketPriceMath.unitPrice(offer.buyPrice(), offer.count())));
+    }
+
+    private void resetDraftsForNewLot() {
+        countText = "1";
+        dealsText = "1";
+        priceText = "1";
+    }
+
+    private boolean editorFocused() {
+        return getFocused() instanceof EditBox;
+    }
+
+    private void rememberEditorFocus() {
+        restoreFocus = -1;
+        restoreCursor = -1;
+        EditBox focused = focusedEditor();
+        if (focused == null) {
+            return;
+        }
+        restoreCursor = focused.getCursorPosition();
+        if (focused == countBox) {
+            restoreFocus = 0;
+        } else if (focused == dealsBox) {
+            restoreFocus = 1;
+        } else if (focused == priceBox) {
+            restoreFocus = 2;
+        }
+    }
+
+    private void restoreEditorFocus() {
+        EditBox box = switch (restoreFocus) {
+            case 0 -> countBox;
+            case 1 -> dealsBox;
+            case 2 -> priceBox;
+            default -> null;
+        };
+        if (box == null) {
+            return;
+        }
+        setFocused(box);
+        box.setFocused(true);
+        int length = box.getValue().length();
+        if (restoreCursor >= 0) {
+            box.setCursorPosition(Math.min(restoreCursor, length));
+            box.setHighlightPos(Math.min(restoreCursor, length));
+        }
+    }
+
+    private EditBox focusedEditor() {
+        if (getFocused() instanceof EditBox box) {
+            return box;
+        }
+        if (countBox != null && countBox.isFocused()) {
+            return countBox;
+        }
+        if (dealsBox != null && dealsBox.isFocused()) {
+            return dealsBox;
+        }
+        if (priceBox != null && priceBox.isFocused()) {
+            return priceBox;
+        }
+        return null;
     }
 
     private static int parseInt(String text, int fallback) {

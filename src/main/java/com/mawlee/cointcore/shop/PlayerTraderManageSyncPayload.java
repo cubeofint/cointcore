@@ -17,6 +17,7 @@ public record PlayerTraderManageSyncPayload(
         long lifetimeRevenue,
         List<PlayerShopOfferSnapshot> offers,
         boolean lastActionOk,
+        boolean userAction,
         int returnCount,
         List<MarketPriceHint> priceHints
 ) implements CustomPacketPayload {
@@ -32,6 +33,7 @@ public record PlayerTraderManageSyncPayload(
         ByteBufCodecs.STRING_UTF8.encode(buffer, payload.ownerName == null ? "" : payload.ownerName);
         buffer.writeLong(payload.lifetimeRevenue);
         buffer.writeBoolean(payload.lastActionOk);
+        buffer.writeBoolean(payload.userAction);
         ByteBufCodecs.VAR_INT.encode(buffer, payload.returnCount);
         PlayerShopOfferSnapshot.writeList(buffer, payload.offers);
         MarketPriceHint.writeList(buffer, payload.priceHints);
@@ -42,6 +44,7 @@ public record PlayerTraderManageSyncPayload(
         String ownerName = ByteBufCodecs.STRING_UTF8.decode(buffer);
         long revenue = buffer.readLong();
         boolean ok = buffer.readBoolean();
+        boolean userAction = buffer.readBoolean();
         int returns = ByteBufCodecs.VAR_INT.decode(buffer);
         return new PlayerTraderManageSyncPayload(
                 containerId,
@@ -49,6 +52,7 @@ public record PlayerTraderManageSyncPayload(
                 revenue,
                 PlayerShopOfferSnapshot.readList(buffer),
                 ok,
+                userAction,
                 returns,
                 MarketPriceHint.readList(buffer)
         );
