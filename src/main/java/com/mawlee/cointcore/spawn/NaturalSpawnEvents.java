@@ -2,6 +2,8 @@ package com.mawlee.cointcore.spawn;
 
 import com.mawlee.cointcore.CointCore;
 import com.mawlee.cointcore.config.NaturalSpawnConfig;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Mob;
@@ -60,6 +62,34 @@ public final class NaturalSpawnEvents {
             }
             ChunkPos playerChunk = player.chunkPosition();
             if (Math.max(Math.abs(chunkPos.x - playerChunk.x), Math.abs(chunkPos.z - playerChunk.z)) <= maxChunkRadius) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Pre-filter for {@code NaturalSpawner.spawnCategoryForPosition}: a natural pack keeps the start Y, so a
+     * start position outside the vertical window of every nearby player would be cancelled in
+     * {@link #onFinalizeSpawn} after the full pack search. One extra chunk of slack covers pack wander.
+     */
+    public static boolean shouldSkipPosition(ServerLevel level, BlockPos pos) {
+        if (!NaturalSpawnConfig.isEnabled()) {
+            return false;
+        }
+        int chunkRadius = NaturalSpawnConfig.getMaxChunkRadius() + 1;
+        double maxVertical = NaturalSpawnConfig.getMaxVerticalBlocks();
+        int chunkX = SectionPos.blockToSectionCoord(pos.getX());
+        int chunkZ = SectionPos.blockToSectionCoord(pos.getZ());
+        for (ServerPlayer player : level.players()) {
+            if (player.isSpectator()) {
+                continue;
+            }
+            ChunkPos playerChunk = player.chunkPosition();
+            if (Math.max(Math.abs(chunkX - playerChunk.x), Math.abs(chunkZ - playerChunk.z)) > chunkRadius) {
+                continue;
+            }
+            if (Math.abs(pos.getY() - player.getY()) <= maxVertical) {
                 return false;
             }
         }
