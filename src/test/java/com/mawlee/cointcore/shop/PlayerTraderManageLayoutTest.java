@@ -90,5 +90,89 @@ class PlayerTraderManageLayoutTest {
         assertTrue(scale4.fieldBox(2).bottom() <= scale4.buttonY || scale4.buttonY >= scale4.recommendY);
         assertTrue(scale4.playerInvLabelY >= scale4.listBottom || scale4.listBottom <= scale4.playerInvY);
         assertTrue(scale4.playerHotbarY + PlayerTraderManageLayout.SLOT + PlayerTraderManageLayout.PAD <= scale4.guiHeight);
+        assertRecommendDoesNotOverlapFill(scale4, 24, 80);
+        assertRecommendDoesNotOverlapFill(scale4, 56, 140);
+    }
+
+    @Test
+    void fillButtonWidthFollowsLocalizedLabel() {
+        assertEquals(32, PlayerTraderManageLayout.fillButtonWidth(10));
+        assertEquals(24 + PlayerTraderManageLayout.BUTTON_TEXT_PAD, PlayerTraderManageLayout.fillButtonWidth(24));
+        assertEquals(56 + PlayerTraderManageLayout.BUTTON_TEXT_PAD, PlayerTraderManageLayout.fillButtonWidth(56));
+    }
+
+    @Test
+    void recommendTextSitsAfterFillButtonOnPreferredGeometry() {
+        PlayerTraderManageLayout.Geom geom = PlayerTraderManageLayout.fit(640, 360);
+        int fillLabel = 56;
+        PlayerTraderManageLayout.RecommendPlacement placement = PlayerTraderManageLayout.recommendPlacement(
+                geom,
+                fillLabel,
+                90
+        );
+        assertEquals(PlayerTraderManageLayout.fillButtonWidth(fillLabel), placement.fill().w());
+        assertEquals(placement.fill().right() + PlayerTraderManageLayout.BUTTON_GAP, placement.textX());
+        assertTrue(placement.hasText());
+        assertTrue(!placement.textOverlapsFill());
+        assertTrue(placement.fill().y() >= geom.fieldBox(2).bottom() || placement.fill().x() >= placement.price().right());
+    }
+
+    @Test
+    void russianFillLabelAndEnglishUseDoNotOverlapHint() {
+        PlayerTraderManageLayout.Geom preferred = PlayerTraderManageLayout.fit(640, 360);
+        PlayerTraderManageLayout.Geom compact = PlayerTraderManageLayout.fit(480, 270);
+        int[] fillLabels = {18, 56};
+        int[] hints = {40, 90, 160};
+        for (int fillLabel : fillLabels) {
+            for (int hint : hints) {
+                assertRecommendDoesNotOverlapFill(preferred, fillLabel, hint);
+                assertRecommendDoesNotOverlapFill(compact, fillLabel, hint);
+            }
+        }
+    }
+
+    @Test
+    void tightRecommendHintMovesToOwnLineOrTruncates() {
+        PlayerTraderManageLayout.Geom geom = PlayerTraderManageLayout.fit(640, 360);
+        int fillLabel = geom.rightInnerW - 4;
+        PlayerTraderManageLayout.RecommendPlacement placement = PlayerTraderManageLayout.recommendPlacement(
+                geom,
+                fillLabel,
+                120
+        );
+        assertTrue(!placement.textOverlapsFill());
+        if (placement.fill().bottom() + 2 + PlayerTraderManageLayout.LABEL_H <= geom.buttonY) {
+            assertEquals(geom.rightInnerX, placement.textX());
+            assertTrue(placement.textY() >= placement.fill().bottom());
+        } else {
+            assertTrue(placement.truncated() || !placement.hasText());
+        }
+    }
+
+    private static void assertRecommendDoesNotOverlapFill(
+            PlayerTraderManageLayout.Geom geom,
+            int fillLabelWidth,
+            int recommendTextWidth
+    ) {
+        PlayerTraderManageLayout.RecommendPlacement placement = PlayerTraderManageLayout.recommendPlacement(
+                geom,
+                fillLabelWidth,
+                recommendTextWidth
+        );
+        assertTrue(placement.fill().w() >= 32);
+        assertTrue(placement.fill().right() <= geom.rightInnerX + geom.rightInnerW);
+        assertTrue(placement.price().right() <= placement.fill().x()
+                || placement.price().bottom() <= placement.fill().y()
+                || placement.fill().y() >= placement.price().bottom());
+        assertTrue(!placement.textOverlapsFill());
+        if (placement.hasText()) {
+            assertTrue(placement.textX() + Math.min(8, placement.textMaxW()) <= geom.rightInnerX + geom.rightInnerW
+                    || placement.textMaxW() >= 0);
+            assertTrue(placement.textX() >= geom.rightInnerX || placement.textX() >= placement.fill().right());
+        }
+        if (recommendTextWidth <= placement.textMaxW() && placement.hasText()
+                && placement.textY() == placement.fill().y() + 2) {
+            assertEquals(placement.fill().right() + PlayerTraderManageLayout.BUTTON_GAP, placement.textX());
+        }
     }
 }

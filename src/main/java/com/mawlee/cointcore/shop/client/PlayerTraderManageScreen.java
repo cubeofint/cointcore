@@ -37,6 +37,9 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
     private boolean deleteArmed;
     private Component status = Component.empty();
     private int statusColor = 0x2E7D32;
+    private PlayerTraderManageLayout.RecommendPlacement recommendPlacement;
+    private Component recommendFull = Component.empty();
+    private boolean recommendTruncated;
 
     public PlayerTraderManageScreen(PlayerTraderManageMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -107,33 +110,28 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                 "gui.cointcore.player_trader.manage.deals.tooltip");
         dealsBox.setMaxLength(18);
         long recommended = recommendedUnitPrice();
-        PlayerTraderManageLayout.Rect priceRect = geom.fieldBox(2);
         Component fill = Component.translatable("gui.cointcore.player_trader.manage.recommend.fill");
-        int fillW = Math.max(48, font.width(fill) + 10);
-        boolean inlineRecommend = geom.buttonY <= geom.recommendY;
-        if (inlineRecommend) {
-            priceRect = new PlayerTraderManageLayout.Rect(
-                    priceRect.x(),
-                    priceRect.y(),
-                    Math.max(32, priceRect.w() - fillW - 2),
-                    priceRect.h()
-            );
-        }
+        recommendFull = recommended > 0L
+                ? Component.translatable(
+                        "gui.cointcore.player_trader.manage.recommend",
+                        Long.toString(recommended)
+                )
+                : Component.translatable("gui.cointcore.player_trader.manage.recommend.none");
+        recommendPlacement = PlayerTraderManageLayout.recommendPlacement(
+                geom,
+                font.width(fill),
+                font.width(recommendFull)
+        );
+        recommendTruncated = recommendPlacement.truncated();
         long shownPrice = selected >= 0
                 ? GlobalMarketPriceMath.unitPrice(menu.offers().get(selected).buyPrice(), menu.offers().get(selected).count())
                 : 1L;
-        priceBox = field(priceRect, Long.toString(Math.max(1L, shownPrice)),
+        priceBox = field(recommendPlacement.price(), Long.toString(Math.max(1L, shownPrice)),
                 "gui.cointcore.player_trader.manage.buy.tooltip");
-        int fillX = inlineRecommend ? priceRect.right() + 2 : geom.rightInnerX;
-        int fillY = inlineRecommend ? priceRect.y() : geom.recommendY;
+        PlayerTraderManageLayout.Rect fillRect = recommendPlacement.fill();
         Button fillButton = addRenderableWidget(Button.builder(fill, button -> fillRecommended())
-                .bounds(leftPos + fillX, topPos + fillY, fillW, 12)
-                .tooltip(Tooltip.create(Component.translatable(
-                        recommended > 0L
-                                ? "gui.cointcore.player_trader.manage.recommend"
-                                : "gui.cointcore.player_trader.manage.recommend.none",
-                        Long.toString(Math.max(0L, recommended))
-                )))
+                .bounds(leftPos + fillRect.x(), topPos + fillRect.y(), fillRect.w(), fillRect.h())
+                .tooltip(Tooltip.create(recommendFull))
                 .build());
         fillButton.active = recommended > 0L;
 
@@ -265,16 +263,16 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         drawFieldLabel(graphics, "gui.cointcore.player_trader.manage.count", 0);
         drawFieldLabel(graphics, "gui.cointcore.player_trader.manage.deals", 1);
         drawFieldLabel(graphics, "gui.cointcore.player_trader.manage.buy", 2);
-        long recommended = recommendedUnitPrice();
-        if (geom.buttonY > geom.recommendY) {
-            Component rec = recommended > 0L
-                    ? Component.translatable("gui.cointcore.player_trader.manage.recommend", Long.toString(recommended))
-                    : Component.translatable("gui.cointcore.player_trader.manage.recommend.none");
+        if (recommendPlacement != null && recommendPlacement.hasText()) {
+            String rec = recommendFull.getString();
+            int max = recommendPlacement.textMaxW();
             graphics.drawString(
                     font,
-                    Component.literal(font.plainSubstrByWidth(rec.getString(), geom.rightInnerW)),
-                    geom.rightInnerX,
-                    geom.recommendY + 2,
+                    font.width(recommendFull) <= max
+                            ? recommendFull
+                            : Component.literal(font.plainSubstrByWidth(rec, max)),
+                    recommendPlacement.textX(),
+                    recommendPlacement.textY(),
                     VanillaContainerSkin.LABEL_COLOR,
                     false
             );
@@ -313,6 +311,10 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
 
     @Override
     protected void renderTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (recommendTruncated && hoveredRecommendText(mouseX, mouseY) && !recommendFull.getString().isEmpty()) {
+            graphics.renderTooltip(font, recommendFull, mouseX, mouseY);
+            return;
+        }
         if (hoveredGhost(mouseX, mouseY)) {
             ItemStack ghost = menu.ghostItem();
             if (!ghost.isEmpty()) {
@@ -449,6 +451,18 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         }
         menu.setGhost(unit);
         PacketDistributor.sendToServer(new PlayerTraderGhostPayload(menu.containerId, unit));
+    }
+
+    private boolean hoveredRecommendText(int mouseX, int mouseY) {
+        if (recommendPlacement == null || !recommendPlacement.hasText()) {
+            return false;
+        }
+        int x = leftPos + recommendPlacement.textX();
+        int y = topPos + recommendPlacement.textY();
+        return mouseX >= x
+                && mouseX < x + recommendPlacement.textMaxW()
+                && mouseY >= y
+                && mouseY < y + PlayerTraderManageLayout.LABEL_H;
     }
 
     private boolean hoveredGhost(int mouseX, int mouseY) {
