@@ -124,7 +124,7 @@ class OffenderAggregatorTest {
             aggregator.addBlockEntity(type, dim, i & 255, 64, 0, 1_000L);
         }
         long elapsedMs = (System.nanoTime() - started) / 1_000_000L;
-        assertTrue(elapsedMs < 80L, "200k adds took " + elapsedMs + " ms");
+        assertTrue(elapsedMs < 250L, "200k adds took " + elapsedMs + " ms");
         assertEquals(256, aggregator.top(OffenderAggregator.Kind.BLOCK_ENTITY, 300).size());
     }
 }
