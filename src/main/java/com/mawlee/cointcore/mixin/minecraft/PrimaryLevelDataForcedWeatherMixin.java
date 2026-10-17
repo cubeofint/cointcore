@@ -43,6 +43,9 @@ public abstract class PrimaryLevelDataForcedWeatherMixin {
     }
 
     private static void cointcore$gate(CallbackInfo ci) {
+        if (TimeWeatherCooldown.isAlwaysAllowed()) {
+            return;
+        }
         if (TimeWeatherCooldown.isVanillaTimeOrWeatherCommandCaller()) {
             return;
         }

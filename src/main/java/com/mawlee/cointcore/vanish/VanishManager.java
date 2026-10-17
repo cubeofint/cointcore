@@ -22,6 +22,11 @@ public final class VanishManager {
         return Collections.unmodifiableSet(VANISHED);
     }
 
+    /** Cheap guard for per-entity hot paths (entity tracking runs per entity per player move). */
+    public static boolean anyVanished() {
+        return !VANISHED.isEmpty();
+    }
+
     public static boolean isVanished(ServerPlayer player) {
         return player != null && VANISHED.contains(player.getUUID());
     }

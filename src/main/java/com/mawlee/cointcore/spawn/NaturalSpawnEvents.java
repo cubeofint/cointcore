@@ -40,6 +40,32 @@ public final class NaturalSpawnEvents {
         event.setCanceled(true);
     }
 
+    /**
+     * Pre-filter for {@code NaturalSpawner.spawnForChunk}: true when the chunk is outside the horizontal
+     * radius of every player (spawns there would be cancelled in {@link #onFinalizeSpawn} anyway), or when
+     * {@code spawn_tick_interval} throttling skips this chunk this tick (staggered per chunk).
+     */
+    public static boolean shouldSkipChunk(ServerLevel level, ChunkPos chunkPos) {
+        if (!NaturalSpawnConfig.isEnabled()) {
+            return false;
+        }
+        int interval = NaturalSpawnConfig.getSpawnTickInterval();
+        if (interval > 1 && Math.floorMod(level.getGameTime() + chunkPos.x * 31L + chunkPos.z, interval) != 0) {
+            return true;
+        }
+        int maxChunkRadius = NaturalSpawnConfig.getMaxChunkRadius();
+        for (ServerPlayer player : level.players()) {
+            if (player.isSpectator()) {
+                continue;
+            }
+            ChunkPos playerChunk = player.chunkPosition();
+            if (Math.max(Math.abs(chunkPos.x - playerChunk.x), Math.abs(chunkPos.z - playerChunk.z)) <= maxChunkRadius) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static boolean isAllowedNearAnyPlayer(ServerLevel level, Mob mob) {
         int maxChunkRadius = NaturalSpawnConfig.getMaxChunkRadius();
         double maxVertical = NaturalSpawnConfig.getMaxVerticalBlocks();

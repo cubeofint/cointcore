@@ -70,6 +70,9 @@ public abstract class ServerLevelTimeWeatherMixin {
 
     @Inject(method = "setDayTime", at = @At("HEAD"), cancellable = true)
     private void cointcore$gateForcedDayTime(long time, CallbackInfo ci) {
+        if (TimeWeatherCooldown.isAlwaysAllowed()) {
+            return;
+        }
         // Ops / console /time must always apply (cooldown is for votes & mod spam only).
         if (TimeWeatherCooldown.isVanillaTimeOrWeatherCommandCaller()) {
             return;

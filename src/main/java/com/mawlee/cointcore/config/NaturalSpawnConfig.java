@@ -28,10 +28,12 @@ public final class NaturalSpawnConfig {
     private static final int MAX_CHUNK_RADIUS = 32;
     private static final int MIN_VERTICAL = 0;
     private static final int MAX_VERTICAL = 512;
+    private static final int MAX_SPAWN_TICK_INTERVAL = 40;
 
     private static boolean enabled = true;
     private static int maxChunkRadius = 3;
     private static int maxVerticalBlocks = 20;
+    private static int spawnTickInterval = 1;
 
     private NaturalSpawnConfig() {
     }
@@ -50,6 +52,11 @@ public final class NaturalSpawnConfig {
         return maxVerticalBlocks;
     }
 
+    /** Natural spawn pass runs for a chunk once every N ticks (staggered per chunk); 1 = vanilla. */
+    public static int getSpawnTickInterval() {
+        return spawnTickInterval;
+    }
+
     public static void load() {
         apply(loadFromDisk(false));
     }
@@ -61,10 +68,11 @@ public final class NaturalSpawnConfig {
         }
         apply(loaded);
         LOGGER.info(
-                "Reloaded natural spawn config (enabled={}, maxChunkRadius={}, maxVerticalBlocks={})",
+                "Reloaded natural spawn config (enabled={}, maxChunkRadius={}, maxVerticalBlocks={}, spawnTickInterval={})",
                 enabled,
                 maxChunkRadius,
-                maxVerticalBlocks
+                maxVerticalBlocks,
+                spawnTickInterval
         );
         return true;
     }
@@ -73,6 +81,7 @@ public final class NaturalSpawnConfig {
         enabled = loaded.enabled();
         maxChunkRadius = loaded.maxChunkRadius();
         maxVerticalBlocks = loaded.maxVerticalBlocks();
+        spawnTickInterval = loaded.spawnTickInterval();
     }
 
     private static LoadedConfig loadFromDisk(boolean reloading) {
@@ -90,10 +99,11 @@ public final class NaturalSpawnConfig {
                 FileData data = GSON.fromJson(reader, FileData.class);
                 LoadedConfig loaded = parse(data != null ? data : defaultFileData());
                 LOGGER.info(
-                        "Loaded natural spawn config (enabled={}, maxChunkRadius={}, maxVerticalBlocks={})",
+                        "Loaded natural spawn config (enabled={}, maxChunkRadius={}, maxVerticalBlocks={}, spawnTickInterval={})",
                         loaded.enabled(),
                         loaded.maxChunkRadius(),
-                        loaded.maxVerticalBlocks()
+                        loaded.maxVerticalBlocks(),
+                        loaded.spawnTickInterval()
                 );
                 return loaded;
             }
@@ -110,7 +120,8 @@ public final class NaturalSpawnConfig {
         boolean on = data.enabled == null || data.enabled;
         int chunkRadius = clamp(data.maxChunkRadius, 3, MIN_CHUNK_RADIUS, MAX_CHUNK_RADIUS);
         int vertical = clamp(data.maxVerticalBlocks, 20, MIN_VERTICAL, MAX_VERTICAL);
-        return new LoadedConfig(on, chunkRadius, vertical);
+        int interval = clamp(data.spawnTickInterval, 1, 1, MAX_SPAWN_TICK_INTERVAL);
+        return new LoadedConfig(on, chunkRadius, vertical, interval);
     }
 
     private static int clamp(Integer value, int fallback, int min, int max) {
@@ -135,10 +146,11 @@ public final class NaturalSpawnConfig {
         data.enabled = true;
         data.maxChunkRadius = 3;
         data.maxVerticalBlocks = 20;
+        data.spawnTickInterval = 1;
         return data;
     }
 
-    private record LoadedConfig(boolean enabled, int maxChunkRadius, int maxVerticalBlocks) {
+    private record LoadedConfig(boolean enabled, int maxChunkRadius, int maxVerticalBlocks, int spawnTickInterval) {
     }
 
     private static final class FileData {
@@ -150,5 +162,8 @@ public final class NaturalSpawnConfig {
 
         @SerializedName("max_vertical_blocks")
         Integer maxVerticalBlocks;
+
+        @SerializedName("spawn_tick_interval")
+        Integer spawnTickInterval;
     }
 }

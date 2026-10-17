@@ -27,6 +27,9 @@ public final class TimeWeatherCooldown {
 
     private static long cooldownUntilMs;
 
+    // Lazy frame stream: stops at the first match instead of materializing the whole stack.
+    private static final StackWalker STACK_WALKER = StackWalker.getInstance();
+
     private TimeWeatherCooldown() {
     }
 
@@ -75,13 +78,11 @@ public final class TimeWeatherCooldown {
     }
 
     public static boolean isCelestialManipulatorCaller() {
-        for (StackTraceElement frame : Thread.currentThread().getStackTrace()) {
-            if (frame.getClassName().endsWith(CELESTIAL_MANIPULATOR)
-                    || frame.getClassName().contains("." + CELESTIAL_MANIPULATOR + "$")) {
-                return true;
-            }
-        }
-        return false;
+        String inner = "." + CELESTIAL_MANIPULATOR + "$";
+        return STACK_WALKER.walk(frames -> frames.anyMatch(frame -> {
+            String className = frame.getClassName();
+            return className.endsWith(CELESTIAL_MANIPULATOR) || className.contains(inner);
+        }));
     }
 
     /**
@@ -90,14 +91,11 @@ public final class TimeWeatherCooldown {
      * is cancelled and nothing changes in-game.
      */
     public static boolean isVanillaTimeOrWeatherCommandCaller() {
-        for (StackTraceElement frame : Thread.currentThread().getStackTrace()) {
+        return STACK_WALKER.walk(frames -> frames.anyMatch(frame -> {
             String className = frame.getClassName();
-            if (className.equals("net.minecraft.server.commands.TimeCommand")
-                    || className.equals("net.minecraft.server.commands.WeatherCommand")) {
-                return true;
-            }
-        }
-        return false;
+            return className.equals("net.minecraft.server.commands.TimeCommand")
+                    || className.equals("net.minecraft.server.commands.WeatherCommand");
+        }));
     }
 
     public static void enterNatural() {
@@ -141,6 +139,14 @@ public final class TimeWeatherCooldown {
 
     public static boolean isPassThrough() {
         return PASS_THROUGH_DEPTH.get() > 0;
+    }
+
+    /**
+     * Natural daylight / weather ticks and nested pass-through setters are always allowed.
+     * Checked before the stack walks: vanilla hits these setters every tick in every level.
+     */
+    public static boolean isAlwaysAllowed() {
+        return isNatural() || isPassThrough();
     }
 
     public static int remainingSeconds() {

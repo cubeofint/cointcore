@@ -12,6 +12,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.NavigableSet;
@@ -25,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class ChunkLimitIndex {
     private static final Map<ResourceKey<Level>, Map<Long, ChunkBucket>> BY_DIMENSION = new ConcurrentHashMap<>();
+    private static final ChunkLimitKey[] NO_KEYS = new ChunkLimitKey[0];
 
     private ChunkLimitIndex() {
     }
@@ -63,6 +65,8 @@ public final class ChunkLimitIndex {
         ChunkPos chunkPos = chunk.getPos();
         ChunkBucket bucket = new ChunkBucket();
         int minY = level.getMinBuildHeight();
+        Map<Block, ChunkLimitKey[]> keyMemo = new IdentityHashMap<>();
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 
         LevelChunkSection[] sections = chunk.getSections();
         for (int sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
@@ -70,17 +74,27 @@ public final class ChunkLimitIndex {
             if (section == null || section.hasOnlyAir()) {
                 continue;
             }
+            // Palette check: most sections contain no limited block at all, skip the 4096-block scan.
+            if (!section.getStates().maybeHas(state -> keysFor(keyMemo, state.getBlock()) != NO_KEYS)) {
+                continue;
+            }
             int sectionBottomY = minY + sectionIndex * 16;
-            for (int x = 0; x < 16; x++) {
-                for (int y = 0; y < 16; y++) {
-                    for (int z = 0; z < 16; z++) {
-                        BlockState state = section.getBlockState(x, y, z);
-                        BlockPos pos = new BlockPos(
-                                chunkPos.getMinBlockX() + x,
-                                sectionBottomY + y,
-                                chunkPos.getMinBlockZ() + z
-                        );
-                        indexBlock(bucket, state.getBlock(), pos);
+            Block lastBlock = null;
+            ChunkLimitKey[] lastKeys = NO_KEYS;
+            // y/z/x matches the section storage layout.
+            for (int y = 0; y < 16; y++) {
+                for (int z = 0; z < 16; z++) {
+                    for (int x = 0; x < 16; x++) {
+                        Block block = section.getBlockState(x, y, z).getBlock();
+                        if (block != lastBlock) {
+                            lastBlock = block;
+                            lastKeys = keysFor(keyMemo, block);
+                        }
+                        if (lastKeys == NO_KEYS) {
+                            continue;
+                        }
+                        pos.set(chunkPos.getMinBlockX() + x, sectionBottomY + y, chunkPos.getMinBlockZ() + z);
+                        addKeys(bucket, pos, lastKeys[0], lastKeys[1]);
                     }
                 }
             }
@@ -152,10 +166,16 @@ public final class ChunkLimitIndex {
         return Math.max(0, total - key.limit());
     }
 
-    private static void indexBlock(ChunkBucket bucket, Block block, BlockPos pos) {
-        ChunkLimitKey chunkKey = ChunkLimitConfig.resolveBlockKey(block);
-        ChunkLimitKey teamKey = ChunkLimitConfig.resolveTeamBlockKey(block);
-        addKeys(bucket, pos, chunkKey, teamKey);
+    /** {chunkKey, teamKey} for a block, or {@link #NO_KEYS} when neither scope limits it; memoized per scan. */
+    private static ChunkLimitKey[] keysFor(Map<Block, ChunkLimitKey[]> memo, Block block) {
+        ChunkLimitKey[] keys = memo.get(block);
+        if (keys == null) {
+            ChunkLimitKey chunkKey = ChunkLimitConfig.resolveBlockKey(block);
+            ChunkLimitKey teamKey = ChunkLimitConfig.resolveTeamBlockKey(block);
+            keys = chunkKey == null && teamKey == null ? NO_KEYS : new ChunkLimitKey[]{chunkKey, teamKey};
+            memo.put(block, keys);
+        }
+        return keys;
     }
 
     private static void addKeys(ChunkBucket bucket, BlockPos pos, ChunkLimitKey chunkKey, ChunkLimitKey teamKey) {

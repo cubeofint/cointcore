@@ -42,6 +42,7 @@
     "minecraft.PrimaryLevelDataForcedWeatherMixin",
     "minecraft.ServerLevelTimeWeatherMixin",
     "minecraft.BaseSpawnerPerfMixin",
+    "minecraft.NaturalSpawnerPerfMixin",
     "minecraft.ItemEntityPerfMixin",
     "minecraft.ItemEntityMoveCollisionMixin",
     "minecraft.ContainersDropItemStackMixin",

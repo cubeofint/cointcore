@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.mixin;
 
+import com.mawlee.cointcore.vanish.VanishManager;
 import com.mawlee.cointcore.vanish.VanishVisibility;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -19,6 +20,9 @@ public abstract class ChunkMapTrackedEntityMixin {
 
     @Inject(method = "updatePlayer", at = @At("HEAD"), cancellable = true)
     private void cointcore$preventVanishedTracking(ServerPlayer viewer, CallbackInfo ci) {
+        if (!VanishManager.anyVanished()) {
+            return;
+        }
         if (entity instanceof Player player && VanishVisibility.isHiddenFrom(viewer, player)) {
             ci.cancel();
         }
