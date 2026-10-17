@@ -13,6 +13,12 @@ public final class PlayerShopEvents {
     }
 
     private static void onBreak(BlockEvent.BreakEvent event) {
+        if (event.getState().is(ShopBlocks.TRADER.get())) {
+            if (!PlayerShopAccess.canBreakNpcTrader(event.getPlayer())) {
+                event.setCanceled(true);
+            }
+            return;
+        }
         if (!event.getState().is(ShopBlocks.PLAYER_TRADER.get())) {
             return;
         }
@@ -21,7 +27,7 @@ public final class PlayerShopEvents {
             event.setCanceled(true);
             return;
         }
-        if (!shop.canManage(player)) {
+        if (!ShopBreakPolicy.allowPlayerTraderBreak(shop.canManage(player))) {
             event.setCanceled(true);
         }
     }

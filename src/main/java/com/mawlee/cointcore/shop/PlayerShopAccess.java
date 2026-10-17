@@ -23,13 +23,23 @@ public final class PlayerShopAccess {
         return PermissionService.has(player, CointPermissionNodes.PLAYER_SHOP_ADMIN);
     }
 
+    public static boolean isAdmin(Player player) {
+        if (player instanceof ServerPlayer serverPlayer) {
+            return canAdmin(serverPlayer);
+        }
+        return player != null && ShopBreakPolicy.clientOperator(player.hasPermissions(2));
+    }
+
     public static boolean canManage(Player player, UUID ownerId) {
         if (player == null) {
             return false;
         }
-        boolean admin = player instanceof ServerPlayer serverPlayer && canAdmin(serverPlayer);
         String owner = ownerId == null ? null : ownerId.toString();
-        return PlayerShopManagementPolicy.canManage(player.getUUID().toString(), owner, admin);
+        return PlayerShopManagementPolicy.canManage(player.getUUID().toString(), owner, isAdmin(player));
+    }
+
+    public static boolean canBreakNpcTrader(Player player) {
+        return ShopBreakPolicy.allowNpcTraderBreak(isAdmin(player));
     }
 
     public static boolean allowOpenManage(boolean requestedManage, Player player, UUID ownerId) {

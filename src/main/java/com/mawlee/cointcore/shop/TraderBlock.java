@@ -66,6 +66,14 @@ public class TraderBlock extends HorizontalDirectionalBlock {
     }
 
     @Override
+    protected float getDestroyProgress(BlockState state, Player player, BlockGetter level, BlockPos pos) {
+        if (!ShopBreakPolicy.allowNpcTraderBreak(PlayerShopAccess.isAdmin(player))) {
+            return 0.0F;
+        }
+        return super.getDestroyProgress(state, player, level, pos);
+    }
+
+    @Override
     protected InteractionResult useWithoutItem(
             BlockState state,
             Level level,
