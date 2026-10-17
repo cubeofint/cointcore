@@ -17,7 +17,7 @@ class SiteMovementPayloadTest {
     @Test
     void acceptedUpToRequiresSiteConfirmation() {
         assertEquals(7L, SiteMovementPayload.acceptedUpTo("{\"accepted_up_to\":7,\"stored\":7}", 9L));
-        assertEquals(9L, SiteMovementPayload.acceptedUpTo("{\"accepted_up_to\":99}", 9L));
+        assertEquals(99L, SiteMovementPayload.acceptedUpTo("{\"accepted_up_to\":99}", 9L));
         assertEquals(null, SiteMovementPayload.acceptedUpTo("garbage", 9L));
         assertEquals(null, SiteMovementPayload.acceptedUpTo("{\"stored\":9}", 9L));
         assertEquals(null, SiteMovementPayload.acceptedUpTo("{\"accepted_up_to\":0}", 9L));
@@ -40,9 +40,12 @@ class SiteMovementPayloadTest {
                 java.util.List.of(new CurrencyMovement.Delta(uuid, -40L, 910L)),
                 null
         );
-        String json = SiteMovementPayload.toJson(java.util.List.of(movement));
+        java.util.UUID epoch = java.util.UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        String json = SiteMovementPayload.toJson(java.util.List.of(movement), epoch);
         com.google.gson.JsonObject row = com.google.gson.JsonParser.parseString(json)
                 .getAsJsonObject().getAsJsonArray("movements").get(0).getAsJsonObject();
+        assertEquals(812L, row.get("id").getAsLong());
+        assertEquals(epoch.toString(), row.get("epoch").getAsString());
         assertEquals("trader_buy", row.get("type").getAsString());
         assertEquals(-40L, row.getAsJsonArray("deltas").get(0).getAsJsonObject().get("delta").getAsLong());
         assertEquals(910L, row.getAsJsonArray("deltas").get(0).getAsJsonObject().get("balance_after").getAsLong());

@@ -615,7 +615,9 @@ Retention старых отчётов: хранятся **7 дней или 512 
 
 ### Обмен с сайтом через AzLink
 
-Движения валюты пишутся в overworld SavedData `cointcore_currency_movements` (`pay`, `trader_buy`, `trader_sell`, `admin_set`, `admin_add`). Это outbox для раздела сайта «движение валют». Переводы сайт↔сервер (`site_to_server` / `server_to_site` / `site_adjust`) тоже пишутся локально, но на сайт не отправляются. В JSON уходят `deltas` (uuid / signed delta / `balance_after` по каждому игроку) и `site_op_id` (id операции сайта или `null`).
+Движения валюты пишутся в overworld SavedData `cointcore_currency_movements` (`pay`, `trader_buy`, `trader_sell`, `admin_set`, `admin_add`). Это outbox для раздела сайта «движение валют». Переводы сайт↔сервер (`site_to_server` / `server_to_site` / `site_adjust`) тоже пишутся локально, но на сайт не отправляются. В JSON у каждого движения по-прежнему `id` (не `movement_id`), плюс `epoch` (UUID журнала), `deltas` (uuid / signed delta / `balance_after` по каждому игроку) и `site_op_id` (id операции сайта или `null`).
+
+`epoch` выдаётся заново, когда журнал создаётся с нуля (в том числе после wipe world data). Сайт позже должен дедупить по `(server_id, epoch, movement_id)` / полю `id`. Пока сайт ключует только `(server_id, id)`, счётчик `next_id` и последний `accepted_up_to` с сайта живут вне мира — в `config/cointcore/currency-movement-sequence.json`. При старте `next_id = max(локальный next_id, accepted_up_to + 1)`, чтобы wipe не начинал id заново с 1.
 
 **AzLink / сайт:** у cointcore нет compile-зависимости на AzLink. Обмен идёт рефлексией через `com.azuriom.azlink.common.coins.CoinOperationsBridge` — он есть в `main` репозитория [cubeofint/AzLink-mods](https://github.com/cubeofint/AzLink-mods) (PR #2–#5). На сервере должна стоять сборка AzLink из этой ветки: в релизе `AzLink-NeoForge-1.3.11` моста нет, и обмен с сайтом работать не будет. Токен сайта хранится только в конфиге AzLink, cointcore его не знает.
 
@@ -629,7 +631,7 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `site_movements_batch` | `100` | Размер пакета движений (1–200) |
 | `enabled` + `endpoint_url` | `false` | Отдельный HTTP POST-хук для внешнего приёмника |
 
-Отправка движений: пакеты, идемпотентность по id движения, retry с backoff 5 с…5 мин, курсор `site_sent_up_to` пишется только после `accepted_up_to` от сайта. Это журнал серверного кошелька: баланс сайта не меняется абсолютной перезаписью. HTTP-хук тоже не должен вызывать API абсолютного баланса.
+Отправка движений: пакеты, идемпотентность по `(epoch, id)` (сейчас на сайте ещё `(server_id, id)`), retry с backoff 5 с…5 мин, курсор `site_sent_up_to` пишется только после `accepted_up_to` от сайта; это же значение сохраняется в sequence-файле и поднимает `next_id`. Это журнал серверного кошелька: баланс сайта не меняется абсолютной перезаписью. HTTP-хук тоже не должен вызывать API абсолютного баланса.
 
 ### Авторитет сайта и очередь adjust
 

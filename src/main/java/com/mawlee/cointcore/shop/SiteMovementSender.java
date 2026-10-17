@@ -7,12 +7,14 @@ import org.slf4j.Logger;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Sends the durable currency-movement outbox to the site in batches through AzLink.
- * The site stores each (server, movement id) once, so a resend after a lost response is harmless.
+ * The site currently stores each (server, movement id) once; payloads also include {@code epoch}
+ * so the site can later key on (server_id, epoch, movement_id). A resend after a lost response is harmless.
  * On failure waits with exponential backoff (5s doubling up to 5 min). Off by default.
  */
 public final class SiteMovementSender {
@@ -49,8 +51,12 @@ public final class SiteMovementSender {
                 return;
             }
             long lastId = batch.get(batch.size() - 1).id();
+            UUID epoch = data.epoch();
             @SuppressWarnings("unchecked")
-            CompletableFuture<String> future = (CompletableFuture<String>) postMovements.invoke(null, SiteMovementPayload.toJson(batch));
+            CompletableFuture<String> future = (CompletableFuture<String>) postMovements.invoke(
+                    null,
+                    SiteMovementPayload.toJson(batch, epoch)
+            );
             future.whenComplete((json, error) -> {
                 try {
                     if (error != null) {
@@ -64,7 +70,7 @@ public final class SiteMovementSender {
                         fail(System.currentTimeMillis());
                         return;
                     }
-                    server.execute(() -> data.markSiteSentUpTo(accepted));
+                    server.execute(() -> data.onSiteAccepted(accepted, lastId));
                     backoffMs = 0L;
                     // More pending? send the next batch on the next tick.
                     nextAttemptAt = batch.size() >= settings.siteMovementsBatch() ? 0L : System.currentTimeMillis() + MIN_BACKOFF_MS;

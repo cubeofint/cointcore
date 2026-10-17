@@ -20,10 +20,17 @@ final class SiteMovementPayload {
     }
 
     static String toJson(List<CurrencyMovement> batch) {
+        return toJson(batch, null);
+    }
+
+    static String toJson(List<CurrencyMovement> batch, UUID epoch) {
         JsonArray array = new JsonArray();
         for (CurrencyMovement m : batch) {
             JsonObject o = new JsonObject();
             o.addProperty("id", m.id());
+            if (epoch != null) {
+                o.addProperty("epoch", epoch.toString());
+            }
             o.addProperty("timestamp", m.timestampMs());
             o.addProperty("type", m.type().id());
             o.addProperty("amount", m.amount());
@@ -54,11 +61,15 @@ final class SiteMovementPayload {
     }
 
     /**
-     * Highest movement id the site confirmed, capped by the last id we sent.
-     * {@code null} means no confirmation — the outbox must stay unsent and retry.
+     * Highest movement id the site confirmed. {@code null} means no confirmation — retry.
+     * Not capped by the batch: a higher value is used to advance durable {@code next_id}
+     * after a world wipe that reused low ids.
      */
     static Long acceptedUpTo(String json, long batchLastId) {
         try {
+            if (json == null || json.isBlank()) {
+                return null;
+            }
             JsonObject root = JsonParser.parseString(json).getAsJsonObject();
             if (root == null || !root.has("accepted_up_to") || root.get("accepted_up_to").isJsonNull()) {
                 return null;
@@ -67,7 +78,7 @@ final class SiteMovementPayload {
             if (accepted <= 0L) {
                 return null;
             }
-            return Math.min(batchLastId, accepted);
+            return accepted;
         } catch (RuntimeException e) {
             return null;
         }

@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * In-memory outbox for server-wallet currency movements. Survives restarts via {@link CurrencyMovementSavedData}.
@@ -16,6 +17,7 @@ final class CurrencyMovementOutbox {
     private final Deque<CurrencyMovement> entries = new ArrayDeque<>();
     private long nextId = 1L;
     private long siteSentUpTo;
+    private UUID epoch = UUID.randomUUID();
 
     CurrencyMovement append(CurrencyMovement draft) {
         CurrencyMovement stored = new CurrencyMovement(
@@ -48,12 +50,25 @@ final class CurrencyMovementOutbox {
         return siteSentUpTo;
     }
 
-    void restore(long nextId, long siteSentUpTo, List<CurrencyMovement> loaded) {
+    UUID epoch() {
+        return epoch;
+    }
+
+    void restore(long nextId, long siteSentUpTo, UUID epoch, List<CurrencyMovement> loaded) {
         this.nextId = Math.max(1L, nextId);
         this.siteSentUpTo = Math.max(0L, siteSentUpTo);
+        this.epoch = epoch != null ? epoch : UUID.randomUUID();
         entries.clear();
         entries.addAll(loaded);
         trimSentOverflow();
+    }
+
+    boolean ensureNextIdAtLeast(long nextId) {
+        if (nextId <= this.nextId) {
+            return false;
+        }
+        this.nextId = nextId;
+        return true;
     }
 
     boolean markSiteSentUpTo(long id) {
