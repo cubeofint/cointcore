@@ -46,7 +46,8 @@ public final class PlayerTraderDeals {
                 return;
             }
             long balance = GluonWallet.get(player);
-            int byMoney = TraderDealMath.affordableUnits(offer.buyTotal(), balance, requested);
+            double percent = TraderOffersConfig.playerShopCommissionPercent();
+            int byMoney = TraderDealMath.affordableUnits(offer.buyPrice(), percent, balance, requested);
             if (byMoney < 1) {
                 fail(
                         player,
@@ -63,9 +64,10 @@ public final class PlayerTraderDeals {
                 return;
             }
             int units = TraderDealMath.resolveUnits(requested, Math.min(byStock, bySpace), byMoney);
-            long totalCost = TraderDealMath.cost(offer.buyTotal(), units);
+            Commission.Result deal = Commission.ofDeal(offer.buyPrice(), units, percent);
+            long totalCost = deal.total();
             long totalPrice = TraderDealMath.cost(offer.buyPrice(), units);
-            long totalFee = TraderDealMath.cost(offer.buyFee(), units);
+            long totalFee = deal.fee();
             ItemStack goods = stored.sample();
             goods.setCount(stored.count() * units);
             UUID sellerId = stored.sellerId() != null ? stored.sellerId() : shop.ownerId();
@@ -182,9 +184,11 @@ public final class PlayerTraderDeals {
             ItemStack goods = stored.sample();
             goods.setCount(removeCount);
             UUID ownerId = shop.ownerId();
-            long totalNet = TraderDealMath.cost(offer.sellNet(), units);
+            double percent = TraderOffersConfig.playerShopCommissionPercent();
+            Commission.Result deal = Commission.ofDeal(offer.sellPrice(), units, percent);
             long totalPrice = TraderDealMath.cost(offer.sellPrice(), units);
-            long totalFee = TraderDealMath.cost(offer.sellFee(), units);
+            long totalFee = deal.fee();
+            long totalNet = Commission.sellerNet(offer.sellPrice(), units, percent);
             if (ownerId == null
                     || !PlayerShopValidation.settleSellLegal(
                     new PlayerShopValidation.UUIDPair(player.getUUID().toString(), ownerId.toString()),

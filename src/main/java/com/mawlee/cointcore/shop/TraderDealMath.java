@@ -39,6 +39,17 @@ public final class TraderDealMath {
         return (int) Math.min(maxUnits, byMoney);
     }
 
+    /**
+     * Units the wallet can pay when commission is computed once on the deal total.
+     */
+    public static int affordableUnits(long pricePerUnit, double commissionPercent, long balance, int maxUnits) {
+        if (maxUnits <= 0) {
+            return 0;
+        }
+        long units = Commission.maxAffordableUnits(pricePerUnit, commissionPercent, balance, maxUnits);
+        return units > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) units;
+    }
+
     public static int resolveUnits(int requested, int byItems, int byMoney) {
         int wanted = Math.max(1, requested);
         return Math.min(wanted, Math.min(Math.max(0, byItems), Math.max(0, byMoney)));

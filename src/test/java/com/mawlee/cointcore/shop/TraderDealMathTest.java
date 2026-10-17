@@ -35,6 +35,8 @@ class TraderDealMathTest {
         assertEquals(1, TraderDealMath.affordableUnits(103L, 103L, 64));
         assertEquals(3, TraderDealMath.affordableUnits(10L, 35L, 64));
         assertEquals(2, TraderDealMath.affordableUnits(10L, 1000L, 2));
+        assertEquals(63, TraderDealMath.affordableUnits(1L, 2.5d, 64L, 64));
+        assertEquals(64, TraderDealMath.affordableUnits(1L, 2.5d, 65L, 64));
     }
 
     @Test

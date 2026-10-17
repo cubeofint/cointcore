@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.shop;
 
+import com.mawlee.cointcore.config.TraderOffersConfig;
 import com.mawlee.cointcore.lang.CointCoreMessages;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -27,7 +28,8 @@ public final class TraderTrades {
             return;
         }
         long balance = GluonWallet.get(player);
-        int byMoney = TraderDealMath.affordableUnits(offer.buyTotal(), balance, requested);
+        double percent = TraderOffersConfig.commissionPercent();
+        int byMoney = TraderDealMath.affordableUnits(offer.buyPrice(), percent, balance, requested);
         if (byMoney < 1) {
             fail(
                     player,
@@ -43,8 +45,9 @@ public final class TraderTrades {
             return;
         }
         int units = TraderDealMath.resolveUnits(requested, bySpace, byMoney);
-        long totalCost = TraderDealMath.cost(offer.buyTotal(), units);
-        long totalFee = TraderDealMath.cost(offer.buyFee(), units);
+        Commission.Result deal = Commission.ofDeal(offer.buyPrice(), units, percent);
+        long totalCost = deal.total();
+        long totalFee = deal.fee();
         ItemStack goods = offer.createGoods();
         goods.setCount(offer.count() * units);
         if (!TraderInventory.canFullyFit(player.getInventory(), goods)) {
@@ -125,8 +128,10 @@ public final class TraderTrades {
             fail(player, menu, TraderFeedbackKind.NOT_ENOUGH_ITEMS, 0, itemName(offer), 0L, 0L, CointCoreMessages.TRADER_NOT_ENOUGH_ITEMS);
             return;
         }
-        long totalNet = TraderDealMath.cost(offer.sellNet(), units);
-        long totalFee = TraderDealMath.cost(offer.sellFee(), units);
+        double percent = TraderOffersConfig.commissionPercent();
+        Commission.Result deal = Commission.ofDeal(offer.sellPrice(), units, percent);
+        long totalNet = Commission.sellerNet(offer.sellPrice(), units, percent);
+        long totalFee = deal.fee();
         GluonWallet.add(player.server, player.getUUID(), totalNet);
         TraderPriceHistorySavedData.get(player.server).record(offer.id(), offer.buyPrice());
         long balanceAfter = GluonWallet.get(player);

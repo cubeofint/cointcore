@@ -4,7 +4,8 @@ import net.minecraft.world.item.ItemStack;
 
 /**
  * One trader listing. Missing/non-positive prices disable that direction.
- * Commission is paid by the charged side: buyers pay {@link #buyTotal()}, sellers receive {@link #sellNet()}.
+ * Per-listing unit quote: buyers pay {@link #buyTotal()}, sellers receive {@link #sellNet()}.
+ * Multi-unit clicks recompute the fee once on {@code price × quantity} via {@link Commission#ofDeal}.
  * {@link #buyHistory()} is chronological buy-price samples for the sparkline (oldest first).
  */
 public record TraderOffer(

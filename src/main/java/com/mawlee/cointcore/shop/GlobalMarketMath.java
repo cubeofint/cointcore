@@ -96,9 +96,21 @@ public final class GlobalMarketMath {
         return items > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) items;
     }
 
-    public static long buyerDebit(long pricePerDeal, long feePerDeal, long deals) {
-        long unit = saturatingAdd(Math.max(0L, pricePerDeal), Math.max(0L, feePerDeal));
-        return saturatingMul(unit, clampDeals(deals));
+    /**
+     * Buyer debit for {@code deals} at {@code pricePerDeal}: commission is taken
+     * once on {@code price × deals}, then added. Prefer
+     * {@link Commission#buyerDebit(long, long, double)} at call sites that have a rate.
+     */
+    public static long buyerDebit(long pricePerDeal, long feeOnDeal, long deals) {
+        if (deals == 1L) {
+            return saturatingAdd(Math.max(0L, pricePerDeal), Math.max(0L, feeOnDeal));
+        }
+        long gross = saturatingMul(Math.max(0L, pricePerDeal), clampDeals(deals));
+        return saturatingAdd(gross, Math.max(0L, feeOnDeal));
+    }
+
+    public static long buyerDebit(long pricePerDeal, long deals, double commissionPercent) {
+        return Commission.buyerDebit(pricePerDeal, deals, commissionPercent);
     }
 
     public static long sellerCredit(long pricePerDeal, long deals) {

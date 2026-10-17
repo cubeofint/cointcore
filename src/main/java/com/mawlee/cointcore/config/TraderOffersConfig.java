@@ -28,7 +28,8 @@ import java.util.Optional;
 
 /**
  * Static trader listings: {@code config/cointcore/trader_offers.json}.
- * Buyers pay price + ceil(commission). Sellers receive price − ceil(commission).
+ * Buyers pay listing total + floor(commission on that total).
+ * Sellers receive listing total − floor(commission on that total).
  */
 public final class TraderOffersConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
