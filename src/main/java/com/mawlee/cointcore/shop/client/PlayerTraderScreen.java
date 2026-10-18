@@ -48,6 +48,7 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
 
     private TraderShopLayout layout = TraderShopLayout.preferredMarket(true);
     private int page;
+    private int lastPagerMax;
     private int buttonWidth;
     private int buttonColumnX;
     private int textMaxWidth;
@@ -69,6 +70,8 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
     private int buyCatalogIndex = -1;
     private String buyDealsText = "1";
     private EditBox buyDealsBox;
+    private final List<Button> rowBuyButtons = new ArrayList<>();
+    private final List<String> rowBuyIds = new ArrayList<>();
     private final List<Button> buyDialogButtons = new ArrayList<>();
     private MarketBuyDialogLayout.Geom buyGeom;
     private GlobalMarketRows.Row sellerRow;
@@ -96,6 +99,8 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
     }
 
     void onCatalogUpdated() {
+        view = visibleRows();
+        page = Math.min(page, maxPage());
         if (sellerRow != null) {
             sellerRow = rowContaining(sellerRow);
             if (sellerRow == null || !sellerRow.multiSeller()) {
@@ -119,8 +124,13 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
                 buyCatalogIndex = buyOffer == null ? catalogIndexOf(next.listingId()) : catalogIndexOf(buyOffer.listingId());
             }
         }
-        rememberFieldFocus();
-        rebuildWidgets();
+        boolean pagerChanged = lastPagerMax != maxPage();
+        if (pagerChanged || !pageRowIds().equals(rowBuyIds)) {
+            rememberFieldFocus();
+            rebuildWidgets();
+            return;
+        }
+        refreshRowBuyStates();
     }
 
     @Override
@@ -185,21 +195,30 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
 
         int buttonY0 = topPos + layout.listTop();
         int start = page * layout.pageSize();
+        rowBuyButtons.clear();
+        rowBuyIds.clear();
+        lastPagerMax = maxPage();
         for (int row = 0; row < layout.pageSize(); row++) {
             int offerIndex = start + row;
             if (offerIndex >= view.size()) {
                 break;
             }
             GlobalMarketRows.Row listing = view.get(offerIndex);
+            String listingId = listing.listingId();
             int y = buttonY0 + row * layout.rowHeight() + PRICE_BLOCK_TOP;
             int buyX = leftPos + buttonColumnX;
-            int catalogIndex = catalogIndexOf(listing.listingId());
+            int catalogIndex = catalogIndexOf(listingId);
             boolean cheapest = listing.multiSeller();
             Button buy = Button.builder(
                     cheapest
                             ? Component.translatable("gui.cointcore.player_trader.buy.cheapest")
                             : Component.translatable("gui.cointcore.trader.buy"),
-                    button -> openBuyCheapest(listing)
+                    button -> {
+                        GlobalMarketRows.Row current = rowOf(listingId);
+                        if (current != null) {
+                            openBuyCheapest(current);
+                        }
+                    }
             ).bounds(buyX, y, buttonWidth, BUTTON_HEIGHT)
                     .tooltip(Tooltip.create(Component.translatable(
                             cheapest
@@ -212,6 +231,8 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
                     && listing.price() > 0L
                     && catalogIndex >= 0;
             addRenderableWidget(buy);
+            rowBuyButtons.add(buy);
+            rowBuyIds.add(listingId);
         }
 
         int pagerY = topPos + layout.pagerY();
@@ -595,9 +616,46 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
     private void refreshSearchResults() {
         view = visibleRows();
         page = Math.min(page, maxPage());
-        rememberFieldFocus();
-        searchWasFocused = true;
-        rebuildWidgets();
+        if (lastPagerMax != maxPage() || !pageRowIds().equals(rowBuyIds)) {
+            rememberFieldFocus();
+            searchWasFocused = true;
+            rebuildWidgets();
+            return;
+        }
+        if (searchBox != null && !searchBox.getValue().equals(query)) {
+            searchBox.setValue(query);
+        }
+        refreshRowBuyStates();
+    }
+
+    private List<String> pageRowIds() {
+        List<String> ids = new ArrayList<>();
+        int start = page * layout.pageSize();
+        for (int row = 0; row < layout.pageSize(); row++) {
+            int offerIndex = start + row;
+            if (offerIndex >= view.size()) {
+                break;
+            }
+            ids.add(view.get(offerIndex).listingId());
+        }
+        return ids;
+    }
+
+    private void refreshRowBuyStates() {
+        int start = page * layout.pageSize();
+        for (int row = 0; row < rowBuyButtons.size(); row++) {
+            int offerIndex = start + row;
+            if (offerIndex >= view.size()) {
+                rowBuyButtons.get(row).active = false;
+                continue;
+            }
+            GlobalMarketRows.Row listing = view.get(offerIndex);
+            int catalogIndex = catalogIndexOf(listing.listingId());
+            rowBuyButtons.get(row).active = modalClosed()
+                    && listing.dealsLeft() > 0L
+                    && listing.price() > 0L
+                    && catalogIndex >= 0;
+        }
     }
 
     private void rememberFieldFocus() {

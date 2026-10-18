@@ -216,7 +216,6 @@ public class PlayerTraderMenu extends AbstractContainerMenu {
         writeBalanceParts(this.gluonBalance);
         this.ownerName = ownerName == null ? "" : ownerName;
         this.listings = List.copyOf(listings);
-        broadcastChanges();
     }
 
     @Override

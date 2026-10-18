@@ -10,6 +10,7 @@ import com.mawlee.cointcore.shop.PlayerTraderManageMenu;
 import com.mawlee.cointcore.shop.PlayerTraderManagePayload;
 import com.mawlee.cointcore.shop.PlayerTraderTabPayload;
 import com.mawlee.cointcore.shop.TraderEditorSync;
+import com.mawlee.cointcore.shop.TraderViewSync;
 import com.mawlee.cointcore.ui.PagerChrome;
 import com.mawlee.cointcore.ui.ScaledGuiLayout;
 import net.minecraft.client.gui.GuiGraphics;
@@ -22,6 +23,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
+
+import java.util.List;
 import java.util.function.Consumer;
 
 public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTraderManageMenu> {
@@ -33,6 +36,9 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
     private EditBox dealsBox;
     private EditBox priceBox;
     private Button deleteButton;
+    private Button claimButton;
+    private Button fillButton;
+    private int lastOfferPagerMax;
     private int selected = -1;
     private int offerPage;
     private boolean deleteArmed;
@@ -56,7 +62,12 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         this.titleLabelY = PlayerTraderManageLayout.TITLE_Y;
     }
 
-    void onOffersUpdated(boolean lastActionOk, boolean userAction) {
+    void onOffersUpdated(
+            boolean lastActionOk,
+            boolean userAction,
+            List<PlayerShopOfferSnapshot> previousOffers,
+            int previousReturns
+    ) {
         if (selected >= menu.offers().size()) {
             selected = -1;
         }
@@ -78,7 +89,22 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         } else {
             captureDraftsFromBoxes();
         }
-        rebuildWidgets();
+        boolean pagerChanged = lastOfferPagerMax
+                != PlayerTraderManageLayout.maxOfferPage(menu.offers().size(), geom.listPageSize);
+        boolean idsChanged = !TraderViewSync.sameOfferIds(previousOffers, menu.offers());
+        if (pagerChanged || idsChanged) {
+            rebuildWidgets();
+            return;
+        }
+        if (claimButton != null && previousReturns != menu.returnCount()) {
+            claimButton.setMessage(Component.translatable(
+                    "gui.cointcore.player_trader.manage.claim",
+                    menu.returnCount()
+            ));
+            claimButton.active = menu.returnCount() > 0;
+        }
+        refreshRecommendPlacement();
+        applyDraftsToBoxes();
     }
 
     @Override
@@ -146,7 +172,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                 text -> priceText = text
         );
         PlayerTraderManageLayout.Rect fillRect = recommendPlacement.fill();
-        Button fillButton = addRenderableWidget(Button.builder(fill, button -> fillRecommended())
+        fillButton = addRenderableWidget(Button.builder(fill, button -> fillRecommended())
                 .bounds(leftPos + fillRect.x(), topPos + fillRect.y(), fillRect.w(), fillRect.h())
                 .tooltip(Tooltip.create(recommendFull))
                 .build());
@@ -187,9 +213,10 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                 .build());
         deleteButton.active = selected >= 0;
         actionIndex++;
-        addRenderableWidget(Button.builder(claimLabel, button -> claim())
+        claimButton = addRenderableWidget(Button.builder(claimLabel, button -> claim())
                 .bounds(leftPos + actions[actionIndex].x(), topPos + actions[actionIndex].y(), actions[actionIndex].w(), actions[actionIndex].h())
-                .build()).active = menu.returnCount() > 0;
+                .build());
+        claimButton.active = menu.returnCount() > 0;
 
         int maxOfferPage = PlayerTraderManageLayout.maxOfferPage(menu.offers().size(), geom.listPageSize);
         PlayerTraderManageLayout.Rect prev = geom.pagerPrev();
@@ -204,6 +231,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
                     .bounds(leftPos + next.x(), topPos + next.y(), next.w(), next.h())
                     .build());
         }
+        lastOfferPagerMax = PlayerTraderManageLayout.maxOfferPage(menu.offers().size(), geom.listPageSize);
         GuiCursor.restoreIfNeeded();
         restoreEditorFocus();
     }
@@ -610,6 +638,41 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
         captureDraftsFromBoxes();
         rebuildWidgets();
         restoreEditorFocus();
+    }
+
+    private void applyDraftsToBoxes() {
+        writeBox(countBox, countText);
+        writeBox(dealsBox, dealsText);
+        writeBox(priceBox, priceText);
+    }
+
+    private void writeBox(EditBox box, String text) {
+        if (box == null) {
+            return;
+        }
+        String value = text == null ? "" : text;
+        if (value.equals(box.getValue())) {
+            return;
+        }
+        int cursor = box.getCursorPosition();
+        box.setValue(value);
+        int length = box.getValue().length();
+        box.setCursorPosition(Math.min(cursor, length));
+        box.setHighlightPos(Math.min(cursor, length));
+    }
+
+    private void refreshRecommendPlacement() {
+        long recommended = recommendedUnitPrice();
+        recommendFull = recommended > 0L
+                ? Component.translatable(
+                        "gui.cointcore.player_trader.manage.recommend",
+                        Long.toString(recommended)
+                )
+                : Component.translatable("gui.cointcore.player_trader.manage.recommend.none");
+        if (fillButton != null) {
+            fillButton.active = recommended > 0L;
+            fillButton.setTooltip(Tooltip.create(recommendFull));
+        }
     }
 
     private void captureDraftsFromBoxes() {

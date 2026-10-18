@@ -4,7 +4,10 @@ import com.mawlee.cointcore.shop.PlayerTraderCatalogPayload;
 import com.mawlee.cointcore.shop.PlayerTraderManageMenu;
 import com.mawlee.cointcore.shop.PlayerTraderManageSyncPayload;
 import com.mawlee.cointcore.shop.PlayerTraderMenu;
+import com.mawlee.cointcore.shop.PlayerShopOfferSnapshot;
 import net.minecraft.client.Minecraft;
+
+import java.util.List;
 
 public final class PlayerTraderClientSync {
     private PlayerTraderClientSync() {
@@ -32,6 +35,8 @@ public final class PlayerTraderClientSync {
         if (menu.containerId != payload.containerId()) {
             return;
         }
+        List<PlayerShopOfferSnapshot> previous = menu.offers();
+        int previousReturns = menu.returnCount();
         menu.refresh(
                 payload.ownerName(),
                 payload.lifetimeRevenue(),
@@ -40,7 +45,12 @@ public final class PlayerTraderClientSync {
                 payload.priceHints()
         );
         if (minecraft.screen instanceof PlayerTraderManageScreen screen) {
-            screen.onOffersUpdated(payload.lastActionOk(), payload.userAction());
+            screen.onOffersUpdated(
+                    payload.lastActionOk(),
+                    payload.userAction(),
+                    previous,
+                    previousReturns
+            );
         }
     }
 }
