@@ -181,6 +181,8 @@ dependencies {
     packMods(curseMod(curse_regions_unexplored)) { transitive = false }
     packMods(curseMod(curse_natures_aura)) { transitive = false }
     packMods(curseMod(curse_apothic_spawners)) { transitive = false }
+    packMods(curseMod(curse_apotheosis)) { transitive = false }
+    packMods(curseMod(curse_placebo)) { transitive = false }
     packMods(curseMod(curse_ae2)) { transitive = false }
     packMods(curseMod(curse_refined_storage)) { transitive = false }
     packMods(curseMod(curse_create)) { transitive = false }

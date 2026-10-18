@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.spawner;
 
+import com.mawlee.cointcore.config.SpawnerLootConfig;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -23,7 +24,7 @@ public final class SpawnerLootInterceptor {
      */
     public static HandleResult handle(ServerLevel level, Mob mob, boolean discardEntity) {
         BlockPos lootSpawner = SpawnerSpawnTracker.consumeFarmSpawn(mob);
-        if (lootSpawner == null) {
+        if (lootSpawner == null || !SpawnerLootConfig.isEnabled()) {
             return HandleResult.NOT_APPLICABLE;
         }
 

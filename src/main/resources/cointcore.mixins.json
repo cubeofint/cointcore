@@ -39,6 +39,7 @@
     "minecraft.LevelBlockMutationGuardMixin",
     "minecraft.LevelChunkSetBlockStateChunkLimitMixin",
     "neoforge.CommonHooksItemPlacementMixin",
+    "neoforge.EventHooksFinalizeSpawnMixin",
     "minecraft.PrimaryLevelDataForcedWeatherMixin",
     "minecraft.ServerLevelTimeWeatherMixin",
     "minecraft.BaseSpawnerPerfMixin",
