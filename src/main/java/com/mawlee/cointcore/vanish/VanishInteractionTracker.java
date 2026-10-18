@@ -1,8 +1,11 @@
 package com.mawlee.cointcore.vanish;
 
+import com.mawlee.cointcore.config.VanishPacketFilterConfig;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.entity.Entity;
@@ -12,6 +15,7 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -28,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class VanishInteractionTracker {
     private static final Pair<BlockPos, UUID> EMPTY_INTERACTION = Pair.of(null, null);
     private static final Map<UUID, Pair<BlockPos, UUID>> INTERACTIONS = new ConcurrentHashMap<>();
+    private static final Map<UUID, CachedInteraction> RECENT = new ConcurrentHashMap<>();
     private static Pair<Packet<?>, UUID> packetOrigin;
 
     private VanishInteractionTracker() {
@@ -36,8 +41,10 @@ public final class VanishInteractionTracker {
     public static void trackVanished(ServerPlayer player, boolean vanished) {
         if (vanished) {
             INTERACTIONS.put(player.getUUID(), EMPTY_INTERACTION);
+            RECENT.put(player.getUUID(), CachedInteraction.empty(player));
         } else {
             INTERACTIONS.remove(player.getUUID());
+            RECENT.remove(player.getUUID());
         }
         cleanupOffline(player.server.getPlayerList());
     }
@@ -54,6 +61,7 @@ public final class VanishInteractionTracker {
         UUID uuid = player.getUUID();
         Pair<BlockPos, UUID> previous = INTERACTIONS.getOrDefault(uuid, EMPTY_INTERACTION);
         INTERACTIONS.put(uuid, Pair.of(blockPos, previous.getSecond()));
+        RECENT.put(uuid, CachedInteraction.block(player, blockPos, connectedChestIfLoaded(player.level(), blockPos)));
     }
 
     public static void updateEntityInteraction(ServerPlayer player, Entity entity) {
@@ -62,11 +70,13 @@ public final class VanishInteractionTracker {
         }
 
         INTERACTIONS.put(player.getUUID(), Pair.of(entity.blockPosition(), entity.getUUID()));
+        RECENT.put(player.getUUID(), CachedInteraction.entity(player, entity));
     }
 
     public static void clearInteraction(ServerPlayer player) {
         if (VanishManager.isVanished(player)) {
             INTERACTIONS.put(player.getUUID(), EMPTY_INTERACTION);
+            RECENT.put(player.getUUID(), CachedInteraction.empty(player));
         }
     }
 
@@ -79,6 +89,46 @@ public final class VanishInteractionTracker {
             return playerList.getPlayer(packetOrigin.getSecond());
         }
         return null;
+    }
+
+    public static boolean anyVanishedIn(Level level) {
+        if (!VanishManager.anyVanished() || level == null || level.getServer() == null) {
+            return false;
+        }
+        for (UUID uuid : VanishManager.vanishedPlayers()) {
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
+            if (player != null && player.level() == level) {
+                return true;
+            }
+            CachedInteraction recent = RECENT.get(uuid);
+            if (recent != null && sameDimension(recent.dimension, level) && recent.blockPos != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean anyRelevantWithin(Level level, Vec3 origin, double maxDistanceSq) {
+        if (origin == null) {
+            return anyVanishedIn(level);
+        }
+        if (level == null || level.getServer() == null) {
+            return false;
+        }
+        for (UUID uuid : VanishManager.vanishedPlayers()) {
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
+            if (player != null && player.level() == level && origin.distanceToSqr(player.position()) <= maxDistanceSq) {
+                return true;
+            }
+            CachedInteraction recent = RECENT.get(uuid);
+            if (recent == null || !sameDimension(recent.dimension, level)) {
+                continue;
+            }
+            if (withinBlock(origin, recent.blockPos, maxDistanceSq) || withinBlock(origin, recent.connectedPos, maxDistanceSq)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static Player findHiddenCause(Player directSource, Level level, Vec3 origin, ServerPlayer receiver) {
@@ -106,7 +156,7 @@ public final class VanishInteractionTracker {
             if (player == null || !hasBlockInteraction(interaction) || !VanishVisibility.isHiddenFrom(receiver, player)) {
                 continue;
             }
-            if (matchesBlockInteraction(level, blockPos, interaction.getFirst())) {
+            if (matchesBlockInteraction(level, blockPos, entry.getKey(), interaction.getFirst())) {
                 return player;
             }
         }
@@ -141,13 +191,14 @@ public final class VanishInteractionTracker {
     }
 
     private static Player findInteractedPlayer(Level level, Vec3 pos, ServerPlayer receiver) {
+        BlockPos eventPos = BlockPos.containing(pos.x, pos.y, pos.z);
         for (Map.Entry<UUID, Pair<BlockPos, UUID>> entry : INTERACTIONS.entrySet()) {
             ServerPlayer player = receiver.server.getPlayerList().getPlayer(entry.getKey());
             Pair<BlockPos, UUID> interaction = entry.getValue();
             if (player == null || !hasBlockInteraction(interaction) || !VanishVisibility.isHiddenFrom(receiver, player)) {
                 continue;
             }
-            if (matchesBlockInteraction(level, BlockPos.containing(pos.x, pos.y, pos.z), interaction.getFirst())) {
+            if (matchesBlockInteraction(level, eventPos, entry.getKey(), interaction.getFirst())) {
                 return player;
             }
         }
@@ -184,6 +235,11 @@ public final class VanishInteractionTracker {
     }
 
     private static Player findProjectileOwnerAt(Level level, Vec3 pos, ServerPlayer receiver) {
+        BlockPos blockPos = BlockPos.containing(pos);
+        if (!isChunkLoaded(level, blockPos)) {
+            return null;
+        }
+
         AABB area = AABB.ofSize(pos, 1.0D, 1.0D, 1.0D);
         List<Projectile> projectiles = level.getEntitiesOfClass(Projectile.class, area, projectile -> true);
         if (projectiles.isEmpty()) {
@@ -223,7 +279,7 @@ public final class VanishInteractionTracker {
         return interaction != null && interaction.getFirst() != null;
     }
 
-    private static boolean matchesBlockInteraction(Level level, BlockPos eventPos, BlockPos interactPos) {
+    private static boolean matchesBlockInteraction(Level level, BlockPos eventPos, UUID playerId, BlockPos interactPos) {
         if (interactPos == null) {
             return false;
         }
@@ -232,17 +288,62 @@ public final class VanishInteractionTracker {
             return true;
         }
 
-        BlockState state = level.getBlockState(interactPos);
-        if (state.getBlock() instanceof ChestBlock) {
-            BlockPos connected = interactPos.relative(ChestBlock.getConnectedDirection(state));
-            return eventPos.equals(connected);
+        CachedInteraction recent = RECENT.get(playerId);
+        if (recent != null && recent.connectedPos != null && eventPos.equals(recent.connectedPos)) {
+            return true;
         }
 
-        return false;
+        BlockPos connected = connectedChestIfLoaded(level, interactPos);
+        return connected != null && eventPos.equals(connected);
+    }
+
+    private static BlockPos connectedChestIfLoaded(Level level, BlockPos interactPos) {
+        if (level == null || interactPos == null || !isChunkLoaded(level, interactPos)) {
+            return null;
+        }
+        LevelChunk chunk = getLoadedChunk(level, interactPos);
+        if (chunk == null) {
+            return null;
+        }
+        BlockState state = chunk.getBlockState(interactPos);
+        if (state.getBlock() instanceof ChestBlock) {
+            return interactPos.relative(ChestBlock.getConnectedDirection(state));
+        }
+        return null;
+    }
+
+    static boolean isChunkLoaded(Level level, BlockPos pos) {
+        if (level == null || pos == null) {
+            return false;
+        }
+        return level.hasChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()));
+    }
+
+    static LevelChunk getLoadedChunk(Level level, BlockPos pos) {
+        if (level == null || pos == null) {
+            return null;
+        }
+        return level.getChunkSource().getChunkNow(
+                SectionPos.blockToSectionCoord(pos.getX()),
+                SectionPos.blockToSectionCoord(pos.getZ())
+        );
+    }
+
+    private static boolean sameDimension(ResourceKey<Level> dimension, Level level) {
+        return dimension != null && level != null && dimension.equals(level.dimension());
+    }
+
+    private static boolean withinBlock(Vec3 origin, BlockPos pos, double maxDistanceSq) {
+        return pos != null && origin.distanceToSqr(Vec3.atCenterOf(pos)) <= maxDistanceSq;
+    }
+
+    public static double filterRadiusSq() {
+        return VanishPacketFilterConfig.getMaxDistanceSq();
     }
 
     public static void clear() {
         INTERACTIONS.clear();
+        RECENT.clear();
         packetOrigin = null;
     }
 
@@ -254,5 +355,48 @@ public final class VanishInteractionTracker {
             }
         }
         offline.forEach(INTERACTIONS::remove);
+        offline.forEach(RECENT::remove);
+    }
+
+    private record CachedInteraction(
+            ResourceKey<Level> dimension,
+            Vec3 playerPos,
+            BlockPos blockPos,
+            BlockPos connectedPos,
+            UUID entityId,
+            long gameTime
+    ) {
+        static CachedInteraction empty(ServerPlayer player) {
+            return new CachedInteraction(
+                    player.level().dimension(),
+                    player.position(),
+                    null,
+                    null,
+                    null,
+                    player.level().getGameTime()
+            );
+        }
+
+        static CachedInteraction block(ServerPlayer player, BlockPos blockPos, BlockPos connectedPos) {
+            return new CachedInteraction(
+                    player.level().dimension(),
+                    player.position(),
+                    blockPos,
+                    connectedPos,
+                    null,
+                    player.level().getGameTime()
+            );
+        }
+
+        static CachedInteraction entity(ServerPlayer player, Entity entity) {
+            return new CachedInteraction(
+                    player.level().dimension(),
+                    player.position(),
+                    entity.blockPosition(),
+                    null,
+                    entity.getUUID(),
+                    player.level().getGameTime()
+            );
+        }
     }
 }

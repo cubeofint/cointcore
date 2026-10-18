@@ -152,7 +152,8 @@
     "railcraft.WorldSpikeBlockMixin",
     "railcraft.WorldSpikeMinecartMixin",
     "stevescarts.ModuleChunkLoaderMixin",
-    "mekmm.TileEntityLargeWindGeneratorMixin"
+    "mekmm.TileEntityLargeWindGeneratorMixin",
+    "neovitae.NVMissingMappingsMixin"
   ],
   "injectors": {
     "defaultRequire": 0

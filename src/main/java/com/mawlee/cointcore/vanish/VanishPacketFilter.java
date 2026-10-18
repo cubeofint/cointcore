@@ -10,7 +10,6 @@ import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
 import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
 import net.minecraft.network.protocol.game.ClientboundHurtAnimationPacket;
 import net.minecraft.network.protocol.game.ClientboundLevelEventPacket;
-import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.network.protocol.game.ClientboundSoundEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
@@ -22,6 +21,8 @@ import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.Holder;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -110,36 +111,65 @@ public final class VanishPacketFilter {
             return entity instanceof ServerPlayer vanished && VanishVisibility.isHiddenFrom(receiver, vanished);
         }
 
+        if (!VanishManager.anyVanished()) {
+            return false;
+        }
+
         var playerList = server.getPlayerList();
         Player directSource = null;
 
         if (packet instanceof ClientboundSoundPacket soundPacket) {
+            if (!isRevealSound(soundPacket.getSound())) {
+                return false;
+            }
+            Vec3 origin = new Vec3(soundPacket.getX(), soundPacket.getY(), soundPacket.getZ());
+            if (!shouldInspectWorldPacket(receiver, origin)) {
+                return false;
+            }
             directSource = VanishInteractionTracker.resolveBroadcastSource(packet, playerList);
             return VanishInteractionTracker.findHiddenCause(
                     directSource,
                     receiver.level(),
-                    new Vec3(soundPacket.getX(), soundPacket.getY(), soundPacket.getZ()),
+                    origin,
                     receiver
             ) != null;
         }
 
         if (packet instanceof ClientboundSoundEntityPacket soundEntityPacket) {
-            directSource = VanishInteractionTracker.resolveBroadcastSource(packet, playerList);
+            if (!isRevealSound(soundEntityPacket.getSound())) {
+                return false;
+            }
             Entity soundEntity = receiver.level().getEntity(soundEntityPacket.getId());
+            Vec3 origin = soundEntity != null ? soundEntity.position() : null;
+            if (!shouldInspectWorldPacket(receiver, origin)) {
+                return false;
+            }
+            directSource = VanishInteractionTracker.resolveBroadcastSource(packet, playerList);
             return VanishInteractionTracker.findHiddenCause(directSource, receiver.level(), soundEntity, receiver) != null;
         }
 
         if (packet instanceof ClientboundLevelEventPacket levelEventPacket) {
+            if (!VanishRevealPackets.isRevealLevelEvent(levelEventPacket.getType())) {
+                return false;
+            }
+            Vec3 origin = Vec3.atCenterOf(levelEventPacket.getPos());
+            if (!shouldInspectWorldPacket(receiver, origin)) {
+                return false;
+            }
             directSource = VanishInteractionTracker.resolveBroadcastSource(packet, playerList);
             return VanishInteractionTracker.findHiddenCause(
                     directSource,
                     receiver.level(),
-                    Vec3.atCenterOf(levelEventPacket.getPos()),
+                    origin,
                     receiver
             ) != null;
         }
 
         if (packet instanceof ClientboundBlockEventPacket blockEventPacket) {
+            Vec3 origin = Vec3.atCenterOf(blockEventPacket.getPos());
+            if (!shouldInspectWorldPacket(receiver, origin)) {
+                return false;
+            }
             return VanishInteractionTracker.findHiddenCauseForBlock(
                     receiver.level(),
                     blockEventPacket.getPos(),
@@ -147,25 +177,43 @@ public final class VanishPacketFilter {
             ) != null;
         }
 
-        if (packet instanceof ClientboundLevelParticlesPacket particlesPacket) {
-            return VanishInteractionTracker.findHiddenCause(
-                    null,
-                    receiver.level(),
-                    new Vec3(particlesPacket.getX(), particlesPacket.getY(), particlesPacket.getZ()),
-                    receiver
-            ) != null;
-        }
-
         if (packet instanceof ClientboundBlockDestructionPacket destructionPacket) {
+            Vec3 origin = Vec3.atCenterOf(destructionPacket.getPos());
+            if (!shouldInspectWorldPacket(receiver, origin)) {
+                return false;
+            }
             return VanishInteractionTracker.findHiddenCause(
                     null,
                     receiver.level(),
-                    Vec3.atCenterOf(destructionPacket.getPos()),
+                    origin,
                     receiver
             ) != null;
         }
 
         return false;
+    }
+
+    private static boolean shouldInspectWorldPacket(ServerPlayer receiver, Vec3 origin) {
+        if (!VanishInteractionTracker.anyVanishedIn(receiver.level())) {
+            return false;
+        }
+        return VanishInteractionTracker.anyRelevantWithin(
+                receiver.level(),
+                origin,
+                VanishInteractionTracker.filterRadiusSq()
+        );
+    }
+
+    private static boolean isRevealSound(Holder<SoundEvent> sound) {
+        if (sound == null) {
+            return false;
+        }
+        return sound.unwrapKey()
+                .map(key -> VanishRevealPackets.isRevealSoundPath(key.location().getPath()))
+                .orElseGet(() -> {
+                    SoundEvent event = sound.value();
+                    return event != null && VanishRevealPackets.isRevealSoundPath(event.getLocation().getPath());
+                });
     }
 
     private static ServerPlayer findVanishedPlayer(MinecraftServer server, int entityId) {

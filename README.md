@@ -810,7 +810,7 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
 
 ## Лаг-фиксы ATM10 8.2
 
-Файл: `config/cointcore/lag-fixes.json`. **Большинство опций по умолчанию выключены** — просто положить JAR на прод ничего не меняет, пока админ не включит нужные секции. Исключение: `mekmm_wind_generator_scan` включён по умолчанию (эквивалентная замена тяжёлого скана Large Wind Generator).
+Файл: `config/cointcore/lag-fixes.json`. **Большинство опций по умолчанию выключены** — просто положить JAR на прод ничего не меняет, пока админ не включит нужные секции. Исключения по умолчанию включены: `mekmm_wind_generator_scan` и `neovitae_missing_mappings_fastpath`.
 
 ### Рекомендуемый конфиг для нового сервера ATM10 8.2
 
@@ -845,6 +845,12 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
   "mekmm_wind_generator_scan": {
     "enabled": true,
     "cache_interval_ticks": 200
+  },
+  "vanish_packet_filter": {
+    "max_distance": 48
+  },
+  "neovitae_missing_mappings_fastpath": {
+    "enabled": true
   }
 }
 ```
@@ -873,6 +879,8 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
 | `chunk_loaders.disable_steves_carts_chunk_loader` | `false` | Steve's Carts chunk loader module |
 | `mekmm_wind_generator_scan.enabled` | `true` | Заменить полный скан блоков Large Wind Generator (mekmm) обходом block entity загруженных чанков |
 | `mekmm_wind_generator_scan.cache_interval_ticks` | `200` | Доп. кэш результата (0 — только кулдаун mekmm 20–200 тиков) |
+| `vanish_packet_filter.max_distance` | `48` | Радиус (блоки), в котором фильтруются звуки/block event vanished-игроков |
+| `neovitae_missing_mappings_fastpath.enabled` | `true` | Пропускать rewrite палитр NeoVitae в секциях без remapped id |
 
 ### Рекомендации без автоматики (KubeJS / конфиги модов)
 
