@@ -19,5 +19,7 @@ class DedicatedServerTooltipConfigTest {
         assertTrue(lag.contains("functionalstorage_armory_search"));
         assertTrue(lag.contains("relics_server_tooltip"));
         assertTrue(lag.contains("mekmm_wind_generator_scan"));
+        assertTrue(lag.contains("vanish_packet_filter"));
+        assertTrue(lag.contains("neovitae_missing_mappings_fastpath"));
     }
 }

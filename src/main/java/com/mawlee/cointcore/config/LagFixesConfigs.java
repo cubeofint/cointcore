@@ -10,7 +10,8 @@ import java.nio.file.Path;
 /**
  * Owns {@code config/cointcore/lag-fixes.json} — ATM10 8.2 lag mitigations
  * plus dedicated-server crash compat. Most lag sections default {@code enabled=false};
- * crash-fix and {@code mekmm_wind_generator_scan} default {@code enabled=true}.
+ * crash-fix, {@code mekmm_wind_generator_scan}, and
+ * {@code neovitae_missing_mappings_fastpath} default {@code enabled=true}.
  */
 public final class LagFixesConfigs {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -35,6 +36,8 @@ public final class LagFixesConfigs {
             FunctionalStorageArmorySearchConfig.applySection(FunctionalStorageArmorySearchConfig.defaultFileData());
             RelicsServerTooltipConfig.applySection(RelicsServerTooltipConfig.defaultFileData());
             MekmmWindGeneratorScanConfig.applySection(MekmmWindGeneratorScanConfig.defaultFileData());
+            VanishPacketFilterConfig.applySection(VanishPacketFilterConfig.defaultFileData());
+            NeovitaeMissingMappingsConfig.applySection(NeovitaeMissingMappingsConfig.defaultFileData());
         }
     }
 
@@ -67,6 +70,11 @@ public final class LagFixesConfigs {
         root.add("functionalstorage_armory_search", ConfigMergeSupport.toJsonObject(FunctionalStorageArmorySearchConfig.defaultFileData()));
         root.add("relics_server_tooltip", ConfigMergeSupport.toJsonObject(RelicsServerTooltipConfig.defaultFileData()));
         root.add("mekmm_wind_generator_scan", ConfigMergeSupport.toJsonObject(MekmmWindGeneratorScanConfig.defaultFileData()));
+        root.add("vanish_packet_filter", ConfigMergeSupport.toJsonObject(VanishPacketFilterConfig.defaultFileData()));
+        root.add(
+                "neovitae_missing_mappings_fastpath",
+                ConfigMergeSupport.toJsonObject(NeovitaeMissingMappingsConfig.defaultFileData())
+        );
         return root;
     }
 
@@ -98,6 +106,18 @@ public final class LagFixesConfigs {
                 MekmmWindGeneratorScanConfig.Data.class,
                 MekmmWindGeneratorScanConfig::defaultFileData
         ));
+        VanishPacketFilterConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root,
+                "vanish_packet_filter",
+                VanishPacketFilterConfig.Data.class,
+                VanishPacketFilterConfig::defaultFileData
+        ));
+        NeovitaeMissingMappingsConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root,
+                "neovitae_missing_mappings_fastpath",
+                NeovitaeMissingMappingsConfig.Data.class,
+                NeovitaeMissingMappingsConfig::defaultFileData
+        ));
         if (logReload) {
             JdtPortalChunkConfig.logReload();
             EnderIoItemConduitConfig.logReload();
@@ -106,6 +126,8 @@ public final class LagFixesConfigs {
             FunctionalStorageArmorySearchConfig.logReload();
             RelicsServerTooltipConfig.logReload();
             MekmmWindGeneratorScanConfig.logReload();
+            VanishPacketFilterConfig.logReload();
+            NeovitaeMissingMappingsConfig.logReload();
         }
     }
 }

@@ -185,6 +185,20 @@ class MixinConfigGuardTest {
         assertTrue(plugin.contains("\"mekmm\"") || plugin.contains(", \"mekmm\"") || plugin.contains("MEKMM_MIXINS, \"mekmm\""));
     }
 
+    @Test
+    void neovitaeMissingMappingsFastpathIsSoftAndStringTargeted() throws IOException {
+        String source = Files.readString(MIXIN_ROOT.resolve("neovitae/NVMissingMappingsMixin.java"));
+        assertTrue(source.contains("@Pseudo"));
+        assertTrue(source.contains("com.breakinblocks.neovitae.common.event.NVMissingMappings"));
+        assertTrue(source.contains("rewriteSectionPalettes"));
+        assertTrue(source.contains("cointcore$fastRewriteSectionPalettes"));
+        String plugin = Files.readString(PLUGIN);
+        assertTrue(plugin.contains("NVMissingMappingsMixin"));
+        assertTrue(plugin.contains("NEOVITAE_MIXINS, \"neovitae\""));
+        String compat = Files.readString(RESOURCES.resolve("cointcore.compat.mixins.json"));
+        assertTrue(compat.contains("neovitae.NVMissingMappingsMixin"));
+    }
+
     /**
      * Mojmap 1.21.1 PlayerList#load returns Optional&lt;CompoundTag&gt;, not CompoundTag.
      * Wrong descriptor FATAL-crashes required core mixin apply (InvSee flush-before-load).
