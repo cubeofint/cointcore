@@ -103,6 +103,86 @@ public final class PlayerTraderManageLayout {
         return Math.max(32, textWidth + BUTTON_TEXT_PAD);
     }
 
+    public static int fillButtonWidth(int labelWidth) {
+        return Math.max(32, labelWidth + BUTTON_TEXT_PAD);
+    }
+
+    /**
+     * Fill-recommended control plus compact price-hint text. The hint sits after
+     * the measured button; if that remainder is too small the hint drops to its
+     * own line when the action row is still below, otherwise it truncates.
+     */
+    public static RecommendPlacement recommendPlacement(Geom geom, int fillLabelWidth, int recommendTextWidth) {
+        int fillW = fillButtonWidth(fillLabelWidth);
+        Rect fullPrice = geom.fieldBox(2);
+        int rowRight = geom.rightInnerX + geom.rightInnerW;
+        boolean besidePrice = geom.buttonY <= geom.recommendY;
+        Rect price;
+        Rect fill;
+        if (besidePrice) {
+            int priceW = Math.max(32, fullPrice.w() - fillW - 2);
+            price = new Rect(fullPrice.x(), fullPrice.y(), priceW, fullPrice.h());
+            fillW = Math.min(fillW, Math.max(32, rowRight - (price.right() + 2)));
+            fill = new Rect(price.right() + 2, fullPrice.y(), fillW, FIELD_H);
+        } else {
+            price = fullPrice;
+            fillW = Math.min(fillW, Math.max(32, geom.rightInnerW));
+            fill = new Rect(geom.rightInnerX, geom.recommendY, fillW, FIELD_H);
+        }
+        int afterX = fill.right() + BUTTON_GAP;
+        int sameLineW = rowRight - afterX;
+        int ownY = fill.bottom() + 2;
+        boolean ownLineFits = ownY + LABEL_H <= geom.buttonY;
+        if (sameLineW >= recommendTextWidth && sameLineW >= 1) {
+            return new RecommendPlacement(fill, price, afterX, fill.y() + 2, sameLineW, false);
+        }
+        if (ownLineFits && recommendTextWidth > sameLineW) {
+            boolean truncated = recommendTextWidth > geom.rightInnerW;
+            return new RecommendPlacement(
+                    fill,
+                    price,
+                    geom.rightInnerX,
+                    ownY,
+                    geom.rightInnerW,
+                    truncated
+            );
+        }
+        int textMaxW = Math.max(0, sameLineW);
+        return new RecommendPlacement(
+                fill,
+                price,
+                afterX,
+                fill.y() + 2,
+                textMaxW,
+                recommendTextWidth > textMaxW
+        );
+    }
+
+    public record RecommendPlacement(
+            Rect fill,
+            Rect price,
+            int textX,
+            int textY,
+            int textMaxW,
+            boolean truncated
+    ) {
+        public boolean hasText() {
+            return textMaxW > 0;
+        }
+
+        public boolean textOverlapsFill() {
+            if (!hasText()) {
+                return false;
+            }
+            int textRight = textX + textMaxW;
+            int textBottom = textY + LABEL_H;
+            return textX < fill.right()
+                    && textRight > fill.x()
+                    && textY < fill.bottom()
+                    && textBottom > fill.y();
+        }
+    }
+
     public static Rect[] actionButtons(int... textWidths) {
         Rect[] rects = new Rect[textWidths.length];
         int x = RIGHT_INNER_X;

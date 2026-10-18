@@ -40,7 +40,7 @@ public final class PlayerTraderClientSync {
                 payload.priceHints()
         );
         if (minecraft.screen instanceof PlayerTraderManageScreen screen) {
-            screen.onOffersUpdated(payload.lastActionOk());
+            screen.onOffersUpdated(payload.lastActionOk(), payload.userAction());
         }
     }
 }

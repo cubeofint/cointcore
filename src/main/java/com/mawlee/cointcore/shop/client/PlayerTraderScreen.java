@@ -58,6 +58,10 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
     private boolean jeiSeeded;
     private boolean syncingJei;
     private boolean searchDirty;
+    private int searchCursor = -1;
+    private boolean searchWasFocused;
+    private int buyDealsCursor = -1;
+    private boolean buyDealsWasFocused;
     private List<GlobalMarketRows.Row> view = List.of();
     private GlobalMarketRows.Row buyRow;
     private GlobalMarketRows.SellerOffer buyOffer;
@@ -115,11 +119,13 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
                 buyCatalogIndex = buyOffer == null ? catalogIndexOf(next.listingId()) : catalogIndexOf(buyOffer.listingId());
             }
         }
+        rememberFieldFocus();
         rebuildWidgets();
     }
 
     @Override
     protected void init() {
+        rememberFieldFocus();
         layout = TraderShopLayout.market(width, height, menu.canManage());
         imageWidth = layout.guiWidth();
         imageHeight = layout.guiHeight();
@@ -234,6 +240,7 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
             sellerGeom = null;
         }
         GuiCursor.restoreIfNeeded();
+        restoreFieldFocus();
     }
 
     @Override
@@ -424,6 +431,9 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
         if (searchBox == null || syncingJei || !JeiSearchBridge.available()) {
             return;
         }
+        if (searchBox.isFocused()) {
+            return;
+        }
         String jei = JeiSearchBridge.getFilterText();
         if (jei == null || jei.equals(MarketSearchSeller.strip(query))) {
             return;
@@ -441,14 +451,18 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
             closeSellers();
             return true;
         }
-        if (keyCode != GLFW.GLFW_KEY_ESCAPE
-                && keyCode != GLFW.GLFW_KEY_TAB
-                && getFocused() instanceof EditBox box
-                && box.canConsumeInput()) {
-            box.keyPressed(keyCode, scanCode, modifiers);
+        if (TraderGuiInput.handleKeyPressed(this, keyCode, scanCode, modifiers)) {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char codePoint, int modifiers) {
+        if (TraderGuiInput.handleCharTyped(this, codePoint, modifiers)) {
+            return true;
+        }
+        return super.charTyped(codePoint, modifiers);
     }
 
     @Override
@@ -581,12 +595,41 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
     private void refreshSearchResults() {
         view = visibleRows();
         page = Math.min(page, maxPage());
-        int cursor = searchBox == null ? 0 : searchBox.getCursorPosition();
+        rememberFieldFocus();
+        searchWasFocused = true;
         rebuildWidgets();
+    }
+
+    private void rememberFieldFocus() {
         if (searchBox != null) {
-            searchBox.setCursorPosition(Math.min(cursor, searchBox.getValue().length()));
+            searchWasFocused = searchBox.isFocused() || getFocused() == searchBox;
+            searchCursor = searchBox.getCursorPosition();
+            query = searchBox.getValue();
+        }
+        if (buyDealsBox != null) {
+            buyDealsWasFocused = buyDealsBox.isFocused() || getFocused() == buyDealsBox;
+            buyDealsCursor = buyDealsBox.getCursorPosition();
+            buyDealsText = buyDealsBox.getValue();
+        }
+    }
+
+    private void restoreFieldFocus() {
+        if (searchWasFocused && searchBox != null) {
             setFocused(searchBox);
             searchBox.setFocused(true);
+            int length = searchBox.getValue().length();
+            if (searchCursor >= 0) {
+                searchBox.setCursorPosition(Math.min(searchCursor, length));
+                searchBox.setHighlightPos(Math.min(searchCursor, length));
+            }
+        } else if (buyDealsWasFocused && buyDealsBox != null) {
+            setFocused(buyDealsBox);
+            buyDealsBox.setFocused(true);
+            int length = buyDealsBox.getValue().length();
+            if (buyDealsCursor >= 0) {
+                buyDealsBox.setCursorPosition(Math.min(buyDealsCursor, length));
+                buyDealsBox.setHighlightPos(Math.min(buyDealsCursor, length));
+            }
         }
     }
 

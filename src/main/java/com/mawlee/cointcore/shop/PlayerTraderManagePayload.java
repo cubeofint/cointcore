@@ -129,15 +129,15 @@ public record PlayerTraderManagePayload(
                     throw new IllegalStateException("unexpected manage action " + unknown);
                 }
             }
-            sync(player, menu, ok);
+            sync(player, menu, ok, true);
         });
     }
 
     public static void syncOpen(ServerPlayer player, PlayerTraderManageMenu menu, boolean ok) {
-        sync(player, menu, ok);
+        sync(player, menu, ok, false);
     }
 
-    private static void sync(ServerPlayer player, PlayerTraderManageMenu menu, boolean ok) {
+    private static void sync(ServerPlayer player, PlayerTraderManageMenu menu, boolean ok, boolean userAction) {
         GlobalMarketSavedData.SoldStats stats = GlobalMarketSavedData.get(player.server).stats(player.getUUID());
         var offers = GlobalMarketService.ownSnapshots(player.server, player.getUUID());
         int returns = GlobalMarketSavedData.get(player.server).returnCount(player.getUUID());
@@ -151,6 +151,7 @@ public record PlayerTraderManagePayload(
                         stats.gluons(),
                         offers,
                         ok,
+                        userAction,
                         returns,
                         hints
                 )
