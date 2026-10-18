@@ -6,6 +6,7 @@ import com.mojang.logging.LogUtils;
 import net.neoforged.fml.loading.LoadingModList;
 import net.neoforged.fml.loading.moddiscovery.ModInfo;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -434,6 +435,24 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public void preApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
+        if (!"com.mawlee.cointcore.mixin.neoforge.EventHooksFinalizeSpawnMixin".equals(mixinClassName)) {
+            return;
+        }
+        boolean hasFiveArgFinalize = false;
+        for (MethodNode method : targetClass.methods) {
+            if ("finalizeMobSpawn".equals(method.name)
+                    && "(Lnet/minecraft/world/entity/Mob;Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/world/DifficultyInstance;Lnet/minecraft/world/entity/MobSpawnType;Lnet/minecraft/world/entity/SpawnGroupData;)Lnet/minecraft/world/entity/SpawnGroupData;"
+                    .equals(method.desc)) {
+                hasFiveArgFinalize = true;
+                break;
+            }
+        }
+        if (!hasFiveArgFinalize) {
+            LOGGER.warn(
+                    "EventHooks.finalizeMobSpawn(5-arg) not found on {}; skip-finalize injection is optional and will not apply",
+                    targetClassName
+            );
+        }
     }
 
     @Override

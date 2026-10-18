@@ -19,12 +19,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(value = SouliumSpawnerTileEntity.class, remap = false)
 public abstract class SouliumSpawnerLootMixin {
 
-    @Inject(method = "attemptSpawn", at = @At("HEAD"))
+    @Inject(method = "attemptSpawn", at = @At("HEAD"), require = 0)
     private void cointcore$enterVirtual(CallbackInfoReturnable<Boolean> ci) {
         VirtualSpawnContext.enter();
     }
 
-    @Inject(method = "attemptSpawn", at = @At("RETURN"))
+    @Inject(method = "attemptSpawn", at = @At("RETURN"), require = 0)
     private void cointcore$exitVirtual(CallbackInfoReturnable<Boolean> ci) {
         VirtualSpawnContext.exit();
     }

@@ -37,7 +37,7 @@ public abstract class NVMissingMappingsMixin {
     @Unique
     private static volatile Map<String, String> cointcore$remapCache;
 
-    @Inject(method = "rewriteSectionPalettes", at = @At("HEAD"), cancellable = true, remap = false)
+    @Inject(method = "rewriteSectionPalettes", at = @At("HEAD"), cancellable = true, remap = false, require = 0)
     private static void cointcore$fastRewriteSectionPalettes(CompoundTag root, CallbackInfo ci) {
         if (!NeovitaeMissingMappingsConfig.isEnabled()) {
             return;

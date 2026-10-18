@@ -18,12 +18,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(value = MobDuplicatorTile.class, remap = false)
 public abstract class MobDuplicatorLootMixin {
 
-    @Inject(method = "work", at = @At("HEAD"))
+    @Inject(method = "work", at = @At("HEAD"), require = 0)
     private void cointcore$enterVirtual(CallbackInfoReturnable<?> ci) {
         VirtualSpawnContext.enter();
     }
 
-    @Inject(method = "work", at = @At("RETURN"))
+    @Inject(method = "work", at = @At("RETURN"), require = 0)
     private void cointcore$exitVirtual(CallbackInfoReturnable<?> ci) {
         VirtualSpawnContext.exit();
     }

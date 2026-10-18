@@ -221,6 +221,22 @@ class MixinConfigGuardTest {
         assertTrue(compat.contains("neovitae.NVMissingMappingsMixin"));
     }
 
+    @Test
+    void eventHooksFinalizeSpawnMixinTargetsNeoForge21FiveArgAndIsOptional() throws IOException {
+        String source = Files.readString(MIXIN_ROOT.resolve("neoforge/EventHooksFinalizeSpawnMixin.java"));
+        assertTrue(source.contains("remap = false"));
+        assertTrue(source.contains("require = 0"));
+        assertTrue(source.contains(
+                "finalizeMobSpawn(Lnet/minecraft/world/entity/Mob;Lnet/minecraft/world/level/ServerLevelAccessor;Lnet/minecraft/world/DifficultyInstance;Lnet/minecraft/world/entity/MobSpawnType;Lnet/minecraft/world/entity/SpawnGroupData;)Lnet/minecraft/world/entity/SpawnGroupData;"
+        ));
+        assertFalse(
+                source.contains("SpawnGroupData;Z)"),
+                "6-arg boolean finalizeMobSpawn does not exist on NeoForge 21.1 EventHooks"
+        );
+        String plugin = Files.readString(PLUGIN);
+        assertTrue(plugin.contains("EventHooks.finalizeMobSpawn(5-arg) not found"));
+    }
+
     /**
      * Mojmap 1.21.1 PlayerList#load returns Optional&lt;CompoundTag&gt;, not CompoundTag.
      * Wrong descriptor FATAL-crashes required core mixin apply (InvSee flush-before-load).

@@ -15,12 +15,12 @@ import rearth.oritech.block.entity.arcane.SpawnerControllerBlockEntity;
 @Mixin(value = SpawnerControllerBlockEntity.class, remap = false)
 public abstract class SpawnerControllerLootMixin {
 
-    @Inject(method = "spawnMob", at = @At("HEAD"))
+    @Inject(method = "spawnMob", at = @At("HEAD"), require = 0)
     private void cointcore$enterVirtual(CallbackInfo ci) {
         VirtualSpawnContext.enter();
     }
 
-    @Inject(method = "spawnMob", at = @At("RETURN"))
+    @Inject(method = "spawnMob", at = @At("RETURN"), require = 0)
     private void cointcore$exitVirtual(CallbackInfo ci) {
         VirtualSpawnContext.exit();
     }

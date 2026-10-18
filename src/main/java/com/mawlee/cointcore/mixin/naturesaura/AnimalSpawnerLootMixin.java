@@ -20,12 +20,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value = BlockEntityAnimalSpawner.class, remap = false)
 public abstract class AnimalSpawnerLootMixin {
 
-    @Inject(method = "tick", at = @At("HEAD"))
+    @Inject(method = "tick", at = @At("HEAD"), require = 0)
     private void cointcore$enterVirtual(CallbackInfo ci) {
         VirtualSpawnContext.enter();
     }
 
-    @Inject(method = "tick", at = @At("RETURN"))
+    @Inject(method = "tick", at = @At("RETURN"), require = 0)
     private void cointcore$exitVirtual(CallbackInfo ci) {
         VirtualSpawnContext.exit();
     }
