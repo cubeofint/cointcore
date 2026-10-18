@@ -9,8 +9,8 @@ import java.nio.file.Path;
 
 /**
  * Owns {@code config/cointcore/lag-fixes.json} — ATM10 8.2 lag mitigations
- * plus dedicated-server crash compat. Lag sections default {@code enabled=false};
- * crash-fix sections default {@code enabled=true}.
+ * plus dedicated-server crash compat. Most lag sections default {@code enabled=false};
+ * crash-fix and {@code mekmm_wind_generator_scan} default {@code enabled=true}.
  */
 public final class LagFixesConfigs {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -34,6 +34,7 @@ public final class LagFixesConfigs {
             ChunkLoaderRestrictConfig.applySection(ChunkLoaderRestrictConfig.defaultFileData());
             FunctionalStorageArmorySearchConfig.applySection(FunctionalStorageArmorySearchConfig.defaultFileData());
             RelicsServerTooltipConfig.applySection(RelicsServerTooltipConfig.defaultFileData());
+            MekmmWindGeneratorScanConfig.applySection(MekmmWindGeneratorScanConfig.defaultFileData());
         }
     }
 
@@ -65,6 +66,7 @@ public final class LagFixesConfigs {
         root.add("chunk_loaders", ConfigMergeSupport.toJsonObject(ChunkLoaderRestrictConfig.defaultFileData()));
         root.add("functionalstorage_armory_search", ConfigMergeSupport.toJsonObject(FunctionalStorageArmorySearchConfig.defaultFileData()));
         root.add("relics_server_tooltip", ConfigMergeSupport.toJsonObject(RelicsServerTooltipConfig.defaultFileData()));
+        root.add("mekmm_wind_generator_scan", ConfigMergeSupport.toJsonObject(MekmmWindGeneratorScanConfig.defaultFileData()));
         return root;
     }
 
@@ -90,6 +92,12 @@ public final class LagFixesConfigs {
         RelicsServerTooltipConfig.applySection(ConfigMergeSupport.sectionOrDefault(
                 root, "relics_server_tooltip", RelicsServerTooltipConfig.Data.class, RelicsServerTooltipConfig::defaultFileData
         ));
+        MekmmWindGeneratorScanConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root,
+                "mekmm_wind_generator_scan",
+                MekmmWindGeneratorScanConfig.Data.class,
+                MekmmWindGeneratorScanConfig::defaultFileData
+        ));
         if (logReload) {
             JdtPortalChunkConfig.logReload();
             EnderIoItemConduitConfig.logReload();
@@ -97,6 +105,7 @@ public final class LagFixesConfigs {
             ChunkLoaderRestrictConfig.logReload();
             FunctionalStorageArmorySearchConfig.logReload();
             RelicsServerTooltipConfig.logReload();
+            MekmmWindGeneratorScanConfig.logReload();
         }
     }
 }

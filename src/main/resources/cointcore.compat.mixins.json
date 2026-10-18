@@ -151,7 +151,8 @@
     "immersiveengineering.ChunkLoaderLogicMixin",
     "railcraft.WorldSpikeBlockMixin",
     "railcraft.WorldSpikeMinecartMixin",
-    "stevescarts.ModuleChunkLoaderMixin"
+    "stevescarts.ModuleChunkLoaderMixin",
+    "mekmm.TileEntityLargeWindGeneratorMixin"
   ],
   "injectors": {
     "defaultRequire": 0

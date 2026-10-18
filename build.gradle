@@ -226,6 +226,7 @@ dependencies {
     packMods(curseMod(curse_immersive_engineering)) { transitive = false }
     packMods(curseMod(curse_railcraft_reborn)) { transitive = false }
     packMods(curseMod(curse_steves_carts)) { transitive = false }
+    packMods(curseMod(curse_mekmm)) { transitive = false }
 
     testImplementation "org.ow2.asm:asm:9.7.1"
     testImplementation "org.ow2.asm:asm-tree:9.7.1"

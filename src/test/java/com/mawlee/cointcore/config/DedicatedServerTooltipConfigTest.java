@@ -18,5 +18,6 @@ class DedicatedServerTooltipConfigTest {
         assertTrue(relics.contains("boolean enabled = true"));
         assertTrue(lag.contains("functionalstorage_armory_search"));
         assertTrue(lag.contains("relics_server_tooltip"));
+        assertTrue(lag.contains("mekmm_wind_generator_scan"));
     }
 }

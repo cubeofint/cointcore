@@ -173,6 +173,18 @@ class MixinConfigGuardTest {
         assertTrue(plugin.contains("sophisticatedbackpacks"));
     }
 
+    @Test
+    void mekmmWindGeneratorScanIsSoftAndStringTargeted() throws IOException {
+        String source = Files.readString(MIXIN_ROOT.resolve("mekmm/TileEntityLargeWindGeneratorMixin.java"));
+        assertTrue(source.contains("@Pseudo"));
+        assertTrue(source.contains("com.jerry.meklg.common.tile.generator.TileEntityLargeWindGenerator"));
+        assertTrue(source.contains("checkSameBlockNearby"));
+        assertTrue(source.contains("cointcore$scanLoadedBlockEntities"));
+        String plugin = Files.readString(PLUGIN);
+        assertTrue(plugin.contains("TileEntityLargeWindGeneratorMixin"));
+        assertTrue(plugin.contains("\"mekmm\"") || plugin.contains(", \"mekmm\"") || plugin.contains("MEKMM_MIXINS, \"mekmm\""));
+    }
+
     /**
      * Mojmap 1.21.1 PlayerList#load returns Optional&lt;CompoundTag&gt;, not CompoundTag.
      * Wrong descriptor FATAL-crashes required core mixin apply (InvSee flush-before-load).

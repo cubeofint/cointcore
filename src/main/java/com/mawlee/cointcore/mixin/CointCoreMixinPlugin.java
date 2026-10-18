@@ -292,6 +292,10 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.mysticalagriculture.SouliumSpawnerLootMixin"
     );
 
+    private static final Set<String> MEKMM_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.mekmm.TileEntityLargeWindGeneratorMixin"
+    );
+
     private static final Set<String> AD_ASTRA_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.adastra.AdAstraGravityTickMixin",
             "com.mawlee.cointcore.mixin.adastra.AdAstraGravityListenersAccessor",
@@ -364,6 +368,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
         putAll(map, REGIONS_UNEXPLORED_MIXINS, "regions_unexplored");
         putAll(map, MYSTICAL_AGRICULTURE_MIXINS, "mysticalagriculture");
         putAll(map, AD_ASTRA_MIXINS, "ad_astra");
+        putAll(map, MEKMM_MIXINS, "mekmm");
         return Map.copyOf(map);
     }
 
