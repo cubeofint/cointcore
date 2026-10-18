@@ -47,6 +47,8 @@
     "minecraft.ItemEntityMoveCollisionMixin",
     "minecraft.ContainersDropItemStackMixin",
     "minecraft.ItemEntityPileMixin",
+    "minecraft.CrowdedMobAiMixin",
+    "minecraft.CrowdedMobPushMixin",
     "claim.FireBlockIgniteMixin"
   ],
   "injectors": {

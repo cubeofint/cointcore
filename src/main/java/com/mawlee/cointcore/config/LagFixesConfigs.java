@@ -35,6 +35,7 @@ public final class LagFixesConfigs {
             FunctionalStorageArmorySearchConfig.applySection(FunctionalStorageArmorySearchConfig.defaultFileData());
             RelicsServerTooltipConfig.applySection(RelicsServerTooltipConfig.defaultFileData());
             MekmmWindGeneratorScanConfig.applySection(MekmmWindGeneratorScanConfig.defaultFileData());
+            CrowdedMobsConfig.applySection(CrowdedMobsConfig.defaultFileData());
         }
     }
 
@@ -67,6 +68,7 @@ public final class LagFixesConfigs {
         root.add("functionalstorage_armory_search", ConfigMergeSupport.toJsonObject(FunctionalStorageArmorySearchConfig.defaultFileData()));
         root.add("relics_server_tooltip", ConfigMergeSupport.toJsonObject(RelicsServerTooltipConfig.defaultFileData()));
         root.add("mekmm_wind_generator_scan", ConfigMergeSupport.toJsonObject(MekmmWindGeneratorScanConfig.defaultFileData()));
+        root.add("crowded_mobs", ConfigMergeSupport.toJsonObject(CrowdedMobsConfig.defaultFileData()));
         return root;
     }
 
@@ -98,6 +100,9 @@ public final class LagFixesConfigs {
                 MekmmWindGeneratorScanConfig.Data.class,
                 MekmmWindGeneratorScanConfig::defaultFileData
         ));
+        CrowdedMobsConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root, "crowded_mobs", CrowdedMobsConfig.Data.class, CrowdedMobsConfig::defaultFileData
+        ));
         if (logReload) {
             JdtPortalChunkConfig.logReload();
             EnderIoItemConduitConfig.logReload();
@@ -106,6 +111,7 @@ public final class LagFixesConfigs {
             FunctionalStorageArmorySearchConfig.logReload();
             RelicsServerTooltipConfig.logReload();
             MekmmWindGeneratorScanConfig.logReload();
+            CrowdedMobsConfig.logReload();
         }
     }
 }
