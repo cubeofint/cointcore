@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.mixin;
 
 import com.mawlee.cointcore.adastra.AdAstraGravityHandlerPatch;
+import com.mawlee.cointcore.relics.RelicsDedicatedTooltipPatch;
 import com.mojang.logging.LogUtils;
 import net.neoforged.fml.loading.LoadingModList;
 import net.neoforged.fml.loading.moddiscovery.ModInfo;
@@ -240,7 +241,12 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     );
 
     private static final Set<String> RELICS_MIXINS = Set.of(
-            "com.mawlee.cointcore.mixin.relics.RelicsVanishingRenderMixin"
+            "com.mawlee.cointcore.mixin.relics.RelicsVanishingRenderMixin",
+            "com.mawlee.cointcore.mixin.relics.RelicsServerTooltipMixin"
+    );
+
+    private static final Set<String> FUNCTIONAL_STORAGE_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.functionalstorage.ArmoryCabinetMenuMixin"
     );
 
     /** Relics backpack scan needs both Relics and Sophisticated Backpacks. */
@@ -346,6 +352,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
         putAll(map, TAB_MIXINS, "tab");
         putAll(map, MODULAR_ROUTERS_MIXINS, "modularrouters");
         putAll(map, RELICS_MIXINS, "relics");
+        putAll(map, FUNCTIONAL_STORAGE_MIXINS, "functionalstorage");
         putAll(map, RELICS_BACKPACK_MIXINS, "relics", "sophisticatedbackpacks");
         putAll(map, COMPACT_MACHINES_MIXINS, "compactmachines");
         putAll(map, HOSTILE_NETWORKS_MIXINS, "hostilenetworks");
@@ -423,6 +430,9 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
         if ("com.mawlee.cointcore.mixin.adastra.AdAstraGravityTickMixin".equals(mixinClassName)) {
             AdAstraGravityHandlerPatch.install(targetClass);
+        }
+        if ("com.mawlee.cointcore.mixin.relics.RelicsServerTooltipMixin".equals(mixinClassName)) {
+            RelicsDedicatedTooltipPatch.install(targetClass);
         }
     }
 

@@ -132,6 +132,36 @@ class MixinConfigGuardTest {
     }
 
     @Test
+    void dedicatedServerRelicsAndFunctionalStorageMixinsAreServerGated() throws IOException {
+        String compat = Files.readString(RESOURCES.resolve("cointcore.compat.mixins.json"));
+        assertTrue(compat.contains("relics.RelicsServerTooltipMixin"));
+        assertTrue(compat.contains("functionalstorage.ArmoryCabinetMenuMixin"));
+        int serverIdx = compat.indexOf("\"server\"");
+        int relicsIdx = compat.indexOf("relics.RelicsServerTooltipMixin");
+        int fsIdx = compat.indexOf("functionalstorage.ArmoryCabinetMenuMixin");
+        int clientIdx = compat.indexOf("\"client\"");
+        assertTrue(serverIdx > 0 && relicsIdx > serverIdx);
+        assertTrue(fsIdx > serverIdx);
+        assertTrue(clientIdx < serverIdx || relicsIdx > clientIdx);
+
+        String relics = Files.readString(MIXIN_ROOT.resolve("relics/RelicsServerTooltipMixin.java"));
+        assertTrue(relics.contains("priority = 2000") || relics.contains("priority=2000"));
+        assertTrue(relics.contains("Item.class"));
+        assertFalse(relics.contains("it.hurts.sskirillss.relics.mixin"));
+
+        String fs = Files.readString(MIXIN_ROOT.resolve("functionalstorage/ArmoryCabinetMenuMixin.java"));
+        assertTrue(fs.contains("com.buuz135.functionalstorage.inventory.ArmoryCabinetMenu"));
+        assertTrue(fs.contains("@Pseudo"));
+        assertTrue(fs.contains("getTooltipLines") || fs.contains("matchesWithoutTooltips"));
+
+        String plugin = Files.readString(PLUGIN);
+        assertTrue(plugin.contains("RelicsServerTooltipMixin"));
+        assertTrue(plugin.contains("ArmoryCabinetMenuMixin"));
+        assertTrue(plugin.contains("functionalstorage"));
+        assertTrue(plugin.contains("RelicsDedicatedTooltipPatch"));
+    }
+
+    @Test
     void relicsBackpackScanTargetsBackpackItemNotRelicsMixin() throws IOException {
         String source = Files.readString(MIXIN_ROOT.resolve("relics/RelicsBackpackScanMixin.java"));
         assertTrue(source.contains("BackpackItem"));

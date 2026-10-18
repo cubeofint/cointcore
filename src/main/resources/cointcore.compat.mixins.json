@@ -144,6 +144,8 @@
     "adastra.AdAstraAirVortexMixin",
     "mysticalagriculture.SouliumSpawnerLootMixin",
     "relics.RelicsBackpackScanMixin",
+    "relics.RelicsServerTooltipMixin",
+    "functionalstorage.ArmoryCabinetMenuMixin",
     "compactmachines.ChunkLoaderUpgradeAppliedMixin",
     "hostilenetworks.DataCenterTileEntityMixin",
     "immersiveengineering.ChunkLoaderLogicMixin",

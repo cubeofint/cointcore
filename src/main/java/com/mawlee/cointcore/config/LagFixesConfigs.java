@@ -8,9 +8,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 /**
- * Owns {@code config/cointcore/lag-fixes.json} — ATM10 8.2 lag mitigations.
- * Every section defaults to {@code enabled=false} so dropping the jar is a no-op
- * until an admin opts in.
+ * Owns {@code config/cointcore/lag-fixes.json} — ATM10 8.2 lag mitigations
+ * plus dedicated-server crash compat. Lag sections default {@code enabled=false};
+ * crash-fix sections default {@code enabled=true}.
  */
 public final class LagFixesConfigs {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -32,6 +32,8 @@ public final class LagFixesConfigs {
             EnderIoItemConduitConfig.applySection(EnderIoItemConduitConfig.defaultFileData());
             RelicsBackpackScanConfig.applySection(RelicsBackpackScanConfig.defaultFileData());
             ChunkLoaderRestrictConfig.applySection(ChunkLoaderRestrictConfig.defaultFileData());
+            FunctionalStorageArmorySearchConfig.applySection(FunctionalStorageArmorySearchConfig.defaultFileData());
+            RelicsServerTooltipConfig.applySection(RelicsServerTooltipConfig.defaultFileData());
         }
     }
 
@@ -61,6 +63,8 @@ public final class LagFixesConfigs {
         root.add("enderio_item_conduits", ConfigMergeSupport.toJsonObject(EnderIoItemConduitConfig.defaultFileData()));
         root.add("relics_backpack_scan", ConfigMergeSupport.toJsonObject(RelicsBackpackScanConfig.defaultFileData()));
         root.add("chunk_loaders", ConfigMergeSupport.toJsonObject(ChunkLoaderRestrictConfig.defaultFileData()));
+        root.add("functionalstorage_armory_search", ConfigMergeSupport.toJsonObject(FunctionalStorageArmorySearchConfig.defaultFileData()));
+        root.add("relics_server_tooltip", ConfigMergeSupport.toJsonObject(RelicsServerTooltipConfig.defaultFileData()));
         return root;
     }
 
@@ -77,11 +81,22 @@ public final class LagFixesConfigs {
         ChunkLoaderRestrictConfig.applySection(ConfigMergeSupport.sectionOrDefault(
                 root, "chunk_loaders", ChunkLoaderRestrictConfig.Data.class, ChunkLoaderRestrictConfig::defaultFileData
         ));
+        FunctionalStorageArmorySearchConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root,
+                "functionalstorage_armory_search",
+                FunctionalStorageArmorySearchConfig.Data.class,
+                FunctionalStorageArmorySearchConfig::defaultFileData
+        ));
+        RelicsServerTooltipConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root, "relics_server_tooltip", RelicsServerTooltipConfig.Data.class, RelicsServerTooltipConfig::defaultFileData
+        ));
         if (logReload) {
             JdtPortalChunkConfig.logReload();
             EnderIoItemConduitConfig.logReload();
             RelicsBackpackScanConfig.logReload();
             ChunkLoaderRestrictConfig.logReload();
+            FunctionalStorageArmorySearchConfig.logReload();
+            RelicsServerTooltipConfig.logReload();
         }
     }
 }
