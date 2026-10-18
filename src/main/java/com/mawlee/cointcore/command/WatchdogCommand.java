@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.command;
 
 import com.mawlee.cointcore.config.TickWatchdogConfig;
+import com.mawlee.cointcore.crowded.CrowdedMobs;
 import com.mawlee.cointcore.lang.CointCoreMessages;
 import com.mawlee.cointcore.permission.CointPermissionNodes;
 import com.mawlee.cointcore.permission.PermissionService;
@@ -85,6 +86,7 @@ public final class WatchdogCommand {
         for (String line : lines) {
             source.sendSuccess(() -> Component.literal(line), false);
         }
+        source.sendSuccess(() -> Component.literal(CrowdedMobs.statusLine()), false);
         return 1;
     }
 
