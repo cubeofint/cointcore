@@ -52,11 +52,24 @@ class CurrencyMovementOutboxTest {
                 new CurrencyMovement(1L, 1L, A, "a", B, "b", 1L, CurrencyMovementType.PAY, null),
                 new CurrencyMovement(2L, 2L, A, "a", B, "b", 1L, CurrencyMovementType.PAY, null)
         );
-        outbox.restore(3L, 1L, loaded);
+        UUID epoch = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        outbox.restore(3L, 1L, epoch, loaded);
         assertEquals(1L, outbox.siteSentUpTo());
         assertEquals(3L, outbox.nextId());
+        assertEquals(epoch, outbox.epoch());
         assertEquals(1, outbox.unsentForSite(10).size());
         assertEquals(2L, outbox.unsentForSite(10).getFirst().id());
+    }
+
+    @Test
+    void restoreWithoutEpochGeneratesOneAndEnsureNextIdNeverGoesBack() {
+        CurrencyMovementOutbox outbox = new CurrencyMovementOutbox();
+        outbox.restore(5L, 0L, null, List.of());
+        assertTrue(outbox.epoch() != null);
+        assertTrue(outbox.ensureNextIdAtLeast(218L));
+        assertEquals(218L, outbox.nextId());
+        assertTrue(!outbox.ensureNextIdAtLeast(10L));
+        assertEquals(218L, outbox.nextId());
     }
 
     private static CurrencyMovement draft(CurrencyMovementType type, long amount) {

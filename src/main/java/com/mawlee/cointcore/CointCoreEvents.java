@@ -42,6 +42,7 @@ import com.mawlee.cointcore.config.TickWatchdogConfig;
 import com.mawlee.cointcore.watchdog.probes.WatchdogProbeConfig;
 import com.mawlee.cointcore.config.TraderOffersConfig;
 import com.mawlee.cointcore.config.CurrencyMovementConfig;
+import com.mawlee.cointcore.shop.CurrencyMovementIdStore;
 import com.mawlee.cointcore.config.PrefixConfig;
 import com.mawlee.cointcore.config.PrivilegeCommandsConfig;
 import com.mawlee.cointcore.config.PlaytimeRewardConfig;
@@ -69,6 +70,7 @@ import com.mawlee.cointcore.vanish.VanishService;
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
@@ -100,6 +102,9 @@ public final class CointCoreEvents {
             WatchdogProbeConfig.load();
             TraderOffersConfig.load();
             CurrencyMovementConfig.load();
+            CurrencyMovementIdStore.bind(
+                    FMLPaths.CONFIGDIR.get().resolve(CointCore.MOD_ID).resolve(CurrencyMovementIdStore.FILE_NAME)
+            );
             PrefixConfig.load();
             PrivilegeCommandsConfig.load();
             PlaytimeRewardConfig.load();

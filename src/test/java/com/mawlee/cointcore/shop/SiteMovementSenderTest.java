@@ -17,10 +17,12 @@ class SiteMovementSenderTest {
         CurrencyMovement pay = new CurrencyMovement(
                 12L, 1_700_000_000_000L, from, "Alice", null, null, 25L, CurrencyMovementType.PAY, "tip",
                 List.of(new CurrencyMovement.Delta(from, -25L, 10L)), null);
-        String json = SiteMovementPayload.toJson(List.of(pay));
+        UUID epoch = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
+        String json = SiteMovementPayload.toJson(List.of(pay), epoch);
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
         JsonObject row = root.getAsJsonArray("movements").get(0).getAsJsonObject();
         assertEquals(12L, row.get("id").getAsLong());
+        assertEquals(epoch.toString(), row.get("epoch").getAsString());
         assertEquals("pay", row.get("type").getAsString());
         assertEquals(25L, row.get("amount").getAsLong());
         assertEquals(from.toString(), row.get("from_id").getAsString());
