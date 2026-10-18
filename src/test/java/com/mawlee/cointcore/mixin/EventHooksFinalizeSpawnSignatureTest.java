@@ -7,11 +7,11 @@ import org.objectweb.asm.tree.MethodNode;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Reads the NeoForge jar this build compiles against ({@code neo_version} / merged userdev).
+ * Reads the NeoForge jar this build compiles against ({@code neo_version}).
  */
 class EventHooksFinalizeSpawnSignatureTest {
     private static final String EVENT_HOOKS = "net/neoforged/neoforge/event/EventHooks.class";
@@ -29,8 +29,11 @@ class EventHooksFinalizeSpawnSignatureTest {
 
     @Test
     void neoForgeJarHasFiveArgFinalizeMobSpawnOnly() throws IOException {
-        Path jar = neoForgeMergedJar();
-        assertNotNull(jar, "Expected build/moddev/artifacts/neoforge-*-merged.jar from createMinecraftArtifacts");
+        Path jar = neoForgeJarWithEventHooks();
+        assertNotNull(
+                jar,
+                "Could not find a NeoForge jar containing EventHooks (build/moddev or Gradle caches)"
+        );
         ClassNode node = readClass(jar, EVENT_HOOKS);
         assertNotNull(node, "EventHooks missing from " + jar);
 
@@ -52,17 +55,49 @@ class EventHooksFinalizeSpawnSignatureTest {
         assertTrue(hasSpawner, "finalizeMobSpawnSpawner should exist on NeoForge 21.1");
     }
 
-    private static Path neoForgeMergedJar() throws IOException {
-        Path artifacts = Path.of("build/moddev/artifacts");
-        if (!Files.isDirectory(artifacts)) {
-            return null;
+    private static Path neoForgeJarWithEventHooks() throws IOException {
+        List<Path> roots = new ArrayList<>();
+        roots.add(Path.of("build/moddev/artifacts"));
+        roots.add(Path.of("build"));
+        Path gradleCaches = Path.of(System.getProperty("user.home", ""), ".gradle", "caches");
+        if (Files.isDirectory(gradleCaches)) {
+            roots.add(gradleCaches);
         }
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(artifacts, "neoforge-*-merged.jar")) {
-            Path found = null;
-            for (Path path : stream) {
-                found = path;
+        for (Path root : roots) {
+            if (!Files.isDirectory(root)) {
+                continue;
             }
-            return found;
+            int depth = root.endsWith("caches") ? 16 : 8;
+            try (Stream<Path> walk = Files.walk(root, depth)) {
+                List<Path> jars = walk
+                        .filter(path -> {
+                            String name = path.getFileName().toString();
+                            return name.startsWith("neoforge-") && name.endsWith(".jar") && !name.contains("sources");
+                        })
+                        .toList();
+                Path merged = jars.stream()
+                        .filter(path -> path.getFileName().toString().endsWith("-merged.jar"))
+                        .filter(EventHooksFinalizeSpawnSignatureTest::containsEventHooks)
+                        .findFirst()
+                        .orElse(null);
+                if (merged != null) {
+                    return merged;
+                }
+                for (Path jar : jars) {
+                    if (containsEventHooks(jar)) {
+                        return jar;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean containsEventHooks(Path jar) {
+        try (ZipFile zip = new ZipFile(jar.toFile())) {
+            return zip.getEntry(EVENT_HOOKS) != null;
+        } catch (IOException ignored) {
+            return false;
         }
     }
 
