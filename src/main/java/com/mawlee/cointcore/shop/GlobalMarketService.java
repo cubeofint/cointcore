@@ -281,17 +281,31 @@ public final class GlobalMarketService {
         if (server == null) {
             return;
         }
+        List<PlayerTraderListing> listings = null;
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (player.containerMenu instanceof PlayerTraderMenu menu) {
-                List<PlayerTraderListing> listings = catalog(server);
+                if (listings == null) {
+                    listings = catalog(server);
+                }
                 long balance = GluonWallet.get(player);
-                menu.refresh(balance, menu.ownerName(), listings);
+                String ownerName = menu.ownerName();
+                if (TraderViewSync.sameShopView(
+                        menu.gluonBalance(),
+                        ownerName,
+                        menu.listings(),
+                        balance,
+                        ownerName,
+                        listings
+                )) {
+                    continue;
+                }
+                menu.refresh(balance, ownerName, listings);
                 PacketDistributor.sendToPlayer(
                         player,
-                        new PlayerTraderCatalogPayload(menu.containerId, balance, menu.ownerName(), listings)
+                        new PlayerTraderCatalogPayload(menu.containerId, balance, ownerName, listings)
                 );
             } else if (player.containerMenu instanceof PlayerTraderManageMenu menu) {
-                PlayerTraderManagePayload.syncOpen(player, menu, true);
+                PlayerTraderManagePayload.syncIfChanged(player, menu, true);
             }
         }
     }

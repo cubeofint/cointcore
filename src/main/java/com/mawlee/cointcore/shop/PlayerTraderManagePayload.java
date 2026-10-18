@@ -134,21 +134,51 @@ public record PlayerTraderManagePayload(
     }
 
     public static void syncOpen(ServerPlayer player, PlayerTraderManageMenu menu, boolean ok) {
-        sync(player, menu, ok, false);
+        sync(player, menu, ok, false, false);
+    }
+
+    static void syncIfChanged(ServerPlayer player, PlayerTraderManageMenu menu, boolean ok) {
+        sync(player, menu, ok, false, true);
     }
 
     private static void sync(ServerPlayer player, PlayerTraderManageMenu menu, boolean ok, boolean userAction) {
+        sync(player, menu, ok, userAction, false);
+    }
+
+    private static void sync(
+            ServerPlayer player,
+            PlayerTraderManageMenu menu,
+            boolean ok,
+            boolean userAction,
+            boolean onlyIfChanged
+    ) {
         GlobalMarketSavedData.SoldStats stats = GlobalMarketSavedData.get(player.server).stats(player.getUUID());
         var offers = GlobalMarketService.ownSnapshots(player.server, player.getUUID());
         int returns = GlobalMarketSavedData.get(player.server).returnCount(player.getUUID());
         List<MarketPriceHint> hints = PlayerTraderMenus.priceHints(player, offers);
-        menu.refresh(player.getGameProfile().getName(), stats.gluons(), offers, returns, hints);
+        String ownerName = player.getGameProfile().getName();
+        long revenue = stats.gluons();
+        if (onlyIfChanged && TraderViewSync.sameManageView(
+                menu.ownerName(),
+                menu.lifetimeRevenue(),
+                menu.returnCount(),
+                menu.offers(),
+                menu.priceHints(),
+                ownerName,
+                revenue,
+                returns,
+                offers,
+                hints
+        )) {
+            return;
+        }
+        menu.refresh(ownerName, revenue, offers, returns, hints);
         PacketDistributor.sendToPlayer(
                 player,
                 new PlayerTraderManageSyncPayload(
                         menu.containerId,
-                        player.getGameProfile().getName(),
-                        stats.gluons(),
+                        ownerName,
+                        revenue,
                         offers,
                         ok,
                         userAction,

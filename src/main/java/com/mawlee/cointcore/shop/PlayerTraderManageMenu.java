@@ -159,7 +159,6 @@ public class PlayerTraderManageMenu extends AbstractContainerMenu {
         this.offers = List.copyOf(offers);
         this.returnCount = Math.max(0, returnCount);
         this.priceHints = priceHints == null ? List.of() : List.copyOf(priceHints);
-        broadcastChanges();
     }
 
     @Override

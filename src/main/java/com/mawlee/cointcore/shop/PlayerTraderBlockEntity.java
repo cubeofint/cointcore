@@ -24,6 +24,7 @@ import net.neoforged.neoforge.items.IItemHandler;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -86,8 +87,12 @@ public class PlayerTraderBlockEntity extends BlockEntity {
     }
 
     public void setOwner(UUID ownerId, String ownerName) {
+        String name = ownerName == null ? "" : ownerName;
+        if (Objects.equals(this.ownerId, ownerId) && Objects.equals(this.ownerName, name)) {
+            return;
+        }
         this.ownerId = ownerId;
-        this.ownerName = ownerName == null ? "" : ownerName;
+        this.ownerName = name;
         setChanged();
         syncOwnerToClients();
     }
