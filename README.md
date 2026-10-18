@@ -810,7 +810,7 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
 
 ## Лаг-фиксы ATM10 8.2
 
-Файл: `config/cointcore/lag-fixes.json`. **Все опции по умолчанию выключены** — просто положить JAR на прод ничего не меняет, пока админ не включит нужные секции.
+Файл: `config/cointcore/lag-fixes.json`. **Большинство опций по умолчанию выключены** — просто положить JAR на прод ничего не меняет, пока админ не включит нужные секции. Исключение: `mekmm_wind_generator_scan` включён по умолчанию (эквивалентная замена тяжёлого скана Large Wind Generator).
 
 ### Рекомендуемый конфиг для нового сервера ATM10 8.2
 
@@ -841,6 +841,10 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
     "disable_ie_chunk_loader": true,
     "disable_railcraft_world_spike": true,
     "disable_steves_carts_chunk_loader": true
+  },
+  "mekmm_wind_generator_scan": {
+    "enabled": true,
+    "cache_interval_ticks": 200
   }
 }
 ```
@@ -867,6 +871,8 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
 | `chunk_loaders.disable_ie_chunk_loader` | `false` | Immersive Engineering Resonanz Observer |
 | `chunk_loaders.disable_railcraft_world_spike` | `false` | Railcraft World Spike (+ minecart) |
 | `chunk_loaders.disable_steves_carts_chunk_loader` | `false` | Steve's Carts chunk loader module |
+| `mekmm_wind_generator_scan.enabled` | `true` | Заменить полный скан блоков Large Wind Generator (mekmm) обходом block entity загруженных чанков |
+| `mekmm_wind_generator_scan.cache_interval_ticks` | `200` | Доп. кэш результата (0 — только кулдаун mekmm 20–200 тиков) |
 
 ### Рекомендации без автоматики (KubeJS / конфиги модов)
 
