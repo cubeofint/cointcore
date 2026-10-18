@@ -2,12 +2,15 @@ package com.mawlee.cointcore.mixin.mysticalagriculture;
 
 import com.blakebr0.mysticalagriculture.tileentity.SouliumSpawnerTileEntity;
 import com.mawlee.cointcore.spawner.MachineSpawnLoot;
+import com.mawlee.cointcore.spawner.VirtualSpawnContext;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Soulium spawner pays essence and energy, then the mob's death loot goes into
@@ -15,6 +18,16 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  */
 @Mixin(value = SouliumSpawnerTileEntity.class, remap = false)
 public abstract class SouliumSpawnerLootMixin {
+
+    @Inject(method = "attemptSpawn", at = @At("HEAD"))
+    private void cointcore$enterVirtual(CallbackInfoReturnable<Boolean> ci) {
+        VirtualSpawnContext.enter();
+    }
+
+    @Inject(method = "attemptSpawn", at = @At("RETURN"))
+    private void cointcore$exitVirtual(CallbackInfoReturnable<Boolean> ci) {
+        VirtualSpawnContext.exit();
+    }
 
     @Redirect(
             method = "attemptSpawn",

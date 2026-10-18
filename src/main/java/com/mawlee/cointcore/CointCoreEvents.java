@@ -30,6 +30,7 @@ import com.mawlee.cointcore.config.SoulSurgePerfConfig;
 import com.mawlee.cointcore.config.SoulSurgeDenyConfig;
 import com.mawlee.cointcore.config.TickAccelerationDenyConfig;
 import com.mawlee.cointcore.config.SpawnerPerfConfig;
+import com.mawlee.cointcore.config.SpawnerLootConfig;
 import com.mawlee.cointcore.config.ItemPerfConfig;
 import com.mawlee.cointcore.config.LagFixesConfigs;
 import com.mawlee.cointcore.config.StoragePerfConfigs;
@@ -115,6 +116,7 @@ public final class CointCoreEvents {
             SoulSurgeDenyConfig.load();
             TickAccelerationDenyConfig.load();
             SpawnerPerfConfig.load();
+            SpawnerLootConfig.load();
             ItemPerfConfig.load();
             ArsPerfConfigs.load();
             StoragePerfConfigs.load();

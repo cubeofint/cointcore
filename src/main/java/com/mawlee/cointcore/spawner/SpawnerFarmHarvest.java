@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.spawner;
 
 import com.mawlee.cointcore.config.SpawnerByproductConfig;
+import com.mawlee.cointcore.config.SpawnerLootConfig;
 import com.mawlee.cointcore.mixin.accessor.BaseSpawnerRatesAccessor;
 import com.mawlee.cointcore.mixin.accessor.BaseSpawnerSpawnDataInvoker;
 import com.mojang.logging.LogUtils;
@@ -16,8 +17,9 @@ import net.minecraft.world.level.SpawnData;
 import org.slf4j.Logger;
 
 /**
- * Cheap farm-spawner harvest: no collision / position checks, one mob per wave.
- * Full sinks → void the wave without entity/loot work (overflow is never grounded).
+ * Cheap farm-spawner harvest: no collision / position checks, one template mob per wave.
+ * Uses {@link EntityType#create} without {@code finalizeMobSpawn} (Apotheosis affix items
+ * are rolled separately by {@link SpawnerAffixLoot}). Full sinks void the wave.
  */
 public final class SpawnerFarmHarvest {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -31,7 +33,7 @@ public final class SpawnerFarmHarvest {
      *         invoke {@code delay} and skip the vanilla/Apothic spawn loop)
      */
     public static boolean tryHarvestWave(ServerLevel level, BlockPos spawnerPos, BaseSpawner spawner) {
-        if (!PlayerSpawnerService.isFarmSpawner(level, spawnerPos)) {
+        if (!SpawnerLootConfig.isEnabled() || !PlayerSpawnerService.isFarmSpawner(level, spawnerPos)) {
             return false;
         }
 

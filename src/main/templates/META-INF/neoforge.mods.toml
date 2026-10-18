@@ -125,6 +125,13 @@ ordering="AFTER"
 side="SERVER"
 
 [[dependencies.${mod_id}]]
+modId="apotheosis"
+type="optional"
+versionRange="[8.0.0,)"
+ordering="AFTER"
+side="SERVER"
+
+[[dependencies.${mod_id}]]
 modId="spark"
 type="optional"
 versionRange="[1.0.0,)"

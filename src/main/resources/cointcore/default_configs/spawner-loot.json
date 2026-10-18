@@ -1,0 +1,10 @@
+{
+  "enabled": true,
+  "skip_finalize_mob_spawn": true,
+  "apotheosis_affix_drops": {
+    "enabled": true,
+    "chance_multiplier": 1.0,
+    "max_per_minute": 8,
+    "elite_drops": false
+  }
+}
