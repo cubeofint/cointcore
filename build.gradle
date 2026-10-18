@@ -304,6 +304,10 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+    def artifacts = tasks.findByName('createMinecraftArtifacts')
+    if (artifacts != null) {
+        dependsOn artifacts
+    }
 }
 
 // Source-level + javap audit of watchdog mixin targets vs mapped MC (see WatchdogMixinTargetAuditTest).
