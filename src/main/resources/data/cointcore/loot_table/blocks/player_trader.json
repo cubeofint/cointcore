@@ -9,6 +9,11 @@
           "type": "minecraft:item",
           "name": "cointcore:player_trader"
         }
+      ],
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
       ]
     }
   ],

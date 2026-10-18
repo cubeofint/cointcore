@@ -20,7 +20,7 @@ public final class ShopBlocks {
             "trader",
             () -> new TraderBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.METAL)
-                    .strength(3.5F, 6.0F)
+                    .strength(5.0F, 6.0F)
                     .sound(SoundType.METAL)
                     .requiresCorrectToolForDrops()
                     .noOcclusion())
@@ -32,7 +32,7 @@ public final class ShopBlocks {
             "player_trader",
             () -> new PlayerTraderBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.METAL)
-                    .strength(3.5F, 3600000.0F)
+                    .strength(5.0F, 6.0F)
                     .sound(SoundType.METAL)
                     .requiresCorrectToolForDrops()
                     .noOcclusion())

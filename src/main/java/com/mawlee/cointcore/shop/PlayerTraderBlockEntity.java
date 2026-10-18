@@ -8,7 +8,11 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.Containers;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -85,6 +89,7 @@ public class PlayerTraderBlockEntity extends BlockEntity {
         this.ownerId = ownerId;
         this.ownerName = ownerName == null ? "" : ownerName;
         setChanged();
+        syncOwnerToClients();
     }
 
     public boolean canManage(Player player) {
@@ -288,10 +293,60 @@ public class PlayerTraderBlockEntity extends BlockEntity {
         setChanged();
     }
 
-    public void dropStock(Level level, BlockPos pos) {
-        net.minecraft.world.Containers.dropContents(level, pos, stock);
+    /**
+     * Leftover local stock goes to the owner's market return box so it is not
+     * stolen from the floor and not duplicated with global-market escrow.
+     * Global listings stay listed; gluons are already in the wallet.
+     */
+    public void returnContentsToOwner(Level level) {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        if (ownerId == null || level.getServer() == null) {
+            Containers.dropContents(level, worldPosition, stock);
+            stock.clearContent();
+            setChanged();
+            return;
+        }
+        GlobalMarketSavedData data = GlobalMarketSavedData.get(level.getServer());
+        for (int slot = 0; slot < stock.getContainerSize(); slot++) {
+            ItemStack stack = stock.getItem(slot);
+            if (!stack.isEmpty()) {
+                data.addReturn(ownerId, stack.copy());
+            }
+        }
         stock.clearContent();
         setChanged();
+    }
+
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = new CompoundTag();
+        if (ownerId != null) {
+            tag.putUUID("owner_id", ownerId);
+        }
+        if (ownerName != null && !ownerName.isBlank()) {
+            tag.putString("owner_name", ownerName);
+        }
+        return tag;
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    @Override
+    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
+        ownerId = tag.hasUUID("owner_id") ? tag.getUUID("owner_id") : null;
+        ownerName = tag.contains("owner_name") ? tag.getString("owner_name") : "";
+    }
+
+    private void syncOwnerToClients() {
+        if (level instanceof ServerLevel serverLevel) {
+            BlockState state = getBlockState();
+            serverLevel.sendBlockUpdated(worldPosition, state, state, 3);
+        }
     }
 
     public Component title() {
