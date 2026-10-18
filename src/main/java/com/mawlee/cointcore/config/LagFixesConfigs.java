@@ -9,8 +9,8 @@ import java.nio.file.Path;
 
 /**
  * Owns {@code config/cointcore/lag-fixes.json} — ATM10 8.2 lag mitigations.
- * Every section defaults to {@code enabled=false} so dropping the jar is a no-op
- * until an admin opts in.
+ * Most sections default to {@code enabled=false} so dropping the jar is a no-op
+ * until an admin opts in. {@code mekmm_wind_generator_scan} defaults to enabled.
  */
 public final class LagFixesConfigs {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -32,6 +32,7 @@ public final class LagFixesConfigs {
             EnderIoItemConduitConfig.applySection(EnderIoItemConduitConfig.defaultFileData());
             RelicsBackpackScanConfig.applySection(RelicsBackpackScanConfig.defaultFileData());
             ChunkLoaderRestrictConfig.applySection(ChunkLoaderRestrictConfig.defaultFileData());
+            MekmmWindGeneratorScanConfig.applySection(MekmmWindGeneratorScanConfig.defaultFileData());
         }
     }
 
@@ -61,6 +62,7 @@ public final class LagFixesConfigs {
         root.add("enderio_item_conduits", ConfigMergeSupport.toJsonObject(EnderIoItemConduitConfig.defaultFileData()));
         root.add("relics_backpack_scan", ConfigMergeSupport.toJsonObject(RelicsBackpackScanConfig.defaultFileData()));
         root.add("chunk_loaders", ConfigMergeSupport.toJsonObject(ChunkLoaderRestrictConfig.defaultFileData()));
+        root.add("mekmm_wind_generator_scan", ConfigMergeSupport.toJsonObject(MekmmWindGeneratorScanConfig.defaultFileData()));
         return root;
     }
 
@@ -77,11 +79,18 @@ public final class LagFixesConfigs {
         ChunkLoaderRestrictConfig.applySection(ConfigMergeSupport.sectionOrDefault(
                 root, "chunk_loaders", ChunkLoaderRestrictConfig.Data.class, ChunkLoaderRestrictConfig::defaultFileData
         ));
+        MekmmWindGeneratorScanConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root,
+                "mekmm_wind_generator_scan",
+                MekmmWindGeneratorScanConfig.Data.class,
+                MekmmWindGeneratorScanConfig::defaultFileData
+        ));
         if (logReload) {
             JdtPortalChunkConfig.logReload();
             EnderIoItemConduitConfig.logReload();
             RelicsBackpackScanConfig.logReload();
             ChunkLoaderRestrictConfig.logReload();
+            MekmmWindGeneratorScanConfig.logReload();
         }
     }
 }
