@@ -38,6 +38,7 @@ public final class LagFixesConfigs {
             MekmmWindGeneratorScanConfig.applySection(MekmmWindGeneratorScanConfig.defaultFileData());
             VanishPacketFilterConfig.applySection(VanishPacketFilterConfig.defaultFileData());
             NeovitaeMissingMappingsConfig.applySection(NeovitaeMissingMappingsConfig.defaultFileData());
+            CrowdedMobsConfig.applySection(CrowdedMobsConfig.defaultFileData());
         }
     }
 
@@ -75,6 +76,7 @@ public final class LagFixesConfigs {
                 "neovitae_missing_mappings_fastpath",
                 ConfigMergeSupport.toJsonObject(NeovitaeMissingMappingsConfig.defaultFileData())
         );
+        root.add("crowded_mobs", ConfigMergeSupport.toJsonObject(CrowdedMobsConfig.defaultFileData()));
         return root;
     }
 
@@ -118,6 +120,9 @@ public final class LagFixesConfigs {
                 NeovitaeMissingMappingsConfig.Data.class,
                 NeovitaeMissingMappingsConfig::defaultFileData
         ));
+        CrowdedMobsConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root, "crowded_mobs", CrowdedMobsConfig.Data.class, CrowdedMobsConfig::defaultFileData
+        ));
         if (logReload) {
             JdtPortalChunkConfig.logReload();
             EnderIoItemConduitConfig.logReload();
@@ -128,6 +133,7 @@ public final class LagFixesConfigs {
             MekmmWindGeneratorScanConfig.logReload();
             VanishPacketFilterConfig.logReload();
             NeovitaeMissingMappingsConfig.logReload();
+            CrowdedMobsConfig.logReload();
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.mixin;
 
 import com.mawlee.cointcore.cataclysm.CataclysmCaptureAltar;
+import com.mawlee.cointcore.crowded.CrowdedMobs;
 import com.mawlee.cointcore.spawner.SpawnerLootCapture;
 import com.mawlee.cointcore.vanish.VanishInteractionTracker;
 import com.mawlee.cointcore.vanish.VanishManager;
@@ -59,6 +60,15 @@ public abstract class EntityMixin {
 
     @Inject(method = "remove", at = @At("HEAD"))
     private void cointcore$restoreCataclysmAltar(Entity.RemovalReason reason, CallbackInfo ci) {
-        CataclysmCaptureAltar.onRemove((Entity) (Object) this, reason);
+        Entity self = (Entity) (Object) this;
+        CrowdedMobs.onRemove(self);
+        CataclysmCaptureAltar.onRemove(self, reason);
+    }
+
+    @Inject(method = "push(Lnet/minecraft/world/entity/Entity;)V", at = @At("HEAD"), cancellable = true)
+    private void cointcore$skipCrowdedEntityPush(Entity entity, CallbackInfo ci) {
+        if (CrowdedMobs.shouldSkipPushBetween((Entity) (Object) this, entity)) {
+            ci.cancel();
+        }
     }
 }

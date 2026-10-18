@@ -24,12 +24,14 @@ import com.mawlee.cointcore.config.SoulSurgePerfConfig;
 import com.mawlee.cointcore.config.SoulSurgeDenyConfig;
 import com.mawlee.cointcore.config.TickAccelerationDenyConfig;
 import com.mawlee.cointcore.config.SpawnerPerfConfig;
+import com.mawlee.cointcore.config.SpawnerLootConfig;
 import com.mawlee.cointcore.config.ItemPerfConfig;
 import com.mawlee.cointcore.config.LagFixesConfigs;
 import com.mawlee.cointcore.config.StoragePerfConfigs;
 import com.mawlee.cointcore.config.TickThrottleConfigs;
 import com.mawlee.cointcore.ars.ArsGlyphThrottle;
 import com.mawlee.cointcore.ars.CrushRecipeCache;
+import com.mawlee.cointcore.spawner.SpawnerAffixLoot;
 import com.mawlee.cointcore.config.ExplosionTerrainConfig;
 import com.mawlee.cointcore.config.SpawnerByproductConfig;
 import com.mawlee.cointcore.config.SparkProfilerConfig;
@@ -171,6 +173,7 @@ public final class CointCoreCommand {
                 && SoulSurgeDenyConfig.reload()
                 && TickAccelerationDenyConfig.reload()
                 && SpawnerPerfConfig.reload()
+                && SpawnerLootConfig.reload()
                 && ItemPerfConfig.reload()
                 && ArsPerfConfigs.reload()
                 && StoragePerfConfigs.reload()
@@ -190,6 +193,7 @@ public final class CointCoreCommand {
                 && ReservedSlotsConfig.reload()
                 && QuestRankConfig.reload()) {
             CrushRecipeCache.invalidate();
+            SpawnerAffixLoot.invalidateCaches();
             ArsGlyphThrottle.clear();
             NonStackableItemTagPack.ensureGenerated();
             VoteService.applySleepPercentage(source.getServer());

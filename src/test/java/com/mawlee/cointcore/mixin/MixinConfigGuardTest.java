@@ -118,6 +118,28 @@ class MixinConfigGuardTest {
     }
 
     @Test
+    void crowdedMobLagFixMixinsAreDedicatedServerOnly() throws IOException {
+        String core = Files.readString(RESOURCES.resolve("cointcore.mixins.json"));
+        assertTrue(core.contains("minecraft.CrowdedMobAiMixin"));
+        assertTrue(core.contains("minecraft.CrowdedMobPushMixin"));
+        int serverIdx = core.indexOf("\"server\"");
+        int aiIdx = core.indexOf("minecraft.CrowdedMobAiMixin");
+        int pushIdx = core.indexOf("minecraft.CrowdedMobPushMixin");
+        int clientIdx = core.indexOf("\"client\"");
+        assertTrue(serverIdx > 0 && aiIdx > serverIdx && pushIdx > serverIdx);
+        assertTrue(clientIdx < serverIdx || (aiIdx > clientIdx && pushIdx > clientIdx));
+        String ai = Files.readString(MIXIN_ROOT.resolve("minecraft/CrowdedMobAiMixin.java"));
+        assertTrue(ai.contains("Mob.class"));
+        assertTrue(ai.contains("serverAiStep"));
+        assertTrue(ai.contains("playAmbientSound"));
+        String push = Files.readString(MIXIN_ROOT.resolve("minecraft/CrowdedMobPushMixin.java"));
+        assertTrue(push.contains("LivingEntity.class"));
+        assertTrue(push.contains("pushEntities"));
+        assertTrue(push.contains("doPush"));
+        assertTrue(push.contains("isPushable"));
+    }
+
+    @Test
     void listedMixinsHaveMatchingSourceFiles() throws IOException {
         Set<String> listed = new LinkedHashSet<>();
         listed.addAll(listedMixins(Files.readString(RESOURCES.resolve("cointcore.mixins.json"))));

@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.spawner;
 
 import com.mawlee.cointcore.config.SpawnerByproductConfig;
+import com.mawlee.cointcore.config.SpawnerLootConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -21,6 +22,7 @@ public final class MachineSpawnLoot {
 
     public static void pushOrigin(BlockPos pos) {
         ORIGIN.get().push(pos.immutable());
+        VirtualSpawnContext.enter();
     }
 
     public static void popOrigin() {
@@ -28,6 +30,7 @@ public final class MachineSpawnLoot {
         if (!stack.isEmpty()) {
             stack.pop();
         }
+        VirtualSpawnContext.exit();
     }
 
     public static boolean captureFresh(Level level, Entity entity) {
@@ -52,6 +55,9 @@ public final class MachineSpawnLoot {
     }
 
     private static boolean capture(Level level, Entity entity, BlockPos origin, boolean passengers) {
+        if (!SpawnerLootConfig.isEnabled()) {
+            return addOriginal(level, entity, passengers);
+        }
         if (!(entity instanceof Mob mob) || !(level instanceof ServerLevel server)) {
             return addOriginal(level, entity, passengers);
         }

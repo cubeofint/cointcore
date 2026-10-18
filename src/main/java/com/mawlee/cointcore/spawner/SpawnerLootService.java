@@ -67,6 +67,17 @@ public final class SpawnerLootService {
             // Remaining stack is discarded when adjacent storage is full / filtered.
             depositIntoAdjacentStorages(level, spawnerPos, stack);
         }
+        SpawnerAffixLoot.tryInsert(level, spawnerPos);
+    }
+
+    /**
+     * Inserts an already-generated stack into adjacent handlers. Overflow is voided.
+     */
+    public static void insertGenerated(ServerLevel level, BlockPos spawnerPos, ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return;
+        }
+        depositIntoAdjacentStorages(level, spawnerPos, stack);
     }
 
     private static void prepareMobForLoot(Mob mob, Player killer) {

@@ -21,5 +21,6 @@ class DedicatedServerTooltipConfigTest {
         assertTrue(lag.contains("mekmm_wind_generator_scan"));
         assertTrue(lag.contains("vanish_packet_filter"));
         assertTrue(lag.contains("neovitae_missing_mappings_fastpath"));
+        assertTrue(lag.contains("crowded_mobs"));
     }
 }
