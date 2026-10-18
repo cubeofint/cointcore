@@ -798,16 +798,16 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
     private void drawBuyQuote(GuiGraphics graphics, MarketBuyDialogLayout.Geom geom) {
         long deals = parseDeals(buyDealsText);
         PlayerTraderListing catalog = buyCatalogIndex < 0 ? null : menu.listings().get(buyCatalogIndex);
-        long unitDebit = catalog == null
-                ? (buyOffer == null ? buyRow.price() : buyOffer.pricePerDeal())
-                : catalog.offer().buyTotal();
         int count = buyOffer == null ? buyRow.count() : buyOffer.countPerDeal();
-        long dealPrice = buyOffer == null ? buyRow.price() : buyOffer.pricePerDeal();
+        long dealPrice = catalog != null
+                ? catalog.offer().buyPrice()
+                : (buyOffer == null ? buyRow.price() : buyOffer.pricePerDeal());
         long units = MarketBuyQuote.units(deals, count);
-        long debit = MarketBuyQuote.debit(deals, dealPrice, 0.0d);
-        if (catalog != null) {
-            debit = GlobalMarketMath.sellerCredit(unitDebit, deals);
-        }
+        long debit = MarketBuyQuote.debit(
+                deals,
+                dealPrice,
+                TraderOffersConfig.playerShopCommissionPercent()
+        );
         Component dealsLabel = Component.translatable("gui.cointcore.player_trader.buy.deals");
         graphics.drawString(
                 font,
@@ -863,7 +863,7 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
         PlayerTraderListing catalog = buyCatalogIndex < 0 ? null : menu.listings().get(buyCatalogIndex);
         long price = catalog == null
                 ? (buyOffer == null ? buyRow.price() : buyOffer.pricePerDeal())
-                : catalog.offer().buyTotal();
+                : catalog.offer().buyPrice();
         long stock = buyCheapest || buyOffer == null ? buyRow.stockItems() : buyOffer.stockItems();
         int count = buyOffer == null ? buyRow.count() : buyOffer.countPerDeal();
         return Math.max(1L, MarketBuyQuote.maxDeals(
@@ -871,7 +871,7 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
                 count,
                 price,
                 menu.gluonBalance(),
-                0.0d
+                TraderOffersConfig.playerShopCommissionPercent()
         ));
     }
 

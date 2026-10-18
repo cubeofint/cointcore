@@ -10,8 +10,9 @@ class MarketBuyQuoteTest {
     @Test
     void unitsAndDebitFollowDealSize() {
         assertEquals(30L, MarketBuyQuote.units(3L, 10));
-        Commission.Result fee = Commission.of(100L, 2.5d);
-        assertEquals(fee.total() * 3L, MarketBuyQuote.debit(3L, 100L, 2.5d));
+        Commission.Result fee = Commission.ofDeal(100L, 3L, 2.5d);
+        assertEquals(fee.total(), MarketBuyQuote.debit(3L, 100L, 2.5d));
+        assertEquals(307L, fee.total());
         assertEquals(0L, MarketBuyQuote.debit(0L, 100L, 2.5d));
     }
 

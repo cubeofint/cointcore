@@ -436,15 +436,9 @@ public final class GlobalMarketService {
         long totalFee = 0L;
         long totalItems = 0L;
         for (Taken row : taken) {
-            Commission.Result unit = Commission.of(row.listing.pricePerDeal(), commission);
-            totalDebit = GlobalMarketMath.saturatingAdd(
-                    totalDebit,
-                    GlobalMarketMath.buyerDebit(row.listing.pricePerDeal(), unit.fee(), row.deals)
-            );
-            totalFee = GlobalMarketMath.saturatingAdd(
-                    totalFee,
-                    GlobalMarketMath.saturatingMul(unit.fee(), row.deals)
-            );
+            Commission.Result deal = Commission.ofDeal(row.listing.pricePerDeal(), row.deals, commission);
+            totalDebit = GlobalMarketMath.saturatingAdd(totalDebit, deal.total());
+            totalFee = GlobalMarketMath.saturatingAdd(totalFee, deal.fee());
             totalItems = GlobalMarketMath.saturatingAdd(totalItems, row.items);
         }
         if (!GluonWallet.trySubtract(player.server, player.getUUID(), totalDebit)) {
@@ -453,8 +447,8 @@ public final class GlobalMarketService {
             return;
         }
         for (Taken row : taken) {
-            Commission.Result unit = Commission.of(row.listing.pricePerDeal(), commission);
-            long sliceDebit = GlobalMarketMath.buyerDebit(row.listing.pricePerDeal(), unit.fee(), row.deals);
+            Commission.Result deal = Commission.ofDeal(row.listing.pricePerDeal(), row.deals, commission);
+            long sliceDebit = deal.total();
             long credit = GlobalMarketMath.sellerCredit(row.listing.pricePerDeal(), row.deals);
             GluonWallet.add(player.server, row.listing.sellerId(), credit);
             data.recordSold(row.listing.sellerId(), row.deals, credit);
@@ -580,10 +574,9 @@ public final class GlobalMarketService {
                 break;
             }
             long take = Math.min(remaining, listing.dealsLeft());
-            Commission.Result unit = Commission.of(listing.pricePerDeal(), commission);
             total = GlobalMarketMath.saturatingAdd(
                     total,
-                    GlobalMarketMath.buyerDebit(listing.pricePerDeal(), unit.fee(), take)
+                    Commission.buyerDebit(listing.pricePerDeal(), take, commission)
             );
             remaining -= take;
         }

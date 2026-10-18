@@ -8,8 +8,8 @@ class TraderCommissionSidesTest {
     @Test
     void buyerPaysPricePlusFee() {
         Commission.Result buy = Commission.of(100L, 2.5d);
-        assertEquals(3L, buy.fee());
-        assertEquals(103L, buy.total());
+        assertEquals(2L, buy.fee());
+        assertEquals(102L, buy.total());
     }
 
     @Test

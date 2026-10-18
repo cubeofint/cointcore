@@ -23,11 +23,13 @@ class GlobalMarketMathTest {
 
     @Test
     void buyMathUsesCommissionAndSaturates() {
-        Commission.Result fee = Commission.of(100L, 2.5d);
-        assertEquals(103L * 4L, GlobalMarketMath.buyerDebit(100L, fee.fee(), 4));
+        Commission.Result deal = Commission.ofDeal(100L, 4L, 2.5d);
+        assertEquals(410L, deal.total());
+        assertEquals(410L, GlobalMarketMath.buyerDebit(100L, 4L, 2.5d));
         assertEquals(400L, GlobalMarketMath.sellerCredit(100L, 4));
-        assertEquals(2, GlobalMarketMath.maxAffordableDeals(103L, 250L, 10));
-        assertEquals(0, GlobalMarketMath.maxAffordableDeals(103L, 100L, 10));
+        assertEquals(410L, GlobalMarketMath.buyerDebit(100L, deal.fee(), 4));
+        assertEquals(2, GlobalMarketMath.maxAffordableDeals(102L, 250L, 10));
+        assertEquals(0, GlobalMarketMath.maxAffordableDeals(102L, 100L, 10));
         assertEquals(Long.MAX_VALUE, GlobalMarketMath.buyerDebit(Long.MAX_VALUE / 2, Long.MAX_VALUE / 2, 3));
     }
 

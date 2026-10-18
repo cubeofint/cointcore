@@ -15,15 +15,12 @@ public final class MarketBuyQuote {
         if (deals < 1L || pricePerDeal < 1L) {
             return 0L;
         }
-        Commission.Result unit = Commission.of(pricePerDeal, commissionPercent);
-        return GlobalMarketMath.buyerDebit(pricePerDeal, unit.fee(), deals);
+        return Commission.buyerDebit(pricePerDeal, deals, commissionPercent);
     }
 
     public static long maxDeals(long stockItems, int countPerDeal, long pricePerDeal, long balance, double commissionPercent) {
         long byStock = GlobalMarketMath.dealsFromStock(stockItems, countPerDeal);
-        Commission.Result unit = Commission.of(pricePerDeal, commissionPercent);
-        long byMoney = GlobalMarketMath.maxAffordableDeals(unit.total(), balance, byStock);
-        return Math.min(byStock, byMoney);
+        return Commission.maxAffordableUnits(pricePerDeal, commissionPercent, balance, byStock);
     }
 
     public static boolean canFill(long requested, long availableAtCap, long debit, long balance) {

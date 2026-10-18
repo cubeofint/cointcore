@@ -29,9 +29,9 @@ class PlayerShopValidationTest {
     @Test
     void buySettleMatchesPayStyleDeltasWithBurnedFee() {
         PlayerShopValidation.UUIDPair ids = new PlayerShopValidation.UUIDPair("buyer", "owner");
-        assertTrue(PlayerShopValidation.settleBuyLegal(ids, 100L, 103L));
+        assertTrue(PlayerShopValidation.settleBuyLegal(ids, 100L, 102L));
         assertFalse(PlayerShopValidation.settleBuyLegal(ids, 100L, 90L));
-        assertFalse(PlayerShopValidation.settleBuyLegal(new PlayerShopValidation.UUIDPair("same", "same"), 100L, 103L));
+        assertFalse(PlayerShopValidation.settleBuyLegal(new PlayerShopValidation.UUIDPair("same", "same"), 100L, 102L));
     }
 
     @Test
@@ -45,8 +45,8 @@ class PlayerShopValidationTest {
     @Test
     void commissionSidesMatchSystemTrader() {
         Commission.Result buy = Commission.of(100L, 2.5d);
-        assertEquals(3L, buy.fee());
-        assertEquals(103L, buy.total());
+        assertEquals(2L, buy.fee());
+        assertEquals(102L, buy.total());
         Commission.Result sell = Commission.of(80L, 2.5d);
         assertEquals(2L, sell.fee());
         assertEquals(78L, 80L - sell.fee());
