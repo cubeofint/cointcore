@@ -17,12 +17,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 )
 public abstract class PressurizedSpawnerLootMixin {
 
-    @Inject(method = "trySpawnSomething", at = @At("HEAD"))
+    @Inject(method = "trySpawnSomething", at = @At("HEAD"), require = 0)
     private void cointcore$enterVirtual(CallbackInfo ci) {
         VirtualSpawnContext.enter();
     }
 
-    @Inject(method = "trySpawnSomething", at = @At("RETURN"))
+    @Inject(method = "trySpawnSomething", at = @At("RETURN"), require = 0)
     private void cointcore$exitVirtual(CallbackInfo ci) {
         VirtualSpawnContext.exit();
     }

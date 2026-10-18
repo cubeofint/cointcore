@@ -15,12 +15,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(value = TileEntityMGUSpawner.class, remap = false)
 public abstract class MguSpawnerLootMixin {
 
-    @Inject(method = "spawnMobInArea", at = @At("HEAD"))
+    @Inject(method = "spawnMobInArea", at = @At("HEAD"), require = 0)
     private void cointcore$enterVirtual(CallbackInfoReturnable<Boolean> ci) {
         VirtualSpawnContext.enter();
     }
 
-    @Inject(method = "spawnMobInArea", at = @At("RETURN"))
+    @Inject(method = "spawnMobInArea", at = @At("RETURN"), require = 0)
     private void cointcore$exitVirtual(CallbackInfoReturnable<Boolean> ci) {
         VirtualSpawnContext.exit();
     }

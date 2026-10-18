@@ -13,12 +13,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(targets = "com.enderio.enderio.content.machines.powered_spawner.MobSpawnTask", remap = false)
 public abstract class PoweredSpawnerLootMixin {
 
-    @Inject(method = "trySpawnEntity", at = @At("HEAD"))
+    @Inject(method = "trySpawnEntity", at = @At("HEAD"), require = 0)
     private void cointcore$pushOrigin(BlockPos pos, ServerLevel level, CallbackInfo ci) {
         MachineSpawnLoot.pushOrigin(pos);
     }
 
-    @Inject(method = "trySpawnEntity", at = @At("RETURN"))
+    @Inject(method = "trySpawnEntity", at = @At("RETURN"), require = 0)
     private void cointcore$popOrigin(BlockPos pos, ServerLevel level, CallbackInfo ci) {
         MachineSpawnLoot.popOrigin();
     }

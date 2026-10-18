@@ -14,12 +14,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(targets = "mcjty.rftoolsutility.modules.spawner.blocks.SpawnerTileEntity", remap = false)
 public abstract class SpawnerTileLootMixin {
 
-    @Inject(method = "tickServer", at = @At("HEAD"))
+    @Inject(method = "tickServer", at = @At("HEAD"), require = 0)
     private void cointcore$enterVirtual(CallbackInfo ci) {
         VirtualSpawnContext.enter();
     }
 
-    @Inject(method = "tickServer", at = @At("RETURN"))
+    @Inject(method = "tickServer", at = @At("RETURN"), require = 0)
     private void cointcore$exitVirtual(CallbackInfo ci) {
         VirtualSpawnContext.exit();
     }

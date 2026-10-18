@@ -47,7 +47,7 @@ public abstract class StabilizedSpawnerLogicMixin {
     @Unique
     private Mob cointcore$cachedMob;
 
-    @Inject(method = "serverTick", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "serverTick", at = @At("HEAD"), cancellable = true, require = 0)
     private void cointcore$virtualLoot(ServerLevel level, BlockPos pos, CallbackInfo ci) {
         if (!SpawnerLootConfig.isEnabled()) {
             return;
