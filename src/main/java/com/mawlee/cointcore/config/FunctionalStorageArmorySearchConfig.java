@@ -7,8 +7,9 @@ import org.slf4j.Logger;
 import java.nio.file.Path;
 
 /**
- * Dedicated-server Armory Cabinet search: match display name and registry id
+ * Armory Cabinet search: match registry id / path / description id / custom name
  * instead of {@code ItemStack#getTooltipLines} (which crashes with Relics).
+ * Applied on client and server so filtered slots stay in sync.
  *
  * <p>File: {@code config/cointcore/lag-fixes.json} section {@code functionalstorage_armory_search}.
  */

@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.shop.client;
 
+import com.mawlee.cointcore.client.GuiEditBoxes;
 import com.mawlee.cointcore.client.VanillaContainerSkin;
 import com.mawlee.cointcore.shop.GhostTemplate;
 import com.mawlee.cointcore.shop.GlobalMarketPriceMath;
@@ -242,12 +243,19 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
             String tooltipKey,
             Consumer<String> onChange
     ) {
-        EditBox box = new EditBox(font, leftPos + rect.x(), topPos + rect.y(), rect.w(), rect.h(), Component.empty());
+        EditBox box = GuiEditBoxes.create(
+                font,
+                leftPos + rect.x(),
+                topPos + rect.y(),
+                rect.w(),
+                rect.h(),
+                Component.empty(),
+                value,
+                onChange
+        );
         box.setMaxLength(12);
-        box.setValue(value == null ? "" : value);
         box.setFilter(text -> text.chars().allMatch(Character::isDigit) || text.isEmpty());
         box.setTooltip(Tooltip.create(Component.translatable(tooltipKey)));
-        box.setResponder(text -> onChange.accept(text == null ? "" : text));
         addRenderableWidget(box);
         return box;
     }
@@ -543,9 +551,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
             return;
         }
         priceText = Long.toString(unit);
-        if (priceBox != null) {
-            priceBox.setValue(priceText);
-        }
+        GuiEditBoxes.write(priceBox, priceText);
     }
 
     private long recommendedUnitPrice() {
@@ -647,18 +653,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
     }
 
     private void writeBox(EditBox box, String text) {
-        if (box == null) {
-            return;
-        }
-        String value = text == null ? "" : text;
-        if (value.equals(box.getValue())) {
-            return;
-        }
-        int cursor = box.getCursorPosition();
-        box.setValue(value);
-        int length = box.getValue().length();
-        box.setCursorPosition(Math.min(cursor, length));
-        box.setHighlightPos(Math.min(cursor, length));
+        GuiEditBoxes.writeUnfocused(box, text);
     }
 
     private void refreshRecommendPlacement() {
@@ -732,16 +727,7 @@ public class PlayerTraderManageScreen extends AbstractContainerScreen<PlayerTrad
             case 2 -> priceBox;
             default -> null;
         };
-        if (box == null) {
-            return;
-        }
-        setFocused(box);
-        box.setFocused(true);
-        int length = box.getValue().length();
-        if (restoreCursor >= 0) {
-            box.setCursorPosition(Math.min(restoreCursor, length));
-            box.setHighlightPos(Math.min(restoreCursor, length));
-        }
+        GuiEditBoxes.restoreFocus(this, box, true, restoreCursor);
     }
 
     private EditBox focusedEditor() {

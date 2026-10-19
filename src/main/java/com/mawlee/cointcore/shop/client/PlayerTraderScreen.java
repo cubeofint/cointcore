@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.shop.client;
 
+import com.mawlee.cointcore.client.GuiEditBoxes;
 import com.mawlee.cointcore.client.VanillaContainerSkin;
 import com.mawlee.cointcore.config.TraderOffersConfig;
 import com.mawlee.cointcore.shop.GlobalMarketMath;
@@ -57,8 +58,6 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
     private String query = "";
     private boolean sortByNew;
     private boolean jeiSeeded;
-    private boolean syncingJei;
-    private boolean searchDirty;
     private int searchCursor = -1;
     private boolean searchWasFocused;
     private int buyDealsCursor = -1;
@@ -82,6 +81,9 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
     private int titleHitX;
     private int titleHitY;
     private int titleHitW;
+    private Button sortButton;
+    private Button prevPageButton;
+    private Button nextPageButton;
 
     public PlayerTraderScreen(PlayerTraderMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -99,6 +101,8 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
     }
 
     void onCatalogUpdated() {
+        boolean sellerOpen = sellerRow != null;
+        boolean buyOpen = buyRow != null;
         view = visibleRows();
         page = Math.min(page, maxPage());
         if (sellerRow != null) {
@@ -124,13 +128,12 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
                 buyCatalogIndex = buyOffer == null ? catalogIndexOf(next.listingId()) : catalogIndexOf(buyOffer.listingId());
             }
         }
-        boolean pagerChanged = lastPagerMax != maxPage();
-        if (pagerChanged || !pageRowIds().equals(rowBuyIds)) {
+        if (sellerOpen != (sellerRow != null) || buyOpen != (buyRow != null)) {
             rememberFieldFocus();
             rebuildWidgets();
             return;
         }
-        refreshRowBuyStates();
+        refreshOfferChrome();
     }
 
     @Override
@@ -169,83 +172,60 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
         }
 
         int searchW = Math.min(180, Math.max(80, imageWidth / 2));
-        searchBox = new EditBox(
+        searchBox = GuiEditBoxes.create(
                 font,
                 listLeft,
                 topPos + layout.searchY(),
                 searchW,
                 12,
-                Component.translatable("gui.cointcore.player_trader.search")
+                Component.translatable("gui.cointcore.player_trader.search"),
+                query,
+                this::onSearchTyped
         );
         searchBox.setHint(Component.translatable("gui.cointcore.player_trader.search"));
         searchBox.setTooltip(Tooltip.create(Component.translatable("gui.cointcore.player_trader.search.hint")));
-        searchBox.setValue(query);
-        searchBox.setResponder(this::onSearchTyped);
+        searchBox.setCanLoseFocus(false);
         addRenderableWidget(searchBox);
 
-        Component sortLabel = Component.translatable(
-                sortByNew ? "gui.cointcore.player_trader.sort.new" : "gui.cointcore.player_trader.sort.price"
-        );
+        Component sortLabel = sortLabel();
         int sortW = Math.max(54, font.width(sortLabel) + 12);
         int sortX = listLeft + searchW + 4;
-        addRenderableWidget(Button.builder(sortLabel, button -> {
+        sortButton = addRenderableWidget(Button.builder(sortLabel, button -> {
             sortByNew = !sortByNew;
-            rebuildWidgets();
+            page = 0;
+            view = visibleRows();
+            sortButton.setMessage(sortLabel());
+            refreshOfferChrome();
         }).bounds(sortX, topPos + layout.searchY() - 2, sortW, 14).build());
 
         int buttonY0 = topPos + layout.listTop();
-        int start = page * layout.pageSize();
         rowBuyButtons.clear();
         rowBuyIds.clear();
-        lastPagerMax = maxPage();
         for (int row = 0; row < layout.pageSize(); row++) {
-            int offerIndex = start + row;
-            if (offerIndex >= view.size()) {
-                break;
-            }
-            GlobalMarketRows.Row listing = view.get(offerIndex);
-            String listingId = listing.listingId();
+            int rowIndex = row;
             int y = buttonY0 + row * layout.rowHeight() + PRICE_BLOCK_TOP;
             int buyX = leftPos + buttonColumnX;
-            int catalogIndex = catalogIndexOf(listingId);
-            boolean cheapest = listing.multiSeller();
             Button buy = Button.builder(
-                    cheapest
-                            ? Component.translatable("gui.cointcore.player_trader.buy.cheapest")
-                            : Component.translatable("gui.cointcore.trader.buy"),
+                    Component.translatable("gui.cointcore.trader.buy"),
                     button -> {
-                        GlobalMarketRows.Row current = rowOf(listingId);
-                        if (current != null) {
-                            openBuyCheapest(current);
+                        int offerIndex = page * layout.pageSize() + rowIndex;
+                        if (offerIndex < view.size()) {
+                            openBuyCheapest(view.get(offerIndex));
                         }
                     }
-            ).bounds(buyX, y, buttonWidth, BUTTON_HEIGHT)
-                    .tooltip(Tooltip.create(Component.translatable(
-                            cheapest
-                                    ? "gui.cointcore.player_trader.buy.cheapest.hint"
-                                    : "gui.cointcore.player_trader.buy.hint"
-                    )))
-                    .build();
-            buy.active = modalClosed()
-                    && listing.dealsLeft() > 0L
-                    && listing.price() > 0L
-                    && catalogIndex >= 0;
+            ).bounds(buyX, y, buttonWidth, BUTTON_HEIGHT).build();
             addRenderableWidget(buy);
             rowBuyButtons.add(buy);
-            rowBuyIds.add(listingId);
+            rowBuyIds.add("");
         }
-
         int pagerY = topPos + layout.pagerY();
-        if (PagerChrome.showPrev(page, maxPage())) {
-            addRenderableWidget(Button.builder(Component.literal("<"), button -> changePage(-1))
-                    .bounds(listLeft, pagerY, 16, 16)
-                    .build());
-        }
-        if (PagerChrome.showNext(page, maxPage())) {
-            addRenderableWidget(Button.builder(Component.literal(">"), button -> changePage(1))
-                    .bounds(leftPos + imageWidth - 24, pagerY, 16, 16)
-                    .build());
-        }
+        prevPageButton = addRenderableWidget(Button.builder(Component.literal("<"), button -> changePage(-1))
+                .bounds(listLeft, pagerY, 16, 16)
+                .build());
+        nextPageButton = addRenderableWidget(Button.builder(Component.literal(">"), button -> changePage(1))
+                .bounds(leftPos + imageWidth - 24, pagerY, 16, 16)
+                .build());
+        refreshOfferChrome();
         buyDialogButtons.clear();
         sellerDialogButtons.clear();
         if (buyRow != null) {
@@ -443,26 +423,6 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
     }
 
     @Override
-    protected void containerTick() {
-        super.containerTick();
-        if (searchDirty) {
-            searchDirty = false;
-            refreshSearchResults();
-        }
-        if (searchBox == null || syncingJei || !JeiSearchBridge.available()) {
-            return;
-        }
-        if (searchBox.isFocused()) {
-            return;
-        }
-        String jei = JeiSearchBridge.getFilterText();
-        if (jei == null || jei.equals(MarketSearchSeller.strip(query))) {
-            return;
-        }
-        applyExternalQuery(jei);
-    }
-
-    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == GLFW.GLFW_KEY_ESCAPE && buyRow != null) {
             closeBuy();
@@ -588,9 +548,6 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
     }
 
     private void onSearchTyped(String text) {
-        if (syncingJei) {
-            return;
-        }
         String next = text == null ? "" : text;
         if (next.equals(query)) {
             return;
@@ -599,62 +556,58 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
         page = 0;
         JeiSearchBridge.setFilterText(MarketSearchSeller.strip(query));
         view = visibleRows();
-        searchDirty = true;
+        refreshOfferChrome();
     }
 
-    private void applyExternalQuery(String text) {
-        query = MarketSearchSeller.merge(text, MarketSearchSeller.fragment(query));
-        page = 0;
-        syncingJei = true;
-        try {
-            refreshSearchResults();
-        } finally {
-            syncingJei = false;
-        }
+    private Component sortLabel() {
+        return Component.translatable(
+                sortByNew ? "gui.cointcore.player_trader.sort.new" : "gui.cointcore.player_trader.sort.price"
+        );
     }
 
-    private void refreshSearchResults() {
-        view = visibleRows();
+    private void refreshOfferChrome() {
         page = Math.min(page, maxPage());
-        if (lastPagerMax != maxPage() || !pageRowIds().equals(rowBuyIds)) {
-            rememberFieldFocus();
-            searchWasFocused = true;
-            rebuildWidgets();
-            return;
-        }
-        if (searchBox != null && !searchBox.getValue().equals(query)) {
-            searchBox.setValue(query);
-        }
-        refreshRowBuyStates();
-    }
-
-    private List<String> pageRowIds() {
-        List<String> ids = new ArrayList<>();
-        int start = page * layout.pageSize();
-        for (int row = 0; row < layout.pageSize(); row++) {
-            int offerIndex = start + row;
-            if (offerIndex >= view.size()) {
-                break;
-            }
-            ids.add(view.get(offerIndex).listingId());
-        }
-        return ids;
-    }
-
-    private void refreshRowBuyStates() {
         int start = page * layout.pageSize();
         for (int row = 0; row < rowBuyButtons.size(); row++) {
+            Button buy = rowBuyButtons.get(row);
             int offerIndex = start + row;
             if (offerIndex >= view.size()) {
-                rowBuyButtons.get(row).active = false;
+                buy.visible = false;
+                buy.active = false;
+                if (row < rowBuyIds.size()) {
+                    rowBuyIds.set(row, "");
+                }
                 continue;
             }
             GlobalMarketRows.Row listing = view.get(offerIndex);
-            int catalogIndex = catalogIndexOf(listing.listingId());
-            rowBuyButtons.get(row).active = modalClosed()
+            String listingId = listing.listingId();
+            boolean cheapest = listing.multiSeller();
+            buy.visible = true;
+            buy.setMessage(cheapest
+                    ? Component.translatable("gui.cointcore.player_trader.buy.cheapest")
+                    : Component.translatable("gui.cointcore.trader.buy"));
+            buy.setTooltip(Tooltip.create(Component.translatable(
+                    cheapest
+                            ? "gui.cointcore.player_trader.buy.cheapest.hint"
+                            : "gui.cointcore.player_trader.buy.hint"
+            )));
+            int catalogIndex = catalogIndexOf(listingId);
+            buy.active = modalClosed()
                     && listing.dealsLeft() > 0L
                     && listing.price() > 0L
                     && catalogIndex >= 0;
+            if (row < rowBuyIds.size()) {
+                rowBuyIds.set(row, listingId);
+            } else {
+                rowBuyIds.add(listingId);
+            }
+        }
+        lastPagerMax = maxPage();
+        if (prevPageButton != null) {
+            prevPageButton.visible = PagerChrome.showPrev(page, maxPage());
+        }
+        if (nextPageButton != null) {
+            nextPageButton.visible = PagerChrome.showNext(page, maxPage());
         }
     }
 
@@ -672,22 +625,10 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
     }
 
     private void restoreFieldFocus() {
-        if (searchWasFocused && searchBox != null) {
-            setFocused(searchBox);
-            searchBox.setFocused(true);
-            int length = searchBox.getValue().length();
-            if (searchCursor >= 0) {
-                searchBox.setCursorPosition(Math.min(searchCursor, length));
-                searchBox.setHighlightPos(Math.min(searchCursor, length));
-            }
-        } else if (buyDealsWasFocused && buyDealsBox != null) {
-            setFocused(buyDealsBox);
-            buyDealsBox.setFocused(true);
-            int length = buyDealsBox.getValue().length();
-            if (buyDealsCursor >= 0) {
-                buyDealsBox.setCursorPosition(Math.min(buyDealsCursor, length));
-                buyDealsBox.setHighlightPos(Math.min(buyDealsCursor, length));
-            }
+        if (searchWasFocused) {
+            GuiEditBoxes.restoreFocus(this, searchBox, true, searchCursor);
+        } else if (buyDealsWasFocused) {
+            GuiEditBoxes.restoreFocus(this, buyDealsBox, true, buyDealsCursor);
         }
     }
 
@@ -801,18 +742,18 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
 
     private void addBuyDialog() {
         MarketBuyDialogLayout.Geom geom = buyGeom == null ? currentBuyGeom() : buyGeom;
-        buyDealsBox = new EditBox(
+        buyDealsBox = GuiEditBoxes.create(
                 font,
                 geom.qtyX(),
                 geom.qtyY(),
                 geom.qtyW(),
                 geom.qtyH(),
-                Component.translatable("gui.cointcore.player_trader.buy.deals")
+                Component.translatable("gui.cointcore.player_trader.buy.deals"),
+                buyDealsText,
+                text -> buyDealsText = text
         );
         buyDealsBox.setMaxLength(18);
         buyDealsBox.setFilter(text -> text.chars().allMatch(Character::isDigit) || text.isEmpty());
-        buyDealsBox.setValue(buyDealsText);
-        buyDealsBox.setResponder(text -> buyDealsText = text == null ? "" : text);
         addRenderableWidget(buyDealsBox);
         buyDialogButtons.add(addRenderableWidget(Button.builder(
                 Component.translatable("gui.cointcore.player_trader.buy.one"),
@@ -887,9 +828,7 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
     private void setBuyDeals(long deals) {
         long value = Math.max(1L, deals);
         buyDealsText = Long.toString(value);
-        if (buyDealsBox != null) {
-            buyDealsBox.setValue(buyDealsText);
-        }
+        GuiEditBoxes.write(buyDealsBox, buyDealsText);
     }
 
     private void confirmBuy() {
@@ -1138,7 +1077,7 @@ public class PlayerTraderScreen extends AbstractContainerScreen<PlayerTraderMenu
         int next = Math.max(0, Math.min(maxPage(), page + delta));
         if (next != page) {
             page = next;
-            rebuildWidgets();
+            refreshOfferChrome();
         }
     }
 

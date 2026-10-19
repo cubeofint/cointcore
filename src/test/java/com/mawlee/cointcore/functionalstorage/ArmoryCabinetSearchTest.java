@@ -7,21 +7,51 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ArmoryCabinetSearchTest {
     @Test
-    void matchesHoverName() {
-        assertTrue(ArmoryCabinetSearch.matchesQuery("Diamond Sword", "minecraft:diamond_sword", "sword"));
-        assertTrue(ArmoryCabinetSearch.matchesQuery("Diamond Sword", "minecraft:diamond_sword", "DIAMOND"));
+    void matchesRegistryPathAndId() {
+        assertTrue(ArmoryCabinetSearch.matchesQuery(
+                "",
+                "minecraft:diamond_sword",
+                "diamond_sword",
+                "item.minecraft.diamond_sword",
+                "sword"
+        ));
+        assertTrue(ArmoryCabinetSearch.matchesQuery(
+                "",
+                "minecraft:diamond_sword",
+                "diamond_sword",
+                "item.minecraft.diamond_sword",
+                "DIAMOND"
+        ));
+        assertTrue(ArmoryCabinetSearch.matchesQuery(
+                "",
+                "minecraft:diamond_sword",
+                "diamond_sword",
+                "item.minecraft.diamond_sword",
+                "minecraft:diamond"
+        ));
     }
 
     @Test
-    void matchesRegistryId() {
-        assertTrue(ArmoryCabinetSearch.matchesQuery("Алмазный меч", "minecraft:diamond_sword", "diamond_sword"));
-        assertTrue(ArmoryCabinetSearch.matchesQuery("Алмазный меч", "minecraft:diamond_sword", "minecraft:diamond"));
-        assertFalse(ArmoryCabinetSearch.matchesQuery("Алмазный меч", "minecraft:diamond_sword", "netherite"));
+    void localizedHoverIsNotRequired() {
+        assertFalse(ArmoryCabinetSearch.matchesQuery(
+                "",
+                "minecraft:diamond_sword",
+                "diamond_sword",
+                "item.minecraft.diamond_sword",
+                "алмаз"
+        ));
+        assertTrue(ArmoryCabinetSearch.matchesQuery(
+                "Алмазный меч",
+                "minecraft:diamond_sword",
+                "diamond_sword",
+                "item.minecraft.diamond_sword",
+                "алмаз"
+        ));
     }
 
     @Test
     void emptyQueryMatches() {
-        assertTrue(ArmoryCabinetSearch.matchesQuery("Stick", "minecraft:stick", ""));
-        assertTrue(ArmoryCabinetSearch.matchesQuery("Stick", "minecraft:stick", null));
+        assertTrue(ArmoryCabinetSearch.matchesQuery("Stick", "minecraft:stick", "stick", "item.minecraft.stick", ""));
+        assertTrue(ArmoryCabinetSearch.matchesQuery("Stick", "minecraft:stick", "stick", "item.minecraft.stick", null));
     }
 }
