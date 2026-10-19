@@ -1,5 +1,9 @@
 package com.mawlee.cointcore.watchdog;
 
+import com.mawlee.cointcore.damage.DamageGuard;
+import com.mawlee.cointcore.watchdog.stall.StallContext;
+import com.mawlee.cointcore.watchdog.stall.StallWatchdogHotFlags;
+import com.mawlee.cointcore.watchdog.stall.StallWatchdogService;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
@@ -20,6 +24,8 @@ public final class WatchdogHooks {
     }
 
     public static void onServerTickStart() {
+        StallWatchdogService.instance().onServerTickStart(Thread.currentThread());
+        DamageGuard.onServerTick();
         TickWatchdogService.instance().onServerTickStart();
         if (!WatchdogHotFlags.RUNNING) {
             return;
@@ -29,6 +35,9 @@ public final class WatchdogHooks {
     }
 
     public static void onServerTickEnd(net.minecraft.server.MinecraftServer server) {
+        if (!WatchdogHotFlags.RUNNING) {
+            return;
+        }
         TickWatchdogService.instance().sampler().onTickEnd();
         long started = serverTickStartNanos;
         serverTickStartNanos = 0L;
@@ -38,7 +47,13 @@ public final class WatchdogHooks {
     }
 
     public static void beforeBlockEntityTick(BlockEntity blockEntity) {
-        if (!WatchdogHotFlags.TIME_BLOCK_ENTITIES || blockEntity == null) {
+        if (blockEntity == null) {
+            return;
+        }
+        if (StallWatchdogHotFlags.ENABLED) {
+            StallContext.enterBlockEntity(blockEntity);
+        }
+        if (!WatchdogHotFlags.TIME_BLOCK_ENTITIES) {
             return;
         }
         Level level = blockEntity.getLevel();
@@ -60,6 +75,9 @@ public final class WatchdogHooks {
     }
 
     public static void afterBlockEntityTick(BlockEntity blockEntity) {
+        if (StallWatchdogHotFlags.ENABLED) {
+            StallContext.exitBlockEntity();
+        }
         if (!WatchdogHotFlags.TIME_BLOCK_ENTITIES || blockEntity == null) {
             TickProbe.exit();
             return;
@@ -87,7 +105,13 @@ public final class WatchdogHooks {
     }
 
     public static void beforeEntityTick(Entity entity) {
-        if (!WatchdogHotFlags.TIME_ENTITIES || entity == null || entity.level().isClientSide()) {
+        if (entity == null || entity.level().isClientSide()) {
+            return;
+        }
+        if (StallWatchdogHotFlags.ENABLED) {
+            StallContext.enterEntity(entity);
+        }
+        if (!WatchdogHotFlags.TIME_ENTITIES) {
             return;
         }
         entityStartNanos = System.nanoTime();
@@ -104,6 +128,9 @@ public final class WatchdogHooks {
     }
 
     public static void afterEntityTick(Entity entity) {
+        if (StallWatchdogHotFlags.ENABLED) {
+            StallContext.exitEntity(entity);
+        }
         if (!WatchdogHotFlags.TIME_ENTITIES || entity == null) {
             TickProbe.exit();
             return;

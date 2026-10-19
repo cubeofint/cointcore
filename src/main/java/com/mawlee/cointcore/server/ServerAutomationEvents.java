@@ -65,6 +65,7 @@ public final class ServerAutomationEvents {
         SparkProfilerService.resetRuntimeState();
         SparkMetricsService.resetRuntimeState();
         com.mawlee.cointcore.watchdog.TickWatchdogService.instance().stop();
+        com.mawlee.cointcore.watchdog.stall.StallWatchdogService.instance().stop();
         SunkenCityRespawnService.resetRuntimeState();
         CataclysmStructureRespawnService.resetRuntimeState();
         ServerRestartService.cancelPendingRestart();

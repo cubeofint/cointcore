@@ -17,9 +17,6 @@ import java.util.function.BooleanSupplier;
 public abstract class MinecraftServerMixin {
     @Inject(method = "tickServer", at = @At("HEAD"))
     private void cointcore$watchdogTickStart(BooleanSupplier hasTimeLeft, CallbackInfo ci) {
-        if (!WatchdogHotFlags.RUNNING) {
-            return;
-        }
         WatchdogHooks.onServerTickStart();
     }
 
