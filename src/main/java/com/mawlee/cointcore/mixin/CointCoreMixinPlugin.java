@@ -247,7 +247,8 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     );
 
     private static final Set<String> FUNCTIONAL_STORAGE_MIXINS = Set.of(
-            "com.mawlee.cointcore.mixin.functionalstorage.ArmoryCabinetMenuMixin"
+            "com.mawlee.cointcore.mixin.functionalstorage.ArmoryCabinetMenuMixin",
+            "com.mawlee.cointcore.mixin.functionalstorage.ArmoryCabinetScreenMixin"
     );
 
     /** Relics backpack scan needs both Relics and Sophisticated Backpacks. */

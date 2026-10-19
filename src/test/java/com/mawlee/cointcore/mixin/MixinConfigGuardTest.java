@@ -158,12 +158,16 @@ class MixinConfigGuardTest {
         String compat = Files.readString(RESOURCES.resolve("cointcore.compat.mixins.json"));
         assertTrue(compat.contains("relics.RelicsServerTooltipMixin"));
         assertTrue(compat.contains("functionalstorage.ArmoryCabinetMenuMixin"));
+        assertTrue(compat.contains("functionalstorage.ArmoryCabinetScreenMixin"));
+        int mixinsIdx = compat.indexOf("\"mixins\"");
         int serverIdx = compat.indexOf("\"server\"");
         int relicsIdx = compat.indexOf("relics.RelicsServerTooltipMixin");
-        int fsIdx = compat.indexOf("functionalstorage.ArmoryCabinetMenuMixin");
+        int fsMenuIdx = compat.indexOf("functionalstorage.ArmoryCabinetMenuMixin");
+        int fsScreenIdx = compat.indexOf("functionalstorage.ArmoryCabinetScreenMixin");
         int clientIdx = compat.indexOf("\"client\"");
         assertTrue(serverIdx > 0 && relicsIdx > serverIdx);
-        assertTrue(fsIdx > serverIdx);
+        assertTrue(mixinsIdx >= 0 && fsMenuIdx > mixinsIdx && fsMenuIdx < clientIdx);
+        assertTrue(clientIdx > 0 && fsScreenIdx > clientIdx && fsScreenIdx < serverIdx);
         assertTrue(clientIdx < serverIdx || relicsIdx > clientIdx);
 
         String relics = Files.readString(MIXIN_ROOT.resolve("relics/RelicsServerTooltipMixin.java"));
@@ -176,9 +180,15 @@ class MixinConfigGuardTest {
         assertTrue(fs.contains("@Pseudo"));
         assertTrue(fs.contains("getTooltipLines") || fs.contains("matchesWithoutTooltips"));
 
+        String screen = Files.readString(MIXIN_ROOT.resolve("functionalstorage/ArmoryCabinetScreenMixin.java"));
+        assertTrue(screen.contains("com.buuz135.functionalstorage.client.gui.ArmoryCabinetScreen"));
+        assertTrue(screen.contains("setInitialFocus"));
+        assertTrue(screen.contains("setCanLoseFocus"));
+
         String plugin = Files.readString(PLUGIN);
         assertTrue(plugin.contains("RelicsServerTooltipMixin"));
         assertTrue(plugin.contains("ArmoryCabinetMenuMixin"));
+        assertTrue(plugin.contains("ArmoryCabinetScreenMixin"));
         assertTrue(plugin.contains("functionalstorage"));
         assertTrue(plugin.contains("RelicsDedicatedTooltipPatch"));
     }

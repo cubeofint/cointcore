@@ -5,9 +5,11 @@
   "plugin": "com.mawlee.cointcore.mixin.CointCoreMixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ae2.AEItemKeyFuzzyMaxCacheMixin"
+    "ae2.AEItemKeyFuzzyMaxCacheMixin",
+    "functionalstorage.ArmoryCabinetMenuMixin"
   ],
   "client": [
+    "functionalstorage.ArmoryCabinetScreenMixin",
     "ae2.TagSearchPredicateMixin",
     "ftbteams.TeamSettingsEditMixin",
     "relics.RelicsVanishingRenderMixin",
@@ -145,7 +147,6 @@
     "mysticalagriculture.SouliumSpawnerLootMixin",
     "relics.RelicsBackpackScanMixin",
     "relics.RelicsServerTooltipMixin",
-    "functionalstorage.ArmoryCabinetMenuMixin",
     "compactmachines.ChunkLoaderUpgradeAppliedMixin",
     "hostilenetworks.DataCenterTileEntityMixin",
     "immersiveengineering.ChunkLoaderLogicMixin",
