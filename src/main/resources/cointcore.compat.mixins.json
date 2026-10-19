@@ -29,6 +29,7 @@
     "ftbessentials.OfflineTeleportCommandMixin",
     "ftbessentials.KitCreditClaimMixin",
     "ftbessentials.KitCreditSuggestMixin",
+    "ftbessentials.RtpCeilingFloorMixin",
     "evilcraft.PacketCodecMixin",
     "evilcraft.SharedTankPacketCodecMixin",
     "evilcraft.UpdateWorldSharedTankPacketAccessor",

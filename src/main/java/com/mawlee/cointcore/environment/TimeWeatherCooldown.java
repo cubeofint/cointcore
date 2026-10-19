@@ -1,6 +1,10 @@
 package com.mawlee.cointcore.environment;
 
 import com.mawlee.cointcore.config.VoteConfig;
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
+
+import java.util.stream.Collectors;
 
 /**
  * Shared cooldown for forced day-time / weather changes (votes, commands, mods).
@@ -29,6 +33,8 @@ public final class TimeWeatherCooldown {
 
     // Lazy frame stream: stops at the first match instead of materializing the whole stack.
     private static final StackWalker STACK_WALKER = StackWalker.getInstance();
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final int CALLER_FRAMES_LOGGED = 12;
 
     private TimeWeatherCooldown() {
     }
@@ -254,5 +260,17 @@ public final class TimeWeatherCooldown {
             return;
         }
         cooldownUntilMs = System.currentTimeMillis() + seconds * 1000L;
+        // At most once per cooldown window, so cheap enough to always log who armed it.
+        LOGGER.info("[cointcore] Time/weather cooldown armed for {}s by: {}", seconds, describeCaller());
+    }
+
+    /** Caller frames above this class, skipping JDK frames; mixin handler names show which setter was hit. */
+    private static String describeCaller() {
+        return STACK_WALKER.walk(frames -> frames
+                .filter(frame -> !frame.getClassName().equals(TimeWeatherCooldown.class.getName()))
+                .filter(frame -> !frame.getClassName().startsWith("java.") && !frame.getClassName().startsWith("jdk."))
+                .limit(CALLER_FRAMES_LOGGED)
+                .map(frame -> frame.getClassName() + "." + frame.getMethodName() + ":" + frame.getLineNumber())
+                .collect(Collectors.joining(" <- ")));
     }
 }

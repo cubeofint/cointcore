@@ -2,7 +2,9 @@ package com.mawlee.cointcore.mixin.minecraft;
 
 import com.mawlee.cointcore.environment.TimeWeatherCooldown;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -10,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.function.BooleanSupplier;
 
 /**
- * Gates forced {@code setDayTime}/{@code setWeatherParameters} behind a shared cooldown.
+ * Gates forced Overworld {@code setDayTime}/{@code setWeatherParameters} behind a shared cooldown.
  * Natural progression ({@code tickTime}, sleep skip, {@code advanceWeatherCycle}) is marked and
  * always allowed.
  * <p>
@@ -68,9 +70,18 @@ public abstract class ServerLevelTimeWeatherMixin {
         TimeWeatherCooldown.exitNatural();
     }
 
+    /**
+     * Votes and the shared cooldown are about the Overworld. Mods that run their own day cycle in their own
+     * dimension (Aether's {@code DimensionHooks.tickTime} every tick, Ad Astra planets) must not arm it.
+     */
+    @Unique
+    private boolean cointcore$isOverworld() {
+        return Level.OVERWORLD.equals(((ServerLevel) (Object) this).dimension());
+    }
+
     @Inject(method = "setDayTime", at = @At("HEAD"), cancellable = true)
     private void cointcore$gateForcedDayTime(long time, CallbackInfo ci) {
-        if (TimeWeatherCooldown.isAlwaysAllowed()) {
+        if (!cointcore$isOverworld() || TimeWeatherCooldown.isAlwaysAllowed()) {
             return;
         }
         // Ops / console /time must always apply (cooldown is for votes & mod spam only).
@@ -90,7 +101,8 @@ public abstract class ServerLevelTimeWeatherMixin {
 
     @Inject(method = "setWeatherParameters", at = @At("HEAD"), cancellable = true)
     private void cointcore$gateForcedWeather(int clearTime, int weatherTime, boolean raining, boolean thundering, CallbackInfo ci) {
-        if (TimeWeatherCooldown.isVanillaTimeOrWeatherCommandCaller()) {
+        // Pass-through (not a bare return) keeps the RETURN-side exit balanced.
+        if (!cointcore$isOverworld() || TimeWeatherCooldown.isVanillaTimeOrWeatherCommandCaller()) {
             TimeWeatherCooldown.enterPassThrough();
             return;
         }

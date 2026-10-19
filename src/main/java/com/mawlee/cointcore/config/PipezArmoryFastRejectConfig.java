@@ -18,12 +18,18 @@ public final class PipezArmoryFastRejectConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private static boolean enabled = true;
+    private static boolean freeSlotHint = true;
 
     private PipezArmoryFastRejectConfig() {
     }
 
     public static boolean isEnabled() {
         return enabled;
+    }
+
+    /** Certified single items go straight to a hinted free cabinet slot (see ArmoryFreeSlotHint). */
+    public static boolean isFreeSlotHintEnabled() {
+        return freeSlotHint;
     }
 
     public static Path getConfigPath() {
@@ -41,10 +47,11 @@ public final class PipezArmoryFastRejectConfig {
     static void applySection(Data data) {
         Data resolved = data != null ? data : defaultFileData();
         enabled = resolved.enabled;
+        freeSlotHint = resolved.freeSlotHint;
     }
 
     static void logReload() {
-        LOGGER.info("Reloaded Pipez armory fast-reject config (enabled={})", enabled);
+        LOGGER.info("Reloaded Pipez armory fast-reject config (enabled={}, freeSlotHint={})", enabled, freeSlotHint);
     }
 
     static Data defaultFileData() {
@@ -54,5 +61,8 @@ public final class PipezArmoryFastRejectConfig {
     static final class Data {
         @SerializedName("enabled")
         boolean enabled = true;
+
+        @SerializedName("free_slot_hint")
+        boolean freeSlotHint = true;
     }
 }

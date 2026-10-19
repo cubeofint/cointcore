@@ -137,7 +137,8 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.ftbessentials.KitCommandUpdateMixin",
             "com.mawlee.cointcore.mixin.ftbessentials.OfflineTeleportCommandMixin",
             "com.mawlee.cointcore.mixin.ftbessentials.KitCreditClaimMixin",
-            "com.mawlee.cointcore.mixin.ftbessentials.KitCreditSuggestMixin"
+            "com.mawlee.cointcore.mixin.ftbessentials.KitCreditSuggestMixin",
+            "com.mawlee.cointcore.mixin.ftbessentials.RtpCeilingFloorMixin"
     );
 
     private static final Set<String> EVILCRAFT_MIXINS = Set.of(
