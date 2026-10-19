@@ -2,7 +2,6 @@ package com.mawlee.cointcore.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonSyntaxException;
 import com.google.gson.annotations.SerializedName;
 import com.mawlee.cointcore.CointCore;
 import com.mojang.logging.LogUtils;
@@ -90,7 +89,7 @@ public final class MarketButtonConfig {
                 FileData data = GSON.fromJson(reader, FileData.class);
                 return parse(data);
             }
-        } catch (IOException | JsonSyntaxException | RuntimeException exception) {
+        } catch (IOException | RuntimeException exception) {
             LOGGER.error("Failed to load market button config from {}", path, exception);
             return parse(defaults());
         }
