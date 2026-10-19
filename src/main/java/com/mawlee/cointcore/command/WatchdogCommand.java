@@ -1,7 +1,9 @@
 package com.mawlee.cointcore.command;
 
+import com.mawlee.cointcore.config.PipezArmoryFastRejectConfig;
 import com.mawlee.cointcore.config.TickWatchdogConfig;
 import com.mawlee.cointcore.crowded.CrowdedMobs;
+import com.mawlee.cointcore.pipez.PipezArmoryFastReject;
 import com.mawlee.cointcore.lang.CointCoreMessages;
 import com.mawlee.cointcore.permission.CointPermissionNodes;
 import com.mawlee.cointcore.permission.PermissionService;
@@ -87,6 +89,10 @@ public final class WatchdogCommand {
             source.sendSuccess(() -> Component.literal(line), false);
         }
         source.sendSuccess(() -> Component.literal(CrowdedMobs.statusLine()), false);
+        source.sendSuccess(
+                () -> Component.literal(PipezArmoryFastReject.statusLine(PipezArmoryFastRejectConfig.isEnabled())),
+                false
+        );
         return 1;
     }
 

@@ -222,6 +222,28 @@ class MixinConfigGuardTest {
     }
 
     @Test
+    void pipezArmoryFastRejectIsSoftStringTargetedAndRequiresBothMods() throws IOException {
+        String source = Files.readString(MIXIN_ROOT.resolve("pipez/ItemPipeTypeArmoryFastRejectMixin.java"));
+        assertTrue(source.contains("@Pseudo"));
+        assertTrue(source.contains("de.maxhenkel.pipez.blocks.tileentity.types.ItemPipeType"));
+        assertTrue(source.contains("insertOrdered"));
+        assertTrue(source.contains("insertEqually"));
+        assertTrue(source.contains("ItemHandlerHelper;insertItem"));
+        assertTrue(source.contains("require = 0"));
+        assertTrue(source.contains("remap = false"));
+        assertTrue(source.contains("@WrapOperation"));
+        assertFalse(source.contains("ItemHandlerHelper.insertItemStacked"));
+        String plugin = Files.readString(PLUGIN);
+        assertTrue(plugin.contains("ItemPipeTypeArmoryFastRejectMixin"));
+        assertTrue(plugin.contains("PIPEZ_FUNCTIONAL_STORAGE_MIXINS, \"pipez\", \"functionalstorage\""));
+        String compat = Files.readString(RESOURCES.resolve("cointcore.compat.mixins.json"));
+        assertTrue(compat.contains("pipez.ItemPipeTypeArmoryFastRejectMixin"));
+        int serverIdx = compat.indexOf("\"server\"");
+        int mixinIdx = compat.indexOf("pipez.ItemPipeTypeArmoryFastRejectMixin");
+        assertTrue(serverIdx > 0 && mixinIdx > serverIdx);
+    }
+
+    @Test
     void eventHooksFinalizeSpawnMixinTargetsNeoForge21FiveArgAndIsOptional() throws IOException {
         String source = Files.readString(MIXIN_ROOT.resolve("neoforge/EventHooksFinalizeSpawnMixin.java"));
         assertTrue(source.contains("remap = false"));

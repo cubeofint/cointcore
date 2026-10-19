@@ -832,7 +832,7 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
 
 ## Лаг-фиксы ATM10 8.2
 
-Файл: `config/cointcore/lag-fixes.json`. **Большинство опций по умолчанию выключены** — просто положить JAR на прод ничего не меняет, пока админ не включит нужные секции. Исключения по умолчанию включены: `mekmm_wind_generator_scan` и `neovitae_missing_mappings_fastpath`.
+Файл: `config/cointcore/lag-fixes.json`. **Большинство опций по умолчанию выключены** — просто положить JAR на прод ничего не меняет, пока админ не включит нужные секции. Исключения по умолчанию включены: `mekmm_wind_generator_scan`, `neovitae_missing_mappings_fastpath` и `pipez_armory_fast_reject`.
 
 ### Рекомендуемый конфиг для нового сервера ATM10 8.2
 
@@ -873,6 +873,9 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
   },
   "neovitae_missing_mappings_fastpath": {
     "enabled": true
+  },
+  "pipez_armory_fast_reject": {
+    "enabled": true
   }
 }
 ```
@@ -903,6 +906,7 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
 | `mekmm_wind_generator_scan.cache_interval_ticks` | `200` | Доп. кэш результата (0 — только кулдаун mekmm 20–200 тиков) |
 | `vanish_packet_filter.max_distance` | `48` | Радиус (блоки), в котором фильтруются звуки/block event vanished-игроков |
 | `neovitae_missing_mappings_fastpath.enabled` | `true` | Пропускать rewrite палитр NeoVitae в секциях без remapped id |
+| `pipez_armory_fast_reject.enabled` | `true` | Pipez item pipe: не гонять `ItemHandlerHelper.insertItem` по 4096 слотам Armory Cabinet, если предмет туда не принимается (`isItemValid` / `isCertifiedStack`). Только Pipez → Functional Storage, без глобального патча helper. Выкл.: `"enabled": false`. Счётчик пропусков: `/cointcore watchdog status` |
 
 ### Рекомендации без автоматики (KubeJS / конфиги модов)
 
