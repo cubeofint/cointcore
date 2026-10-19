@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.annotations.SerializedName;
 import com.mawlee.cointcore.CointCore;
 import com.mawlee.cointcore.shop.OfferBuyPriceHistory;
+import com.mawlee.cointcore.shop.RemoteMarketFlag;
 import com.mawlee.cointcore.shop.TraderOffer;
 import com.mojang.logging.LogUtils;
 import com.mojang.serialization.JsonOps;
@@ -177,7 +178,7 @@ public final class TraderOffersConfig {
                 : com.mawlee.cointcore.shop.GlobalMarketMath.clampMaxStockPerLot(data.playerShopMaxStockPerLot);
         boolean restockDebug = Boolean.TRUE.equals(data.playerShopRestockDebug);
         boolean debugTraderClicks = Boolean.TRUE.equals(data.debugTraderClicks);
-        boolean remoteMarket = data.remoteMarketEnabled == null || data.remoteMarketEnabled;
+        boolean remoteMarket = RemoteMarketFlag.enabled(data.remoteMarketEnabled);
         List<TraderOffer> offers = new ArrayList<>();
         if (data.offers != null) {
             for (OfferData entry : data.offers) {

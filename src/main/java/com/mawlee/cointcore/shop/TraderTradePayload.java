@@ -11,8 +11,10 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Client request to buy or sell. For the NPC terminal, {@code stack} fills one item stack.
- * For the global market, {@code deals} is the requested deal count (all-or-nothing).
+ * For the global market (including remote inventory access), {@code sell} is ignored:
+ * the handler can only buy. {@code deals} is the requested deal count (all-or-nothing).
  * {@code listingId} + {@code cheapest=false} buys only that lot after price/stock checks.
+ * Purchase uses {@link GlobalMarketService#buy} and never loads trader chunks.
  */
 public record TraderTradePayload(
         int containerId,

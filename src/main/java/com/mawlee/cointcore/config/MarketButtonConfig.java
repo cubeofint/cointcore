@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.SerializedName;
 import com.mawlee.cointcore.CointCore;
+import com.mawlee.cointcore.shop.MarketButtonLayout;
 import com.mojang.logging.LogUtils;
 import net.neoforged.fml.loading.FMLPaths;
 import org.slf4j.Logger;
@@ -22,11 +23,9 @@ import java.nio.file.Path;
 public final class MarketButtonConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final int MIN_COORD = 0;
-    private static final int MAX_COORD = 1024;
     /** Third row in the top-left icon cluster, below common utility-mod buttons. */
-    public static final int DEFAULT_X = 4;
-    public static final int DEFAULT_Y = 42;
+    public static final int DEFAULT_X = MarketButtonLayout.DEFAULT_X;
+    public static final int DEFAULT_Y = MarketButtonLayout.DEFAULT_Y;
 
     private static int inventoryX = DEFAULT_X;
     private static int inventoryY = DEFAULT_Y;
@@ -58,12 +57,13 @@ public final class MarketButtonConfig {
 
     static Loaded parse(FileData data) {
         FileData source = data == null ? defaults() : data;
-        return new Loaded(
-                clamp(source.inventoryX, DEFAULT_X),
-                clamp(source.inventoryY, DEFAULT_Y),
-                clamp(source.creativeX, DEFAULT_X),
-                clamp(source.creativeY, DEFAULT_Y)
+        MarketButtonLayout.Coords coords = MarketButtonLayout.parse(
+                source.inventoryX,
+                source.inventoryY,
+                source.creativeX,
+                source.creativeY
         );
+        return new Loaded(coords.inventoryX(), coords.inventoryY(), coords.creativeX(), coords.creativeY());
     }
 
     private static void apply(Loaded loaded) {
@@ -93,11 +93,6 @@ public final class MarketButtonConfig {
             LOGGER.error("Failed to load market button config from {}", path, exception);
             return parse(defaults());
         }
-    }
-
-    private static int clamp(Integer value, int fallback) {
-        int coord = value == null ? fallback : value;
-        return Math.max(MIN_COORD, Math.min(MAX_COORD, coord));
     }
 
     private static Path configPath() {
