@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.annotations.SerializedName;
 import com.mawlee.cointcore.CointCore;
 import com.mawlee.cointcore.shop.OfferBuyPriceHistory;
+import com.mawlee.cointcore.shop.RemoteMarketFlag;
 import com.mawlee.cointcore.shop.TraderOffer;
 import com.mojang.logging.LogUtils;
 import com.mojang.serialization.JsonOps;
@@ -79,6 +80,10 @@ public final class TraderOffersConfig {
 
     public static boolean debugTraderClicks() {
         return loaded.debugTraderClicks;
+    }
+
+    public static boolean remoteMarketEnabled() {
+        return loaded.remoteMarketEnabled;
     }
 
     public static int priceHistoryCapacity() {
@@ -173,6 +178,7 @@ public final class TraderOffersConfig {
                 : com.mawlee.cointcore.shop.GlobalMarketMath.clampMaxStockPerLot(data.playerShopMaxStockPerLot);
         boolean restockDebug = Boolean.TRUE.equals(data.playerShopRestockDebug);
         boolean debugTraderClicks = Boolean.TRUE.equals(data.debugTraderClicks);
+        boolean remoteMarket = RemoteMarketFlag.enabled(data.remoteMarketEnabled);
         List<TraderOffer> offers = new ArrayList<>();
         if (data.offers != null) {
             for (OfferData entry : data.offers) {
@@ -205,6 +211,7 @@ public final class TraderOffersConfig {
                 maxStockPerLot,
                 restockDebug,
                 debugTraderClicks,
+                remoteMarket,
                 historyCapacity,
                 sampleTicks,
                 band,
@@ -260,6 +267,7 @@ public final class TraderOffersConfig {
             long playerShopMaxStockPerLot,
             boolean playerShopRestockDebug,
             boolean debugTraderClicks,
+            boolean remoteMarketEnabled,
             int priceHistoryCapacity,
             int priceHistorySampleIntervalTicks,
             double priceHistoryAverageBandPercent,
@@ -279,6 +287,7 @@ public final class TraderOffersConfig {
                     com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_MAX_STOCK_PER_LOT,
                     false,
                     false,
+                    true,
                     OfferBuyPriceHistory.DEFAULT_CAPACITY,
                     1200,
                     5.0d,
@@ -309,6 +318,8 @@ public final class TraderOffersConfig {
         @SerializedName("player_shop_restock_debug")
         Boolean playerShopRestockDebug;
         Boolean debugTraderClicks;
+        @SerializedName("remote_market_enabled")
+        Boolean remoteMarketEnabled;
         @SerializedName("price_history_capacity")
         Integer priceHistoryCapacity;
         @SerializedName("price_history_sample_interval_ticks")
@@ -332,6 +343,7 @@ public final class TraderOffersConfig {
             data.playerShopItemBlacklist = List.of("#minecraft:shulker_boxes");
             data.playerShopMaxStockPerLot = com.mawlee.cointcore.shop.GlobalMarketMath.DEFAULT_MAX_STOCK_PER_LOT;
             data.debugTraderClicks = false;
+            data.remoteMarketEnabled = true;
             data.priceHistoryCapacity = OfferBuyPriceHistory.DEFAULT_CAPACITY;
             data.priceHistorySampleIntervalTicks = 1200;
             data.priceHistoryAverageBandPercent = 5.0d;

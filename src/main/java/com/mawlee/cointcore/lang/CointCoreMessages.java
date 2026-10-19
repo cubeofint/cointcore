@@ -247,6 +247,7 @@ public final class CointCoreMessages {
     public static final String PLAYER_SHOP_CANNOT_FILL_PRICE_UP = "message.cointcore.player_trader.cannot_fill.price_up";
     public static final String PLAYER_SHOP_PULL_ON = "message.cointcore.player_trader.pull.on";
     public static final String PLAYER_SHOP_PULL_OFF = "message.cointcore.player_trader.pull.off";
+    public static final String MARKET_REMOTE_DENIED = "message.cointcore.market.remote.denied";
     public static final String PREFIX_HEADER = "message.cointcore.prefix.header";
     public static final String PREFIX_CURRENT = "message.cointcore.prefix.current";
     public static final String PREFIX_CURRENT_AUTO = "message.cointcore.prefix.current.auto";

@@ -27,6 +27,34 @@ public final class PlayerTraderMenus {
         return openShop(player, shop);
     }
 
+    public static OptionalInt openRemote(ServerPlayer player) {
+        long balance = GluonWallet.get(player);
+        List<PlayerTraderListing> listings = listingsOf(player.server);
+        return player.openMenu(
+                new SimpleMenuProvider(
+                        (containerId, inventory, opener) -> new PlayerTraderMenu(
+                                containerId,
+                                inventory,
+                                ContainerLevelAccess.NULL,
+                                balance,
+                                player.getGameProfile().getName(),
+                                false,
+                                true,
+                                listings
+                        ),
+                        Component.translatable("container.cointcore.market")
+                ),
+                buffer -> PlayerTraderMenu.writeOpenData(
+                        buffer,
+                        balance,
+                        player.getGameProfile().getName(),
+                        false,
+                        true,
+                        listings
+                )
+        );
+    }
+
     public static OptionalInt openShop(ServerPlayer player, PlayerTraderBlockEntity shop) {
         GlobalMarketMigration.migrate(player.server, shop);
         long balance = GluonWallet.get(player);

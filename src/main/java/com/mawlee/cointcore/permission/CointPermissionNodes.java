@@ -382,6 +382,13 @@ public final class CointPermissionNodes {
             Component.translatable("permission.desc.cointcore.playershop.admin")
     );
 
+    public static final PermissionNode<Boolean> MARKET_REMOTE = new PermissionNode<>(
+            CointCore.MOD_ID, "market.remote", PermissionTypes.BOOLEAN, EVERYONE
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.market.remote"),
+            Component.translatable("permission.desc.cointcore.market.remote")
+    );
+
     public static final PermissionNode<Boolean> PREFIX = new PermissionNode<>(
             CointCore.MOD_ID, "prefix", PermissionTypes.BOOLEAN, EVERYONE
     ).setInformation(
