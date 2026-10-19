@@ -34,6 +34,8 @@ public final class JustDireThingsPerfConfig {
     private static int blockValidCacheTicks = 40;
     private static int highMsptBlockValidCacheTicks = 100;
     private static double highMsptThreshold = 60.0D;
+    /** Clickers (T1/T2) may not run faster than once per this many ticks; 0 or 1 = no limit. */
+    private static int clickerMinTickSpeed = 10;
 
     private JustDireThingsPerfConfig() {
     }
@@ -44,6 +46,10 @@ public final class JustDireThingsPerfConfig {
 
     public static int getProtectionCacheClearIntervalTicks() {
         return protectionCacheClearIntervalTicks;
+    }
+
+    public static int getClickerMinTickSpeed() {
+        return clickerMinTickSpeed;
     }
 
     public static int resolveAreaScanCacheTicks() {
@@ -80,14 +86,15 @@ public final class JustDireThingsPerfConfig {
         JustDireThingsAreaScanCache.clearAll();
         JustDireThingsBlockValidCache.clearAll();
         LOGGER.info(
-                "Reloaded Just Dire Things perf (enabled={}, protectionClearEvery={}, areaScanCache={}, highMsptCache={}, blockValidCache={}, highMsptBlockValid={}, msptThreshold={})",
+                "Reloaded Just Dire Things perf (enabled={}, protectionClearEvery={}, areaScanCache={}, highMsptCache={}, blockValidCache={}, highMsptBlockValid={}, msptThreshold={}, clickerMinTickSpeed={})",
                 enabled,
                 protectionCacheClearIntervalTicks,
                 areaScanCacheTicks,
                 highMsptAreaScanCacheTicks,
                 blockValidCacheTicks,
                 highMsptBlockValidCacheTicks,
-                highMsptThreshold
+                highMsptThreshold,
+                clickerMinTickSpeed
         );
     }
 
@@ -99,6 +106,7 @@ public final class JustDireThingsPerfConfig {
         blockValidCacheTicks = loaded.blockValidCacheTicks();
         highMsptBlockValidCacheTicks = loaded.highMsptBlockValidCacheTicks();
         highMsptThreshold = loaded.highMsptThreshold();
+        clickerMinTickSpeed = loaded.clickerMinTickSpeed();
     }
 
     private static LoadedConfig parse(Data data) {
@@ -109,7 +117,8 @@ public final class JustDireThingsPerfConfig {
                 clamp(data.highMsptAreaScanCacheTicks, 0, MAX_INTERVAL),
                 clamp(data.blockValidCacheTicks, 0, MAX_INTERVAL),
                 clamp(data.highMsptBlockValidCacheTicks, 0, MAX_INTERVAL),
-                clamp(data.highMsptThreshold, MIN_MSPT, MAX_MSPT)
+                clamp(data.highMsptThreshold, MIN_MSPT, MAX_MSPT),
+                clamp(data.clickerMinTickSpeed, 0, MAX_INTERVAL)
         );
     }
 
@@ -132,7 +141,8 @@ public final class JustDireThingsPerfConfig {
             int highMsptAreaScanCacheTicks,
             int blockValidCacheTicks,
             int highMsptBlockValidCacheTicks,
-            double highMsptThreshold
+            double highMsptThreshold,
+            int clickerMinTickSpeed
     ) {
     }
 
@@ -157,5 +167,8 @@ public final class JustDireThingsPerfConfig {
 
         @SerializedName("highMsptThreshold")
         double highMsptThreshold = 60.0D;
+
+        @SerializedName("clickerMinTickSpeed")
+        int clickerMinTickSpeed = 10;
     }
 }
