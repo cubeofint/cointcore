@@ -146,6 +146,7 @@
     "relics.RelicsBackpackScanMixin",
     "relics.RelicsServerTooltipMixin",
     "functionalstorage.ArmoryCabinetMenuMixin",
+    "pipez.ItemPipeTypeArmoryFastRejectMixin",
     "compactmachines.ChunkLoaderUpgradeAppliedMixin",
     "hostilenetworks.DataCenterTileEntityMixin",
     "immersiveengineering.ChunkLoaderLogicMixin",

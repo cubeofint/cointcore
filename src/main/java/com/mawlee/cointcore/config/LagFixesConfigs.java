@@ -10,8 +10,9 @@ import java.nio.file.Path;
 /**
  * Owns {@code config/cointcore/lag-fixes.json} — ATM10 8.2 lag mitigations
  * plus dedicated-server crash compat. Most lag sections default {@code enabled=false};
- * crash-fix, {@code mekmm_wind_generator_scan}, and
- * {@code neovitae_missing_mappings_fastpath} default {@code enabled=true}.
+ * crash-fix, {@code mekmm_wind_generator_scan},
+ * {@code neovitae_missing_mappings_fastpath}, and
+ * {@code pipez_armory_fast_reject} default {@code enabled=true}.
  */
 public final class LagFixesConfigs {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -39,6 +40,7 @@ public final class LagFixesConfigs {
             VanishPacketFilterConfig.applySection(VanishPacketFilterConfig.defaultFileData());
             NeovitaeMissingMappingsConfig.applySection(NeovitaeMissingMappingsConfig.defaultFileData());
             CrowdedMobsConfig.applySection(CrowdedMobsConfig.defaultFileData());
+            PipezArmoryFastRejectConfig.applySection(PipezArmoryFastRejectConfig.defaultFileData());
         }
     }
 
@@ -77,6 +79,10 @@ public final class LagFixesConfigs {
                 ConfigMergeSupport.toJsonObject(NeovitaeMissingMappingsConfig.defaultFileData())
         );
         root.add("crowded_mobs", ConfigMergeSupport.toJsonObject(CrowdedMobsConfig.defaultFileData()));
+        root.add(
+                "pipez_armory_fast_reject",
+                ConfigMergeSupport.toJsonObject(PipezArmoryFastRejectConfig.defaultFileData())
+        );
         return root;
     }
 
@@ -123,6 +129,12 @@ public final class LagFixesConfigs {
         CrowdedMobsConfig.applySection(ConfigMergeSupport.sectionOrDefault(
                 root, "crowded_mobs", CrowdedMobsConfig.Data.class, CrowdedMobsConfig::defaultFileData
         ));
+        PipezArmoryFastRejectConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root,
+                "pipez_armory_fast_reject",
+                PipezArmoryFastRejectConfig.Data.class,
+                PipezArmoryFastRejectConfig::defaultFileData
+        ));
         if (logReload) {
             JdtPortalChunkConfig.logReload();
             EnderIoItemConduitConfig.logReload();
@@ -134,6 +146,7 @@ public final class LagFixesConfigs {
             VanishPacketFilterConfig.logReload();
             NeovitaeMissingMappingsConfig.logReload();
             CrowdedMobsConfig.logReload();
+            PipezArmoryFastRejectConfig.logReload();
         }
     }
 }
