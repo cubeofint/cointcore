@@ -95,30 +95,27 @@ public record TraderTradePayload(
             if (menu.containerId != payload.containerId() || !menu.stillValid(player)) {
                 return;
             }
-            menu.access().evaluate((level, pos) -> {
-                if (!(level.getBlockEntity(pos) instanceof PlayerTraderBlockEntity shop)) {
-                    return false;
+            if (payload.sell()) {
+                return;
+            }
+            if (menu.remote() && !RemoteMarketAccess.canUse(player)) {
+                return;
+            }
+            String listingId = payload.listingId();
+            if (listingId.isBlank()) {
+                if (payload.offerIndex() < 0 || payload.offerIndex() >= menu.listings().size()) {
+                    return;
                 }
-                if (payload.sell()) {
-                    return false;
-                }
-                String listingId = payload.listingId();
-                if (listingId.isBlank()) {
-                    if (payload.offerIndex() < 0 || payload.offerIndex() >= menu.listings().size()) {
-                        return false;
-                    }
-                    listingId = menu.listings().get(payload.offerIndex()).listingId();
-                }
-                GlobalMarketService.buy(
-                        player,
-                        menu,
-                        listingId,
-                        payload.deals(),
-                        payload.expectedUnitPrice(),
-                        payload.cheapest()
-                );
-                return true;
-            }, false);
+                listingId = menu.listings().get(payload.offerIndex()).listingId();
+            }
+            GlobalMarketService.buy(
+                    player,
+                    menu,
+                    listingId,
+                    payload.deals(),
+                    payload.expectedUnitPrice(),
+                    payload.cheapest()
+            );
         });
     }
 }

@@ -53,6 +53,7 @@ public final class PermissionRegistration {
                 CointPermissionNodes.PLAYER_SHOP_PLACE,
                 CointPermissionNodes.PLAYER_SHOP_USE,
                 CointPermissionNodes.PLAYER_SHOP_ADMIN,
+                CointPermissionNodes.MARKET_REMOTE,
                 CointPermissionNodes.PREFIX,
                 CointPermissionNodes.PREFIX_ADMIN,
                 CointPermissionNodes.REPAIR,
