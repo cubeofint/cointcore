@@ -39,6 +39,8 @@ import com.mawlee.cointcore.justdirethings.JdtPortalTicketCleanup;
 import com.mawlee.cointcore.config.ExplosionTerrainConfig;
 import com.mawlee.cointcore.config.SpawnerByproductConfig;
 import com.mawlee.cointcore.config.SparkProfilerConfig;
+import com.mawlee.cointcore.config.DamageGuardConfig;
+import com.mawlee.cointcore.config.StallWatchdogConfig;
 import com.mawlee.cointcore.config.TickWatchdogConfig;
 import com.mawlee.cointcore.watchdog.probes.WatchdogProbeConfig;
 import com.mawlee.cointcore.config.TraderOffersConfig;
@@ -100,6 +102,8 @@ public final class CointCoreEvents {
             ServerAutomationConfig.load();
             SparkProfilerConfig.load();
             TickWatchdogConfig.load();
+            DamageGuardConfig.load();
+            StallWatchdogConfig.load();
             WatchdogProbeConfig.load();
             TraderOffersConfig.load();
             CurrencyMovementConfig.load();
@@ -149,6 +153,7 @@ public final class CointCoreEvents {
         com.mawlee.cointcore.questrank.QuestRankService.init(event.getServer());
         ChatSpyManager.loadFromSavedData(event.getServer());
         com.mawlee.cointcore.watchdog.TickWatchdogService.instance().start(event.getServer());
+        com.mawlee.cointcore.watchdog.stall.StallWatchdogService.instance().start(event.getServer());
     }
 
     public static void onServerStarted(ServerStartedEvent event) {

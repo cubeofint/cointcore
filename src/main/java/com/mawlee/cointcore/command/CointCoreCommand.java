@@ -35,6 +35,8 @@ import com.mawlee.cointcore.spawner.SpawnerAffixLoot;
 import com.mawlee.cointcore.config.ExplosionTerrainConfig;
 import com.mawlee.cointcore.config.SpawnerByproductConfig;
 import com.mawlee.cointcore.config.SparkProfilerConfig;
+import com.mawlee.cointcore.config.DamageGuardConfig;
+import com.mawlee.cointcore.config.StallWatchdogConfig;
 import com.mawlee.cointcore.config.TickWatchdogConfig;
 import com.mawlee.cointcore.watchdog.probes.WatchdogProbeConfig;
 import com.mawlee.cointcore.config.TraderOffersConfig;
@@ -121,6 +123,7 @@ public final class CointCoreCommand {
                                 .executes(CointCoreCommand::cataclysmSpotsForce)))
                 .then(ChunkLimitCommand.chunkLimitCommand())
                 .then(WatchdogCommand.branch())
+                .then(StallCommand.branch())
                 .then(SoulSurgeCommand.branch())
                 .then(GluonWalletCommand.branch())
                 .then(PrefixAdminCommand.branch())
@@ -184,6 +187,8 @@ public final class CointCoreCommand {
                 && StarterKitConfig.reload()
                 && MeUniqueFilterConfig.reload()
                 && TickWatchdogConfig.reload()
+                && DamageGuardConfig.reload()
+                && StallWatchdogConfig.reload()
                 && WatchdogProbeConfig.reload()
                 && TraderOffersConfig.reload()
                 && CurrencyMovementConfig.reload()

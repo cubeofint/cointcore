@@ -25,6 +25,17 @@ public final class ChatDiscordRelay {
     private ChatDiscordRelay() {
     }
 
+    public static void relaySystemAlert(String message) {
+        if (!ChatDiscordRelayConfig.isEnabled()) {
+            return;
+        }
+        if (message == null || message.isBlank()) {
+            return;
+        }
+        LOGGER.info("SYSTEM {}", message);
+        sendToDiscord(message);
+    }
+
     public static void relayLocalChat(ServerPlayer sender, String message) {
         if (!ChatDiscordRelayConfig.isEnabled() || !ChatDiscordRelayConfig.isLogLocalChat()) {
             return;

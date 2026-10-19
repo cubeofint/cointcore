@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.mixin;
 
+import com.mawlee.cointcore.damage.DamageGuard;
 import com.mawlee.cointcore.keepinventory.KeepInventoryService;
 import com.mawlee.cointcore.spawner.SpawnerLootCapture;
 import com.mawlee.cointcore.vanish.VanishManager;
@@ -22,6 +23,23 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class LivingEntityMixin extends Entity {
     private LivingEntityMixin(EntityType<?> type, Level level) {
         super(type, level);
+    }
+
+    @Inject(
+            method = "hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z",
+            at = @At("HEAD"),
+            cancellable = true,
+            require = 0
+    )
+    private void cointcore$damageGuardEnter(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        if (DamageGuard.onHurtEnter((LivingEntity) (Object) this, source)) {
+            cir.setReturnValue(false);
+        }
+    }
+
+    @Inject(method = "hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z", at = @At("RETURN"), require = 0)
+    private void cointcore$damageGuardExit(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        DamageGuard.onHurtExit();
     }
 
     @Inject(method = "canBeSeenByAnyone", at = @At("HEAD"), cancellable = true)
