@@ -18,7 +18,7 @@ class PlayerTraderScreenSearchAuditTest {
         assertFalse(source.contains("applyExternalQuery"));
         assertFalse(source.contains("containerTick"));
         String open = Files.readString(Path.of("src/main/java/com/mawlee/cointcore/shop/PlayerTraderMenus.java"));
-        assertTrue(open.contains("remote"));
+        assertTrue(open.contains("openRemote"));
         assertTrue(Files.readString(Path.of("src/main/java/com/mawlee/cointcore/shop/client/TraderClientSetup.java"))
                 .contains("PlayerTraderScreen::new"));
     }
