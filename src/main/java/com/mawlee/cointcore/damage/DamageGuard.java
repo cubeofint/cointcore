@@ -28,6 +28,7 @@ public final class DamageGuard {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final DamageGuardCounters COUNTERS = new DamageGuardCounters();
     private static final Long2LongOpenHashMap LAST_LOG_MS = new Long2LongOpenHashMap();
+    private static long lastLeakLogMs;
 
     static {
         LAST_LOG_MS.defaultReturnValue(0L);
@@ -42,17 +43,25 @@ public final class DamageGuard {
 
     public static void onServerTick() {
         COUNTERS.resetTick();
+        // No hurt() is in progress between ticks. A non-zero depth here means an exit was skipped (another
+        // mod cancelled hurt() at HEAD after our enter, or hurt() threw); left alone it only grows until
+        // every hurt() on the server trips maxDepth and all entities become immortal.
+        int leaked = COUNTERS.resetDepth();
+        if (leaked > 0) {
+            StallContext.exitDamage();
+            logLeakedDepth(leaked);
+        }
     }
 
     /**
-     * @return {@code true} if the hurt call should be cancelled
+     * @return {@code true} if the hurt call should be cancelled. A cancelled call never reaches the
+     * {@code hurt()} RETURN injection, so it must not leave the depth counter raised.
      */
     public static boolean onHurtEnter(LivingEntity target, DamageSource source) {
         if (target == null || target.level().isClientSide() || !DamageGuardConfig.isEnabled()) {
             return false;
         }
         if (StallWatchdogHotFlags.ABORT_DAMAGE && COUNTERS.currentDepth() > 0) {
-            COUNTERS.enter();
             return true;
         }
         int depth = COUNTERS.enter();
@@ -63,6 +72,7 @@ public final class DamageGuard {
         if (depth > maxDepth || hits > maxHits) {
             COUNTERS.markBlocked(target.getId());
             trip(target, source, depth, hits);
+            onHurtExit();
             return true;
         }
         return false;
@@ -89,6 +99,15 @@ public final class DamageGuard {
                 DamageGuardConfig.getMaxDepth(),
                 DamageGuardConfig.getMaxHitsPerTargetPerTick()
         );
+    }
+
+    private static void logLeakedDepth(int leaked) {
+        long now = System.currentTimeMillis();
+        if (now - lastLeakLogMs < DamageGuardConfig.getLogCooldownSeconds() * 1000L) {
+            return;
+        }
+        lastLeakLogMs = now;
+        LOGGER.warn("Damage guard: hurt() depth {} was still open at tick start (skipped exit); reset to 0", leaked);
     }
 
     private static void trip(LivingEntity target, DamageSource source, int depth, int hits) {

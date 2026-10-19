@@ -34,6 +34,14 @@ public final class DamageGuardCounters {
         return depth.get()[0];
     }
 
+    /** Zero this thread's depth; returns what it was (non-zero means an exit was skipped). */
+    public int resetDepth() {
+        int[] slot = depth.get();
+        int previous = slot[0];
+        slot[0] = 0;
+        return previous;
+    }
+
     public int recordHit(int targetId) {
         int prev = hits.get(targetId);
         if (prev == 0) {
