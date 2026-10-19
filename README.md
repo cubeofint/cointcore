@@ -52,6 +52,8 @@
 - Голосования за день и ясную погоду (`/voteday`, `/votesun`)
 - Интеграция со Spark (TPS/MSPT, профилирование)
 - Tick watchdog: координаты дорогих block entity / entity и топ методов при лагах
+- Damage guard: обрыв рекурсивного/взрывного урона за тик (не отключает эффекты на манекенах)
+- Stall watchdog: отдельный поток снимает стек server thread при вечном тике и может прервать текущий урон/тик сущности
 
 ### Защита территории (FTB Chunks)
 
@@ -202,6 +204,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `/cointcore claim flag ...` | Флаги чанков FTB (если FTB Chunks установлен) |
 | `/cointcore kit balance\|add\|set\|take\|list\|clear` | Кредиты на киты (не сгорают). `add` — ник, UUID (с дефисами или 32 hex) или ник, которого ещё не было на сервере (usercache / Mojang). `list` / `clear [кит]` — админский просмотр и сброс |
 | `/cointcore watchdog ...` | Tick watchdog: отчёт, топ, телепорт к виновнику |
+| `/cointcore stall status\|test` | Stall watchdog: статус / симуляция зависания тика (OP) |
 | `/cointcore soulsurge debug <pos>` | Админ (уровень 2): у сёрджа — facing, цель и `extra=N/3`; у машины — сколько extra-тиков уже наложено в этом тике |
 | `/cointcore gluons get\|set\|add` | Админ-кошелёк глюонов (`cointcore.gluons.admin`) |
 | `/cointcore prefixes export` | Выгрузить полный каталог квестовых префиксов на сайт (`cointcore.prefix.admin`) |
@@ -450,6 +453,23 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 
 Retention старых отчётов: хранятся **7 дней или 512 MB**, что наступит раньше.
 
+### Damage guard и stall watchdog
+
+Инцидент: бесконечная цепочка урона (катана + Echoing Hits + affixes + Reaper/infection) по бессмертному `dummmmmmy:target_dummy` замораживает server thread. Эффекты на манекенах **не** отключаются: лимит срабатывает только при глубине рекурсии или числе попаданий в один тик.
+
+| Файл | Назначение |
+|------|------------|
+| `config/cointcore/damage-guard.json` | Лимит вложенности и хитов на цель за тик |
+| `config/cointcore/stall-watchdog.json` | Off-thread детектор вечного тика |
+
+Дефолты damage-guard: `enabled=true`, `max_depth=8`, `max_hits_per_target_per_tick=20`, `notify_admins=true`, `log_cooldown_seconds=10`.
+
+Дефолты stall-watchdog: `warn_after=5`, `dump_interval=5`, `max_dumps=6`, `notify_staff_after=10`, `break_loop_after=15`, `break_loop_enabled=true`, `discard_offending_entity=false`. Дампы: `logs/cointcore-stalls/stall-<utc>.txt` (плюс `config/cointcore/dumps/` если dump_dir указывает на stalls).
+
+Рекомендуется выставить в `server.properties` **`max-tick-time=120000`** как последний предохранитель (после 120 с зависания ванильный watchdog сгенерирует crash report). `max-tick-time=-1` отключает этот предохранитель — не используйте на проде.
+
+`/cointcore stall test [секунды]` засыпает server thread (только OP / `cointcore.watchdog`) для проверки стадий.
+
 Автопрофили Spark (`config/cointcore/spark-profiler.json`) тоже чистится: `maxProfileAgeDays` (7) и `maxProfileTotalSizeMb` (5120 ≈ 5 GB). Старые `.spark` в `spark/` удаляются, чтобы снова не набрать сотни гигабайт.
 
 ## Конфигурация
@@ -468,6 +488,8 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | `config/cointcore/admin-chat.json` | Формат админ-чата |
 | `config/cointcore/spark-profiler.json` | Автопрофилирование Spark + retention профилей |
 | `config/cointcore/tick-watchdog.json` | Tick watchdog (координаты лагов, семплы методов) |
+| `config/cointcore/damage-guard.json` | Лимит рекурсии/хитов урона за тик |
+| `config/cointcore/stall-watchdog.json` | Off-thread stall watchdog |
 | `config/cointcore/trader_offers.json` | Офферы торговца, `commission_percent`, кольцо истории цен |
 | `config/cointcore/currency-movement.json` | Обмен глюонами с сайтом через AzLink (`site_queue_enabled`, `site_movements_enabled`, оба выключены по умолчанию) и опциональный HTTP-хук |
 | `config/cointcore/quest-ranks.json` | Квестовые ранги (hex id → группа LuckPerms, per-player) |
@@ -810,7 +832,7 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
 
 ## Лаг-фиксы ATM10 8.2
 
-Файл: `config/cointcore/lag-fixes.json`. **Большинство опций по умолчанию выключены** — просто положить JAR на прод ничего не меняет, пока админ не включит нужные секции. Исключения по умолчанию включены: `mekmm_wind_generator_scan` и `neovitae_missing_mappings_fastpath`.
+Файл: `config/cointcore/lag-fixes.json`. **Большинство опций по умолчанию выключены** — просто положить JAR на прод ничего не меняет, пока админ не включит нужные секции. Исключения по умолчанию включены: `mekmm_wind_generator_scan`, `neovitae_missing_mappings_fastpath` и `pipez_armory_fast_reject`.
 
 ### Рекомендуемый конфиг для нового сервера ATM10 8.2
 
@@ -851,6 +873,9 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
   },
   "neovitae_missing_mappings_fastpath": {
     "enabled": true
+  },
+  "pipez_armory_fast_reject": {
+    "enabled": true
   }
 }
 ```
@@ -881,6 +906,7 @@ static CompletableFuture<String> ackPrefix(String opId, String status, String re
 | `mekmm_wind_generator_scan.cache_interval_ticks` | `200` | Доп. кэш результата (0 — только кулдаун mekmm 20–200 тиков) |
 | `vanish_packet_filter.max_distance` | `48` | Радиус (блоки), в котором фильтруются звуки/block event vanished-игроков |
 | `neovitae_missing_mappings_fastpath.enabled` | `true` | Пропускать rewrite палитр NeoVitae в секциях без remapped id |
+| `pipez_armory_fast_reject.enabled` | `true` | Pipez item pipe: не гонять `ItemHandlerHelper.insertItem` по 4096 слотам Armory Cabinet, если предмет туда не принимается (`isItemValid` / `isCertifiedStack`). Только Pipez → Functional Storage, без глобального патча helper. Выкл.: `"enabled": false`. Счётчик пропусков: `/cointcore watchdog status` |
 
 ### Рекомендации без автоматики (KubeJS / конфиги модов)
 

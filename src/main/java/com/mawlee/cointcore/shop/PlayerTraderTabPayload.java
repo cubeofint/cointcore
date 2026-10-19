@@ -37,6 +37,9 @@ public record PlayerTraderTabPayload(int containerId, boolean manage) implements
             ContainerLevelAccess access;
             if (player.containerMenu instanceof PlayerTraderMenu menu
                     && menu.containerId == payload.containerId()) {
+                if (menu.remote()) {
+                    return;
+                }
                 access = menu.access();
             } else if (player.containerMenu instanceof PlayerTraderManageMenu menu
                     && menu.containerId == payload.containerId()) {

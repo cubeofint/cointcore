@@ -261,7 +261,12 @@ class WatchdogMixinRequireTest {
                 "src/main/java/com/mawlee/cointcore/mixin/ServerLevelMixin.java"
         ));
         assertTrue(be.contains("WatchdogHotFlags.TIME_BLOCK_ENTITIES"));
-        assertTrue(entity.contains("WatchdogHotFlags.TIME_ENTITIES"));
+        assertTrue(be.contains("StallWatchdogHotFlags.ENABLED"));
+        String hooks = java.nio.file.Files.readString(java.nio.file.Path.of(
+                "src/main/java/com/mawlee/cointcore/watchdog/WatchdogHooks.java"
+        ));
+        assertTrue(hooks.contains("WatchdogHotFlags.TIME_ENTITIES"));
+        assertTrue(entity.contains("StallWatchdogHotFlags.ABORT_ENTITY"));
     }
 
     @Test

@@ -11,8 +11,10 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
  * Client request to buy or sell. For the NPC terminal, {@code stack} fills one item stack.
- * For the global market, {@code deals} is the requested deal count (all-or-nothing).
+ * For the global market (including remote inventory access), {@code sell} is ignored:
+ * the handler can only buy. {@code deals} is the requested deal count (all-or-nothing).
  * {@code listingId} + {@code cheapest=false} buys only that lot after price/stock checks.
+ * Purchase uses {@link GlobalMarketService#buy} and never loads trader chunks.
  */
 public record TraderTradePayload(
         int containerId,
@@ -95,30 +97,27 @@ public record TraderTradePayload(
             if (menu.containerId != payload.containerId() || !menu.stillValid(player)) {
                 return;
             }
-            menu.access().evaluate((level, pos) -> {
-                if (!(level.getBlockEntity(pos) instanceof PlayerTraderBlockEntity shop)) {
-                    return false;
+            if (payload.sell()) {
+                return;
+            }
+            if (menu.remote() && !RemoteMarketAccess.canUse(player)) {
+                return;
+            }
+            String listingId = payload.listingId();
+            if (listingId.isBlank()) {
+                if (payload.offerIndex() < 0 || payload.offerIndex() >= menu.listings().size()) {
+                    return;
                 }
-                if (payload.sell()) {
-                    return false;
-                }
-                String listingId = payload.listingId();
-                if (listingId.isBlank()) {
-                    if (payload.offerIndex() < 0 || payload.offerIndex() >= menu.listings().size()) {
-                        return false;
-                    }
-                    listingId = menu.listings().get(payload.offerIndex()).listingId();
-                }
-                GlobalMarketService.buy(
-                        player,
-                        menu,
-                        listingId,
-                        payload.deals(),
-                        payload.expectedUnitPrice(),
-                        payload.cheapest()
-                );
-                return true;
-            }, false);
+                listingId = menu.listings().get(payload.offerIndex()).listingId();
+            }
+            GlobalMarketService.buy(
+                    player,
+                    menu,
+                    listingId,
+                    payload.deals(),
+                    payload.expectedUnitPrice(),
+                    payload.cheapest()
+            );
         });
     }
 }

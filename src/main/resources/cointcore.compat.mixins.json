@@ -147,6 +147,7 @@
     "mysticalagriculture.SouliumSpawnerLootMixin",
     "relics.RelicsBackpackScanMixin",
     "relics.RelicsServerTooltipMixin",
+    "pipez.ItemPipeTypeArmoryFastRejectMixin",
     "compactmachines.ChunkLoaderUpgradeAppliedMixin",
     "hostilenetworks.DataCenterTileEntityMixin",
     "immersiveengineering.ChunkLoaderLogicMixin",

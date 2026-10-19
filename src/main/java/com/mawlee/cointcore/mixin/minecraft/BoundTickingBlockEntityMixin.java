@@ -2,6 +2,7 @@ package com.mawlee.cointcore.mixin.minecraft;
 
 import com.mawlee.cointcore.watchdog.WatchdogHooks;
 import com.mawlee.cointcore.watchdog.WatchdogHotFlags;
+import com.mawlee.cointcore.watchdog.stall.StallWatchdogHotFlags;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,7 +19,7 @@ public abstract class BoundTickingBlockEntityMixin {
 
     @Inject(method = "tick()V", at = @At("HEAD"))
     private void cointcore$watchdogBlockEntityStart(CallbackInfo ci) {
-        if (!WatchdogHotFlags.TIME_BLOCK_ENTITIES) {
+        if (!WatchdogHotFlags.TIME_BLOCK_ENTITIES && !StallWatchdogHotFlags.ENABLED) {
             return;
         }
         WatchdogHooks.beforeBlockEntityTick(this.blockEntity);
@@ -26,7 +27,7 @@ public abstract class BoundTickingBlockEntityMixin {
 
     @Inject(method = "tick()V", at = @At("RETURN"))
     private void cointcore$watchdogBlockEntityEnd(CallbackInfo ci) {
-        if (!WatchdogHotFlags.TIME_BLOCK_ENTITIES) {
+        if (!WatchdogHotFlags.TIME_BLOCK_ENTITIES && !StallWatchdogHotFlags.ENABLED) {
             return;
         }
         WatchdogHooks.afterBlockEntityTick(this.blockEntity);

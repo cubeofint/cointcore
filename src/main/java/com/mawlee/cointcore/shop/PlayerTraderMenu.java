@@ -35,6 +35,7 @@ public class PlayerTraderMenu extends AbstractContainerMenu {
 
     private final ContainerLevelAccess access;
     private final boolean canManage;
+    private final boolean remote;
     private String ownerName;
     private List<PlayerTraderListing> listings;
     private long gluonBalance;
@@ -49,9 +50,23 @@ public class PlayerTraderMenu extends AbstractContainerMenu {
             boolean canManage,
             List<PlayerTraderListing> listings
     ) {
+        this(containerId, playerInventory, access, gluonBalance, ownerName, canManage, false, listings);
+    }
+
+    public PlayerTraderMenu(
+            int containerId,
+            Inventory playerInventory,
+            ContainerLevelAccess access,
+            long gluonBalance,
+            String ownerName,
+            boolean canManage,
+            boolean remote,
+            List<PlayerTraderListing> listings
+    ) {
         super(ShopMenus.PLAYER_TRADER.get(), containerId);
         this.access = access;
-        this.canManage = canManage;
+        this.canManage = canManage && !remote;
+        this.remote = remote;
         this.ownerName = ownerName == null ? "" : ownerName;
         this.listings = List.copyOf(listings);
         this.gluonBalance = Math.max(0L, gluonBalance);
@@ -92,6 +107,7 @@ public class PlayerTraderMenu extends AbstractContainerMenu {
         long balance = buffer.readLong();
         String ownerName = ByteBufCodecs.STRING_UTF8.decode(buffer);
         boolean canManage = buffer.readBoolean();
+        boolean remote = buffer.readBoolean();
         return new PlayerTraderMenu(
                 containerId,
                 playerInventory,
@@ -99,6 +115,7 @@ public class PlayerTraderMenu extends AbstractContainerMenu {
                 balance,
                 ownerName,
                 canManage,
+                remote,
                 readListings(buffer)
         );
     }
@@ -110,9 +127,21 @@ public class PlayerTraderMenu extends AbstractContainerMenu {
             boolean canManage,
             List<PlayerTraderListing> listings
     ) {
+        writeOpenData(buffer, balance, ownerName, canManage, false, listings);
+    }
+
+    public static void writeOpenData(
+            RegistryFriendlyByteBuf buffer,
+            long balance,
+            String ownerName,
+            boolean canManage,
+            boolean remote,
+            List<PlayerTraderListing> listings
+    ) {
         buffer.writeLong(balance);
         ByteBufCodecs.STRING_UTF8.encode(buffer, ownerName == null ? "" : ownerName);
-        buffer.writeBoolean(canManage);
+        buffer.writeBoolean(canManage && !remote);
+        buffer.writeBoolean(remote);
         writeListings(buffer, listings);
     }
 
@@ -207,6 +236,10 @@ public class PlayerTraderMenu extends AbstractContainerMenu {
         return canManage;
     }
 
+    public boolean remote() {
+        return remote;
+    }
+
     public long gluonBalance() {
         return gluonBalance;
     }
@@ -225,6 +258,9 @@ public class PlayerTraderMenu extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player player) {
+        if (remote) {
+            return player != null && player.isAlive();
+        }
         return TraderReach.stillValid(access, player, ShopBlocks.PLAYER_TRADER.get());
     }
 

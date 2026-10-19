@@ -251,6 +251,11 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.functionalstorage.ArmoryCabinetScreenMixin"
     );
 
+    /** Pipez → Armory Cabinet insert fast-reject needs both mods. */
+    private static final Set<String> PIPEZ_FUNCTIONAL_STORAGE_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.pipez.ItemPipeTypeArmoryFastRejectMixin"
+    );
+
     /** Relics backpack scan needs both Relics and Sophisticated Backpacks. */
     private static final Set<String> RELICS_BACKPACK_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.relics.RelicsBackpackScanMixin"
@@ -363,6 +368,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
         putAll(map, MODULAR_ROUTERS_MIXINS, "modularrouters");
         putAll(map, RELICS_MIXINS, "relics");
         putAll(map, FUNCTIONAL_STORAGE_MIXINS, "functionalstorage");
+        putAll(map, PIPEZ_FUNCTIONAL_STORAGE_MIXINS, "pipez", "functionalstorage");
         putAll(map, RELICS_BACKPACK_MIXINS, "relics", "sophisticatedbackpacks");
         putAll(map, COMPACT_MACHINES_MIXINS, "compactmachines");
         putAll(map, HOSTILE_NETWORKS_MIXINS, "hostilenetworks");

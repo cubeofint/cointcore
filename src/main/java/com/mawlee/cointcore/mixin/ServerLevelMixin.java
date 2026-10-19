@@ -2,8 +2,9 @@ package com.mawlee.cointcore.mixin;
 
 import com.mawlee.cointcore.spawner.SpawnerLootInterceptor;
 import com.mawlee.cointcore.spawner.SpawnerSpawnTracker;
-import com.mawlee.cointcore.watchdog.WatchdogHotFlags;
 import com.mawlee.cointcore.watchdog.WatchdogHooks;
+import com.mawlee.cointcore.watchdog.stall.StallWatchdogHotFlags;
+import com.mawlee.cointcore.watchdog.stall.StallWatchdogService;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
@@ -15,14 +16,25 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ServerLevel.class)
 public abstract class ServerLevelMixin {
+    @Inject(method = "tickNonPassenger", at = @At("HEAD"), cancellable = true)
+    private void cointcore$abortStalledEntityTick(Entity entity, CallbackInfo ci) {
+        if (!StallWatchdogHotFlags.ABORT_ENTITY) {
+            return;
+        }
+        if (!StallWatchdogService.instance().shouldAbortEntity(entity)) {
+            return;
+        }
+        if (StallWatchdogHotFlags.DISCARD_ENTITY && entity != null) {
+            entity.discard();
+        }
+        ci.cancel();
+    }
+
     @Inject(
             method = "tickNonPassenger",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;tick()V")
     )
     private void cointcore$watchdogEntityTickStart(Entity entity, CallbackInfo ci) {
-        if (!WatchdogHotFlags.TIME_ENTITIES) {
-            return;
-        }
         WatchdogHooks.beforeEntityTick(entity);
     }
 
@@ -31,9 +43,6 @@ public abstract class ServerLevelMixin {
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;tick()V", shift = At.Shift.AFTER)
     )
     private void cointcore$watchdogEntityTickEnd(Entity entity, CallbackInfo ci) {
-        if (!WatchdogHotFlags.TIME_ENTITIES) {
-            return;
-        }
         WatchdogHooks.afterEntityTick(entity);
     }
 
