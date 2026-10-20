@@ -36,6 +36,7 @@ import com.mawlee.cointcore.config.ExplosionTerrainConfig;
 import com.mawlee.cointcore.config.SpawnerByproductConfig;
 import com.mawlee.cointcore.config.SparkProfilerConfig;
 import com.mawlee.cointcore.config.DamageGuardConfig;
+import com.mawlee.cointcore.config.ForceLoadIdleConfig;
 import com.mawlee.cointcore.config.StallWatchdogConfig;
 import com.mawlee.cointcore.config.TickWatchdogConfig;
 import com.mawlee.cointcore.watchdog.probes.WatchdogProbeConfig;
@@ -188,6 +189,7 @@ public final class CointCoreCommand {
                 && MeUniqueFilterConfig.reload()
                 && TickWatchdogConfig.reload()
                 && DamageGuardConfig.reload()
+                && ForceLoadIdleConfig.reload()
                 && StallWatchdogConfig.reload()
                 && WatchdogProbeConfig.reload()
                 && TraderOffersConfig.reload()

@@ -47,6 +47,7 @@ public final class PermissionRegistration {
                 CointPermissionNodes.CLAIM_BUFFER_BYPASS,
                 CointPermissionNodes.CLAIM_BOSS_ARENA_BYPASS,
                 CointPermissionNodes.WATCHDOG,
+                CointPermissionNodes.FORCELOAD_EXTENDED,
                 CointPermissionNodes.GLUONS_ADMIN,
                 CointPermissionNodes.GLUONS_BALANCE,
                 CointPermissionNodes.GLUONS_PAY,

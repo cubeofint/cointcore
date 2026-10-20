@@ -333,6 +333,14 @@ public final class CointPermissionNodes {
             Component.translatable("permission.desc.cointcore.claim.boss_arena.bypass")
     );
 
+    /** Keeps FTB Chunks force-loads for FTB's long offline window instead of cointcore's short one (donors). */
+    public static final PermissionNode<Boolean> FORCELOAD_EXTENDED = new PermissionNode<>(
+            CointCore.MOD_ID, "forceload.extended", PermissionTypes.BOOLEAN, DENY_BY_DEFAULT
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.forceload.extended"),
+            Component.translatable("permission.desc.cointcore.forceload.extended")
+    );
+
     public static final PermissionNode<Boolean> WATCHDOG = new PermissionNode<>(
             CointCore.MOD_ID, "watchdog", PermissionTypes.BOOLEAN, OP_ONLY
     ).setInformation(

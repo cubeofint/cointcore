@@ -332,6 +332,8 @@
   "permission.desc.cointcore.starter": "Allows /kit start to claim the configured starter kit",
   "permission.name.cointcore.starter.admin": "Manage Starter Kit",
   "permission.desc.cointcore.starter.admin": "Allows editing starter kit contents and first-join flags",
+  "permission.name.cointcore.forceload.extended": "Extended Offline Force-Loading",
+  "permission.desc.cointcore.forceload.extended": "Keeps FTB Chunks force-loaded chunks for the long (donor) offline window instead of the short one",
   "message.cointcore.claim.buffer": "Too close to another team's claim (need free chunks between teams)",
   "message.cointcore.claim.boss_arena": "This chunk is a boss arena (End dragon / crystals or Cataclysm boss structure) and cannot be claimed",
   "permission.name.cointcore.claim.buffer.bypass": "Bypass Claim Buffer",

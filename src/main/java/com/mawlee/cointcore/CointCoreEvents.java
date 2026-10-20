@@ -40,6 +40,7 @@ import com.mawlee.cointcore.config.ExplosionTerrainConfig;
 import com.mawlee.cointcore.config.SpawnerByproductConfig;
 import com.mawlee.cointcore.config.SparkProfilerConfig;
 import com.mawlee.cointcore.config.DamageGuardConfig;
+import com.mawlee.cointcore.config.ForceLoadIdleConfig;
 import com.mawlee.cointcore.config.StallWatchdogConfig;
 import com.mawlee.cointcore.config.TickWatchdogConfig;
 import com.mawlee.cointcore.watchdog.probes.WatchdogProbeConfig;
@@ -103,6 +104,7 @@ public final class CointCoreEvents {
             SparkProfilerConfig.load();
             TickWatchdogConfig.load();
             DamageGuardConfig.load();
+            ForceLoadIdleConfig.load();
             StallWatchdogConfig.load();
             WatchdogProbeConfig.load();
             TraderOffersConfig.load();
@@ -183,6 +185,7 @@ public final class CointCoreEvents {
             SeeInvisibleService.sync(player);
             ClaimFlagEditSync.sync(player);
             ChunkBonusService.onPlayerJoin(player);
+            com.mawlee.cointcore.ftb.ForceLoadIdleService.onPlayerJoin(player);
             com.mawlee.cointcore.prefix.PrefixSelectionService.onPlayerJoin(player);
             com.mawlee.cointcore.questrank.QuestRankService.onPlayerJoin(player);
             JoinMessageService.sendJoinMessages(player);
@@ -205,6 +208,7 @@ public final class CointCoreEvents {
             PrivateMessageService.onPlayerLeave(player);
             DonorPrivilegeService.onPlayerLeave(player);
             PlaytimeRewardService.onPlayerLeave(player);
+            com.mawlee.cointcore.ftb.ForceLoadIdleService.onPlayerLeave(player);
         }
     }
 

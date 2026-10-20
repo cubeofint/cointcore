@@ -332,6 +332,8 @@
   "permission.desc.cointcore.starter": "Разрешает /kit start для получения настроенного стартового кита",
   "permission.name.cointcore.starter.admin": "Управление стартовым китом",
   "permission.desc.cointcore.starter.admin": "Редактирование содержимого стартового кита и флагов первого входа",
+  "permission.name.cointcore.forceload.extended": "Продлённая прогрузка чанков офлайн",
+  "permission.desc.cointcore.forceload.extended": "Форсированные чанки FTB Chunks держатся длинный (донатный) срок офлайн вместо короткого",
   "message.cointcore.claim.buffer": "Слишком близко к чанкам другой команды (нужен буфер свободных чанков)",
   "message.cointcore.claim.boss_arena": "Этот чанк — арена босса (дракон Края / кристаллы или структура Cataclysm) и его нельзя приватить",
   "permission.name.cointcore.claim.buffer.bypass": "Обход буфера чанков",

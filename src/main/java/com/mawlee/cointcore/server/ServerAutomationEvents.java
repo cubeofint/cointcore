@@ -46,6 +46,7 @@ public final class ServerAutomationEvents {
         ScheduledRestartService.tick(server);
         DimensionWipeService.tick(server);
         PeriodicMessageService.tick(server);
+        com.mawlee.cointcore.ftb.ForceLoadIdleService.tick(server);
         SparkProfilerService.tick(server);
         SparkMetricsService.tick(server);
         com.mawlee.cointcore.watchdog.WatchdogRetention.applySparkProfiles(server);
