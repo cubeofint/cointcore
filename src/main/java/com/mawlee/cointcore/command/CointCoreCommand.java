@@ -17,7 +17,7 @@ import com.mawlee.cointcore.cataclysm.CataclysmStructureRespawnService;
 import com.mawlee.cointcore.cataclysm.SunkenCityRespawnService;
 import com.mawlee.cointcore.config.WorldCleanupConfig;
 import com.mawlee.cointcore.server.WorldCleanupService;
-import com.mawlee.cointcore.config.RelpChatPrefixConfig;
+import com.mawlee.cointcore.config.ChatChannelsConfig;
 import com.mawlee.cointcore.config.VoteConfig;
 import com.mawlee.cointcore.config.ServerAutomationConfig;
 import com.mawlee.cointcore.config.SoulSurgePerfConfig;
@@ -159,8 +159,8 @@ public final class CointCoreCommand {
 
     private static int reloadConfig(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
-        RelpChatPrefixConfig.load();
         if (ChatConfigs.reload()
+                && ChatChannelsConfig.reload()
                 && AfkConfig.reload()
                 && FtbRanksLuckPermsBridgeConfig.reload()
                 && ChatDiscordRelayConfig.reload()

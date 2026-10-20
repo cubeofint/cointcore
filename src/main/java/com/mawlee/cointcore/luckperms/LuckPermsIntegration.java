@@ -1,16 +1,8 @@
 package com.mawlee.cointcore.luckperms;
 
-import net.luckperms.api.model.PermissionHolder;
-import net.luckperms.api.model.group.Group;
-import net.luckperms.api.model.user.User;
-import net.luckperms.api.node.Node;
-import net.luckperms.api.node.NodeType;
-import net.luckperms.api.query.QueryOptions;
 import net.neoforged.fml.ModList;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -169,6 +161,24 @@ public final class LuckPermsIntegration {
         }
     }
 
+    /** LuckPerms chat prefix (raw, with {@code &} codes), empty if unset or the player is not loaded. */
+    public static Optional<String> getPrefix(UUID playerId) {
+        if (!isAvailable() || playerId == null) {
+            return Optional.empty();
+        }
+        try {
+            Object user = getUser(playerId);
+            if (user == null) {
+                return Optional.empty();
+            }
+            Object metaData = invoke(invoke(user, "getCachedData"), "getMetaData");
+            String prefix = (String) invoke(metaData, "getPrefix");
+            return prefix == null || prefix.isEmpty() ? Optional.empty() : Optional.of(prefix);
+        } catch (ReflectiveOperationException ignored) {
+            return Optional.empty();
+        }
+    }
+
     public static int getMetaInt(UUID playerId, String metaKey, int defaultValue) {
         Optional<String> value = getMetaValue(playerId, metaKey);
         if (value.isEmpty()) {
@@ -195,56 +205,7 @@ public final class LuckPermsIntegration {
     }
 
     private static TemporaryGrantSnapshot grantSnapshot(UUID playerId, Object user) {
-        return GRANT_CACHE.computeIfAbsent(playerId, ignored -> scanTemporaryGrants(user));
-    }
-
-    /**
-     * Own user nodes plus each inherited group's own nodes. Avoids
-     * {@code resolveDistinctInheritedNodes} (copy + sort of the full node set).
-     */
-    static TemporaryGrantSnapshot scanTemporaryGrants(Object holder) {
-        if (!(holder instanceof User user)) {
-            return TemporaryGrantSnapshot.EMPTY;
-        }
-        List<TemporaryGrantSnapshot.Grant> grants = new ArrayList<>();
-        collectTemporaryGrants(user, grants);
-        QueryOptions queryOptions = user.getQueryOptions();
-        if (queryOptions != null) {
-            Collection<Group> groups = user.getInheritedGroups(queryOptions);
-            if (groups != null) {
-                for (Group group : groups) {
-                    collectTemporaryGrants(group, grants);
-                }
-            }
-        }
-        return TemporaryGrantSnapshot.collect(grants);
-    }
-
-    private static void collectTemporaryGrants(PermissionHolder holder, List<TemporaryGrantSnapshot.Grant> grants) {
-        if (holder == null) {
-            return;
-        }
-        Collection<Node> nodes = holder.getNodes();
-        if (nodes == null) {
-            return;
-        }
-        for (Node node : nodes) {
-            if (node == null || !node.hasExpiry() || !node.getValue()) {
-                continue;
-            }
-            NodeType<?> type = node.getType();
-            boolean permission = NodeType.PERMISSION.equals(type);
-            boolean inheritance = NodeType.INHERITANCE.equals(type);
-            if (!permission && !inheritance) {
-                continue;
-            }
-            grants.add(new TemporaryGrantSnapshot.Grant(
-                    permission ? node.getKey() : null,
-                    inheritance,
-                    node.hasExpired(),
-                    node.getExpiry()
-            ));
-        }
+        return GRANT_CACHE.computeIfAbsent(playerId, ignored -> LuckPermsGrantScanner.scanTemporaryGrants(user));
     }
 
     /**

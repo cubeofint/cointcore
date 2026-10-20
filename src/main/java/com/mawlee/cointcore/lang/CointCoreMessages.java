@@ -32,6 +32,10 @@ public final class CointCoreMessages {
     public static final String FLY_DISABLED = "message.cointcore.fly.disabled";
     public static final String GOD_DISABLED = "message.cointcore.god.disabled";
     public static final String MSG_SENT = "message.cointcore.msg.sent";
+    public static final String CHAT_EMPTY_AFTER_PREFIX = "message.cointcore.chat.empty_after_prefix";
+    public static final String CHAT_PRIVATE_VIEW = "message.cointcore.chat.private_view";
+    public static final String CHAT_NOBODY_NEARBY = "message.cointcore.chat.nobody_nearby";
+    public static final String CHAT_TRADE_COOLDOWN = "message.cointcore.chat.trade_cooldown";
     public static final String MSG_RECEIVED = "message.cointcore.msg.received";
     public static final String MSG_PLAYER_NOT_FOUND = "message.cointcore.msg.player_not_found";
     public static final String MSG_PLAYER_OFFLINE = "message.cointcore.msg.player_offline";

@@ -37,6 +37,7 @@ public class CointCore {
     public CointCore(IEventBus modEventBus) {
         modEventBus.addListener(NonStackableItemTagPack::registerPackFinder);
         modEventBus.addListener(SeeInvisibleNetwork::register);
+        modEventBus.addListener(com.mawlee.cointcore.chat.ChatChannelNetwork::register);
         modEventBus.addListener(ClaimFlagEditNetwork::register);
         modEventBus.addListener(AfkNetwork::register);
         modEventBus.addListener(InvSeeNetwork::register);
@@ -53,6 +54,7 @@ public class CointCore {
 
         NeoForge.EVENT_BUS.addListener(VanishCommand::register);
         NeoForge.EVENT_BUS.addListener(ChatSpyCommand::register);
+        NeoForge.EVENT_BUS.addListener(com.mawlee.cointcore.command.ChatViewCommand::register);
         NeoForge.EVENT_BUS.addListener(NightVisionCommand::register);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, (RegisterCommandsEvent event) -> ModCommands.register(event));
         NeoForge.EVENT_BUS.addListener(IgnoreCommand::register);

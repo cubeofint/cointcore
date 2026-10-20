@@ -9,6 +9,8 @@
     "client.EntitySeeInvisibleMixin",
     "client.LivingEntitySeeInvisibleParticlesMixin",
     "client.MinecraftInvSeeCursorMixin",
+    "client.ChatComponentChannelMixin",
+    "client.accessor.ChatComponentChannelAccessor",
     "client.accessor.MouseHandlerAccessor"
   ],
   "server": [
@@ -44,6 +46,7 @@
     "minecraft.ServerLevelTimeWeatherMixin",
     "minecraft.BaseSpawnerPerfMixin",
     "minecraft.NaturalSpawnerPerfMixin",
+    "minecraft.PlayerAdvancementsLocalMixin",
     "minecraft.ItemEntityPerfMixin",
     "minecraft.ItemEntityMoveCollisionMixin",
     "minecraft.ContainersDropItemStackMixin",

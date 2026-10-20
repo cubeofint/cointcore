@@ -2,6 +2,7 @@ package com.mawlee.cointcore.mixin;
 
 import com.mawlee.cointcore.afk.AfkActivityStrength;
 import com.mawlee.cointcore.afk.AfkService;
+import com.mawlee.cointcore.chat.ChatChannelService;
 import com.mawlee.cointcore.chat.ChatLinkFormatter;
 import com.mawlee.cointcore.chatspy.ChatSpyTracker;
 import com.mawlee.cointcore.ignore.IgnoreService;
@@ -38,6 +39,13 @@ public abstract class ServerGamePacketListenerImplMixin {
     @Inject(method = "sendPlayerChatMessage", at = @At("HEAD"), cancellable = true)
     private void cointcore$filterIgnoredPlayerChat(PlayerChatMessage message, ChatType.Bound bound, CallbackInfo ci) {
         if (IgnoreService.shouldHidePlayerChatMessage(player, message)) {
+            ci.cancel();
+            return;
+        }
+
+        // Global channel lines arrive here via the vanilla broadcast (which also feeds discord_chat_mod).
+        if (ChatChannelService.interceptGlobalPlayerChat(player, message, bound)) {
+            ChatSpyTracker.recordPlayerChat(player, message, bound);
             ci.cancel();
             return;
         }

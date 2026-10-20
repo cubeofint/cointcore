@@ -19,7 +19,7 @@ import com.mawlee.cointcore.config.ClaimsConfigs;
 import com.mawlee.cointcore.config.ChunkLimitConfig;
 import com.mawlee.cointcore.config.CleanupConfigs;
 import com.mawlee.cointcore.config.NaturalSpawnConfig;
-import com.mawlee.cointcore.config.RelpChatPrefixConfig;
+import com.mawlee.cointcore.config.ChatChannelsConfig;
 import com.mawlee.cointcore.config.VoteConfig;
 import com.mawlee.cointcore.placeholder.CointCorePlaceholderRegistry;
 import com.mawlee.cointcore.placeholder.TabSparkPlaceholderRegistry;
@@ -90,7 +90,7 @@ public final class CointCoreEvents {
         try {
             CointCoreRuntimeCleanup.warmupAtServerStart();
             ChatConfigs.load();
-            RelpChatPrefixConfig.load();
+            ChatChannelsConfig.load();
             AfkConfig.load();
             FtbRanksLuckPermsBridgeConfig.load();
             ChatDiscordRelayConfig.load();
@@ -185,6 +185,7 @@ public final class CointCoreEvents {
             SeeInvisibleService.sync(player);
             ClaimFlagEditSync.sync(player);
             ChunkBonusService.onPlayerJoin(player);
+            com.mawlee.cointcore.chat.ChatChannelService.onPlayerJoin(player);
             com.mawlee.cointcore.ftb.ForceLoadIdleService.onPlayerJoin(player);
             com.mawlee.cointcore.prefix.PrefixSelectionService.onPlayerJoin(player);
             com.mawlee.cointcore.questrank.QuestRankService.onPlayerJoin(player);
@@ -208,6 +209,7 @@ public final class CointCoreEvents {
             PrivateMessageService.onPlayerLeave(player);
             DonorPrivilegeService.onPlayerLeave(player);
             PlaytimeRewardService.onPlayerLeave(player);
+            com.mawlee.cointcore.chat.ChatChannelService.onPlayerLeave(player);
             com.mawlee.cointcore.ftb.ForceLoadIdleService.onPlayerLeave(player);
         }
     }

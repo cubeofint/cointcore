@@ -1,5 +1,7 @@
 package com.mawlee.cointcore.message;
 
+import com.mawlee.cointcore.chat.ChatChannel;
+import com.mawlee.cointcore.chat.ChatChannelService;
 import com.mawlee.cointcore.chat.ChatDiscordRelay;
 import com.mawlee.cointcore.chatspy.ChatSpyService;
 import com.mawlee.cointcore.lang.CointCoreMessages;
@@ -92,9 +94,9 @@ public final class PrivateMessageService {
         String senderName = sender.getGameProfile().getName();
         String targetName = target.getGameProfile().getName();
 
-        sender.sendSystemMessage(CointCoreMessages.forPlayer(sender, CointCoreMessages.MSG_SENT, targetName, message));
+        ChatChannelService.deliver(sender, ChatChannel.PRIVATE, CointCoreMessages.forPlayer(sender, CointCoreMessages.MSG_SENT, targetName, message));
         if (!IgnoreService.shouldHideFrom(target, sender)) {
-            target.sendSystemMessage(CointCoreMessages.forPlayer(target, CointCoreMessages.MSG_RECEIVED, senderName, message));
+            ChatChannelService.deliver(target, ChatChannel.PRIVATE, CointCoreMessages.forPlayer(target, CointCoreMessages.MSG_RECEIVED, senderName, message));
             PrivateMessageTargets.link(sender.getUUID(), target.getUUID());
         }
 
