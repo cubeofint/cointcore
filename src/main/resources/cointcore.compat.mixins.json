@@ -156,7 +156,8 @@
     "railcraft.WorldSpikeMinecartMixin",
     "stevescarts.ModuleChunkLoaderMixin",
     "mekmm.TileEntityLargeWindGeneratorMixin",
-    "neovitae.NVMissingMappingsMixin"
+    "neovitae.NVMissingMappingsMixin",
+    "irons.SpectralHammerSpellCapMixin"
   ],
   "injectors": {
     "defaultRequire": 0

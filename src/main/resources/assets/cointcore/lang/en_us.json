@@ -81,6 +81,8 @@
   "message.cointcore.tpl.cannot_self": "&cYou cannot teleport to yourself.",
   "permission.name.cointcore.tpl": "Teleport to Player",
   "permission.desc.cointcore.tpl": "Allows /tpl to online and offline players",
+  "permission.name.cointcore.tp.self": "Limited /tp",
+  "permission.desc.cointcore.tp.self": "Allows /tp <x y z> and /tp <player> for yourself only; moving other players stays op-only",
   "message.cointcore.warn.applied": "&7%s warned &f%s",
   "message.cointcore.warn.received": "&cYou were warned by &f%s&7. Reason: &f%s",
   "message.cointcore.warn.player_not_found": "&cPlayer not found: %s",

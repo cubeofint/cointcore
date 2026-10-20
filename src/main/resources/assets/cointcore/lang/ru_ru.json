@@ -81,6 +81,8 @@
   "message.cointcore.tpl.cannot_self": "&cНельзя телепортироваться к самому себе.",
   "permission.name.cointcore.tpl": "Телепорт к игроку",
   "permission.desc.cointcore.tpl": "Разрешает /tpl к онлайн и оффлайн игрокам",
+  "permission.name.cointcore.tp.self": "Ограниченный /tp",
+  "permission.desc.cointcore.tp.self": "Разрешает /tp <x y z> и /tp <игрок> только для себя; перемещать других игроков могут только операторы",
   "message.cointcore.warn.applied": "&7%s выдал предупреждение &f%s",
   "message.cointcore.warn.received": "&cВам выдано предупреждение от &f%s&7. Причина: &f%s",
   "message.cointcore.warn.player_not_found": "&cИгрок не найден: %s",

@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 
 import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.function.Predicate;
 
 public final class CommandRegistration {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -23,7 +24,24 @@ public final class CommandRegistration {
     @SuppressWarnings("rawtypes")
     private static final Field ARGUMENTS_FIELD = findField("arguments");
 
+    @SuppressWarnings("rawtypes")
+    private static final Field REQUIREMENT_FIELD = findField("requirement");
+
     private CommandRegistration() {
+    }
+
+    /** Replaces the requirement of an already registered node (Brigadier keeps it in a final field). */
+    public static boolean setRequirement(CommandNode<CommandSourceStack> node, Predicate<CommandSourceStack> requirement) {
+        if (node == null || REQUIREMENT_FIELD == null) {
+            return false;
+        }
+        try {
+            REQUIREMENT_FIELD.set(node, requirement);
+            return true;
+        } catch (IllegalAccessException exception) {
+            LOGGER.error("Failed to set requirement of Brigadier node '{}'", node.getName(), exception);
+            return false;
+        }
     }
 
     public static void unregisterRootLiteral(CommandDispatcher<CommandSourceStack> dispatcher, String name) {

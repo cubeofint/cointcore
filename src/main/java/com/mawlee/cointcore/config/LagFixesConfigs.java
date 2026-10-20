@@ -11,8 +11,8 @@ import java.nio.file.Path;
  * Owns {@code config/cointcore/lag-fixes.json} — ATM10 8.2 lag mitigations
  * plus dedicated-server crash compat. Most lag sections default {@code enabled=false};
  * crash-fix, {@code mekmm_wind_generator_scan},
- * {@code neovitae_missing_mappings_fastpath}, and
- * {@code pipez_armory_fast_reject} default {@code enabled=true}.
+ * {@code neovitae_missing_mappings_fastpath}, {@code pipez_armory_fast_reject}, and
+ * {@code irons_spectral_hammer} default {@code enabled=true}.
  */
 public final class LagFixesConfigs {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -41,6 +41,7 @@ public final class LagFixesConfigs {
             NeovitaeMissingMappingsConfig.applySection(NeovitaeMissingMappingsConfig.defaultFileData());
             CrowdedMobsConfig.applySection(CrowdedMobsConfig.defaultFileData());
             PipezArmoryFastRejectConfig.applySection(PipezArmoryFastRejectConfig.defaultFileData());
+            IronsSpectralHammerConfig.applySection(IronsSpectralHammerConfig.defaultFileData());
         }
     }
 
@@ -82,6 +83,10 @@ public final class LagFixesConfigs {
         root.add(
                 "pipez_armory_fast_reject",
                 ConfigMergeSupport.toJsonObject(PipezArmoryFastRejectConfig.defaultFileData())
+        );
+        root.add(
+                "irons_spectral_hammer",
+                ConfigMergeSupport.toJsonObject(IronsSpectralHammerConfig.defaultFileData())
         );
         return root;
     }
@@ -135,6 +140,12 @@ public final class LagFixesConfigs {
                 PipezArmoryFastRejectConfig.Data.class,
                 PipezArmoryFastRejectConfig::defaultFileData
         ));
+        IronsSpectralHammerConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root,
+                "irons_spectral_hammer",
+                IronsSpectralHammerConfig.Data.class,
+                IronsSpectralHammerConfig::defaultFileData
+        ));
         if (logReload) {
             JdtPortalChunkConfig.logReload();
             EnderIoItemConduitConfig.logReload();
@@ -147,6 +158,7 @@ public final class LagFixesConfigs {
             NeovitaeMissingMappingsConfig.logReload();
             CrowdedMobsConfig.logReload();
             PipezArmoryFastRejectConfig.logReload();
+            IronsSpectralHammerConfig.logReload();
         }
     }
 }

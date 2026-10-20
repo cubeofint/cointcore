@@ -18,6 +18,7 @@ public final class ModCommands {
         MuteCommand.apply(dispatcher);
         BanCommand.apply(dispatcher);
         TplCommand.apply(dispatcher);
+        SelfTeleportCommand.apply(dispatcher);
         WarnCommand.apply(dispatcher);
         PunishmentsCommand.apply(dispatcher);
         TurnPvpCommand.apply(dispatcher);

@@ -21,6 +21,7 @@ public final class PermissionRegistration {
                 CointPermissionNodes.UNMUTE,
                 CointPermissionNodes.BAN,
                 CointPermissionNodes.TPL,
+                CointPermissionNodes.TP_SELF,
                 CointPermissionNodes.WARN,
                 CointPermissionNodes.PUNISHMENTS,
                 CointPermissionNodes.TURN_PVP,

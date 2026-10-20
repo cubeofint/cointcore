@@ -304,6 +304,10 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.mekmm.TileEntityLargeWindGeneratorMixin"
     );
 
+    private static final Set<String> IRONS_SPELLBOOKS_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.irons.SpectralHammerSpellCapMixin"
+    );
+
     private static final Set<String> NEOVITAE_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.neovitae.NVMissingMappingsMixin"
     );
@@ -382,6 +386,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
         putAll(map, MYSTICAL_AGRICULTURE_MIXINS, "mysticalagriculture");
         putAll(map, AD_ASTRA_MIXINS, "ad_astra");
         putAll(map, MEKMM_MIXINS, "mekmm");
+        putAll(map, IRONS_SPELLBOOKS_MIXINS, "irons_spellbooks");
         putAll(map, NEOVITAE_MIXINS, "neovitae");
         return Map.copyOf(map);
     }

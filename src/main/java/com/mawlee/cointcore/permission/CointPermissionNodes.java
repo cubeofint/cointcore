@@ -106,6 +106,13 @@ public final class CointPermissionNodes {
             Component.translatable("permission.desc.cointcore.tpl")
     );
 
+    public static final PermissionNode<Boolean> TP_SELF = new PermissionNode<>(
+            CointCore.MOD_ID, "tp.self", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.tp.self"),
+            Component.translatable("permission.desc.cointcore.tp.self")
+    );
+
     public static final PermissionNode<Boolean> WARN = new PermissionNode<>(
             CointCore.MOD_ID, "warn", PermissionTypes.BOOLEAN, OP_ONLY
     ).setInformation(
