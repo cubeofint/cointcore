@@ -4,6 +4,7 @@ import com.mawlee.cointcore.CointCore;
 import com.mawlee.cointcore.adastra.AdAstraVortexPass;
 import com.mawlee.cointcore.cataclysm.CataclysmStructureRespawnService;
 import com.mawlee.cointcore.cataclysm.SunkenCityRespawnService;
+import com.mawlee.cointcore.reminder.RegularMessageService;
 import com.mawlee.cointcore.spark.PerfTickCache;
 import com.mawlee.cointcore.spark.SparkMetricsService;
 import com.mojang.logging.LogUtils;
@@ -45,7 +46,7 @@ public final class ServerAutomationEvents {
 
         ScheduledRestartService.tick(server);
         DimensionWipeService.tick(server);
-        PeriodicMessageService.tick(server);
+        RegularMessageService.tick(server);
         com.mawlee.cointcore.ftb.ForceLoadIdleService.tick(server);
         SparkProfilerService.tick(server);
         SparkMetricsService.tick(server);
@@ -62,7 +63,7 @@ public final class ServerAutomationEvents {
         }
         ScheduledRestartService.resetRuntimeState();
         DimensionWipeService.resetRuntimeState();
-        PeriodicMessageService.resetRuntimeState();
+        RegularMessageService.resetRuntimeState();
         SparkProfilerService.resetRuntimeState();
         SparkMetricsService.resetRuntimeState();
         com.mawlee.cointcore.watchdog.TickWatchdogService.instance().stop();

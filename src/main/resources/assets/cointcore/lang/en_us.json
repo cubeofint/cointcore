@@ -612,5 +612,20 @@
   "permission.name.cointcore.reserved_slot.bypass": "Slot limit bypass",
   "permission.desc.cointcore.reserved_slot.bypass": "Join even when reserved slots are full",
   "message.cointcore.reserved_slots.public_full": "Сервер заполнен. Резервные слоты доступны владельцам привилегий",
-  "message.cointcore.reserved_slots.total_full": "Сервер полностью заполнен."
+  "message.cointcore.reserved_slots.total_full": "Сервер полностью заполнен.",
+  "permission.name.cointcore.reminders.manage": "Regular reminders",
+  "permission.desc.cointcore.reminders.manage": "Allows /addreg, /reglist and /delreg",
+  "message.cointcore.reg.usage": "&cUsage: &f/addreg <schedule> <text>&c. Schedule: &f4/d&c — 4 times a day (00:00, 06:00, 12:00, 18:00), &f+1h30m&c — once after restart. Text: &f＆l&c bold, &f＆o&c italic, &f＆n&c underline, &f＆6&c colour, &f＆#FFAA00&c hex, &f＆r&c reset.",
+  "message.cointcore.reg.bad_schedule": "&cUnknown schedule '%s'. Examples: &f1/d&c, &f4/d&c, &f+30m&c, &f+1h&c, &f+2h30m",
+  "message.cointcore.reg.added": "&aReminder &f#%s&a added (&f%s&a). Next send: &f%s&a. It will look like this:",
+  "message.cointcore.reg.save_failed": "&cCould not save the reminders file, see the server log.",
+  "message.cointcore.reg.list_header": "&6Regular reminders (%s):",
+  "message.cointcore.reg.list_empty": "&7No reminders. Add one: &f/addreg <schedule> <text>",
+  "message.cointcore.reg.list_entry": "&e#%s &7[%s, next %s]&r ",
+  "message.cointcore.reg.list_delete": "&c[✕]",
+  "message.cointcore.reg.list_delete_hover": "Delete reminder #%s",
+  "message.cointcore.reg.list_disabled": "&cSending is off in regular-messages.json (enabled: false).",
+  "message.cointcore.reg.next_done": "already sent",
+  "message.cointcore.reg.deleted": "&aReminder &f#%s&a deleted.",
+  "message.cointcore.reg.not_found": "&cNo reminder #%s. List: /reglist"
 }

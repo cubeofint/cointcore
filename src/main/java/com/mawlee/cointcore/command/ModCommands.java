@@ -30,5 +30,6 @@ public final class ModCommands {
         VoteCommand.apply(dispatcher);
         AdminChatCommand.apply(dispatcher);
         PrivilegeCommands.apply(dispatcher);
+        RegularMessageCommands.apply(dispatcher);
     }
 }

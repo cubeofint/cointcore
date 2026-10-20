@@ -612,5 +612,20 @@
   "permission.name.cointcore.reserved_slot.bypass": "Обход лимита слотов",
   "permission.desc.cointcore.reserved_slot.bypass": "Вход даже когда заняты и резервные слоты",
   "message.cointcore.reserved_slots.public_full": "Сервер заполнен. Резервные слоты доступны владельцам привилегий",
-  "message.cointcore.reserved_slots.total_full": "Сервер полностью заполнен."
+  "message.cointcore.reserved_slots.total_full": "Сервер полностью заполнен.",
+  "permission.name.cointcore.reminders.manage": "Регулярные напоминания",
+  "permission.desc.cointcore.reminders.manage": "Разрешает /addreg, /reglist и /delreg",
+  "message.cointcore.reg.usage": "&cФормат: &f/addreg <частота> <текст>&c. Частота: &f4/д&c — 4 раза в сутки (00:00, 06:00, 12:00, 18:00), &f+1ч30м&c — один раз после рестарта. В тексте: &f＆l&c жирный, &f＆o&c курсив, &f＆n&c подчёркнутый, &f＆6&c цвет, &f＆#FFAA00&c HEX, &f＆r&c сброс.",
+  "message.cointcore.reg.bad_schedule": "&cНе понял частоту «%s». Примеры: &f1/д&c, &f4/д&c, &f+30м&c, &f+1ч&c, &f+2ч30м",
+  "message.cointcore.reg.added": "&aНапоминание &f#%s&a добавлено (&f%s&a). Ближайшая отправка: &f%s&a. Так оно будет выглядеть:",
+  "message.cointcore.reg.save_failed": "&cНе удалось сохранить файл напоминаний, подробности в логе сервера.",
+  "message.cointcore.reg.list_header": "&6Регулярные напоминания (%s):",
+  "message.cointcore.reg.list_empty": "&7Напоминаний нет. Добавить: &f/addreg <частота> <текст>",
+  "message.cointcore.reg.list_entry": "&e#%s &7[%s, след. %s]&r ",
+  "message.cointcore.reg.list_delete": "&c[✕]",
+  "message.cointcore.reg.list_delete_hover": "Удалить напоминание #%s",
+  "message.cointcore.reg.list_disabled": "&cОтправка выключена в regular-messages.json (enabled: false).",
+  "message.cointcore.reg.next_done": "уже было",
+  "message.cointcore.reg.deleted": "&aНапоминание &f#%s&a удалено.",
+  "message.cointcore.reg.not_found": "&cНапоминания #%s нет. Список: /reglist"
 }

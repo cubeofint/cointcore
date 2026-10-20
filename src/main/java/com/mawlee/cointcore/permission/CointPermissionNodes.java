@@ -460,6 +460,13 @@ public final class CointPermissionNodes {
             Component.translatable("permission.desc.cointcore.cooldown.bypass")
     );
 
+    public static final PermissionNode<Boolean> REMINDERS_MANAGE = new PermissionNode<>(
+            CointCore.MOD_ID, "reminders.manage", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.reminders.manage"),
+            Component.translatable("permission.desc.cointcore.reminders.manage")
+    );
+
     public static final PermissionNode<Boolean> RESERVED_SLOT = new PermissionNode<>(
             CointCore.MOD_ID, "reserved_slot", PermissionTypes.BOOLEAN, DENY_BY_DEFAULT
     ).setInformation(

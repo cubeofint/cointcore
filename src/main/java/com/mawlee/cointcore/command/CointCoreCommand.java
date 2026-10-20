@@ -18,6 +18,7 @@ import com.mawlee.cointcore.cataclysm.SunkenCityRespawnService;
 import com.mawlee.cointcore.config.WorldCleanupConfig;
 import com.mawlee.cointcore.server.WorldCleanupService;
 import com.mawlee.cointcore.config.ChatChannelsConfig;
+import com.mawlee.cointcore.config.RegularMessagesConfig;
 import com.mawlee.cointcore.config.VoteConfig;
 import com.mawlee.cointcore.config.ServerAutomationConfig;
 import com.mawlee.cointcore.config.SoulSurgePerfConfig;
@@ -49,7 +50,6 @@ import com.mawlee.cointcore.config.ReservedSlotsConfig;
 import com.mawlee.cointcore.config.QuestRankConfig;
 import com.mawlee.cointcore.config.DimensionWipeConfig;
 import com.mawlee.cointcore.config.StarterKitConfig;
-import com.mawlee.cointcore.server.PeriodicMessageService;
 import com.mawlee.cointcore.server.ScheduledRestartService;
 import com.mawlee.cointcore.server.ServerRestartService;
 import com.mawlee.cointcore.server.DimensionWipeService;
@@ -161,6 +161,7 @@ public final class CointCoreCommand {
         CommandSourceStack source = context.getSource();
         if (ChatConfigs.reload()
                 && ChatChannelsConfig.reload()
+                && RegularMessagesConfig.reload()
                 && AfkConfig.reload()
                 && FtbRanksLuckPermsBridgeConfig.reload()
                 && ChatDiscordRelayConfig.reload()
@@ -204,7 +205,6 @@ public final class CointCoreCommand {
             ArsGlyphThrottle.clear();
             NonStackableItemTagPack.ensureGenerated();
             VoteService.applySleepPercentage(source.getServer());
-            PeriodicMessageService.resetRuntimeState();
             ScheduledRestartService.resetRuntimeState();
             DimensionWipeService.resetRuntimeState();
             StarterKitService.syncCooldownFromConfig();

@@ -31,7 +31,6 @@ public final class ServerAutomationConfig {
     private static final DateTimeFormatter RESTART_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
 
     private static ScheduledRestartSettings scheduledRestart = ScheduledRestartSettings.disabled();
-    private static PeriodicMessageSettings periodicMessages = PeriodicMessageSettings.disabled();
     private static RestartCountdownSettings restartCountdown = RestartCountdownSettings.defaults();
 
     private ServerAutomationConfig() {
@@ -39,10 +38,6 @@ public final class ServerAutomationConfig {
 
     public static ScheduledRestartSettings getScheduledRestart() {
         return scheduledRestart;
-    }
-
-    public static PeriodicMessageSettings getPeriodicMessages() {
-        return periodicMessages;
     }
 
     public static RestartCountdownSettings getRestartCountdown() {
@@ -81,13 +76,12 @@ public final class ServerAutomationConfig {
                 FileData data = GSON.fromJson(reader, FileData.class);
                 LoadedConfig loaded = parse(data != null ? data : defaultFileData());
                 LOGGER.info(
-                        "Loaded server automation config (restart: {}, times: {} {}, periodic messages: {})",
+                        "Loaded server automation config (restart: {}, times: {} {})",
                         loaded.scheduledRestart.enabled(),
                         loaded.scheduledRestart.times().stream()
                                 .map(time -> time.format(RESTART_TIME_FORMAT))
                                 .toList(),
-                        loaded.scheduledRestart.zoneId(),
-                        loaded.periodicMessages.enabled()
+                        loaded.scheduledRestart.zoneId()
                 );
                 if (reloading) {
                     LOGGER.info("Reloaded server automation config from {}", path);
@@ -105,14 +99,12 @@ public final class ServerAutomationConfig {
 
     private static void apply(LoadedConfig loaded) {
         scheduledRestart = loaded.scheduledRestart;
-        periodicMessages = loaded.periodicMessages;
         restartCountdown = loaded.restartCountdown;
     }
 
     private static LoadedConfig parse(FileData data) {
         return new LoadedConfig(
                 normalizeScheduledRestart(data.scheduledRestart),
-                normalizePeriodicMessages(data.periodicMessages),
                 normalizeRestartCountdown(data.restartCountdown)
         );
     }
@@ -160,27 +152,6 @@ public final class ServerAutomationConfig {
         List<LocalTime> sorted = new ArrayList<>(unique);
         sorted.sort(Comparator.naturalOrder());
         return List.copyOf(sorted);
-    }
-
-    private static PeriodicMessageSettings normalizePeriodicMessages(PeriodicMessagesFile source) {
-        if (source == null) {
-            return PeriodicMessageSettings.disabled();
-        }
-
-        List<String> messages = new ArrayList<>();
-        if (source.messages != null) {
-            for (String message : source.messages) {
-                if (message != null && !message.isBlank()) {
-                    messages.add(message.trim());
-                }
-            }
-        }
-
-        return new PeriodicMessageSettings(
-                source.enabled,
-                Math.max(30, source.intervalSeconds),
-                List.copyOf(messages)
-        );
     }
 
     private static RestartCountdownSettings normalizeRestartCountdown(RestartCountdownFile source) {
@@ -295,15 +266,6 @@ public final class ServerAutomationConfig {
         countdown.kickPlayersSecondsBefore = 5;
         data.restartCountdown = countdown;
 
-        PeriodicMessagesFile messages = new PeriodicMessagesFile();
-        messages.enabled = false;
-        messages.intervalSeconds = 600;
-        messages.messages = List.of(
-                "&6Добро пожаловать на сервер!",
-                "&7Discord: &bdiscord.gg/example"
-        );
-        data.periodicMessages = messages;
-
         return data;
     }
 
@@ -343,19 +305,8 @@ public final class ServerAutomationConfig {
         }
     }
 
-    public record PeriodicMessageSettings(
-            boolean enabled,
-            int intervalSeconds,
-            List<String> messages
-    ) {
-        public static PeriodicMessageSettings disabled() {
-            return new PeriodicMessageSettings(false, 600, List.of());
-        }
-    }
-
     private record LoadedConfig(
             ScheduledRestartSettings scheduledRestart,
-            PeriodicMessageSettings periodicMessages,
             RestartCountdownSettings restartCountdown
     ) {
     }
@@ -363,9 +314,6 @@ public final class ServerAutomationConfig {
     private static final class FileData {
         @SerializedName("scheduledRestart")
         private ScheduledRestartFile scheduledRestart;
-
-        @SerializedName("periodicMessages")
-        private PeriodicMessagesFile periodicMessages;
 
         @SerializedName("restartCountdown")
         private RestartCountdownFile restartCountdown;
@@ -390,17 +338,6 @@ public final class ServerAutomationConfig {
 
         @SerializedName("warningsMinutesBefore")
         private List<Integer> warningsMinutesBefore;
-    }
-
-    private static final class PeriodicMessagesFile {
-        @SerializedName("enabled")
-        private boolean enabled;
-
-        @SerializedName("intervalSeconds")
-        private int intervalSeconds;
-
-        @SerializedName("messages")
-        private List<String> messages;
     }
 
     private static final class RestartCountdownFile {

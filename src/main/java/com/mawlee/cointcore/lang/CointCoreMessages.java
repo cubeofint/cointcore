@@ -299,6 +299,19 @@ public final class CointCoreMessages {
     public static final String PLAYTIME_REWARD_NOTE = "message.cointcore.playtime.reward.note";
     public static final String RESERVED_SLOTS_PUBLIC_FULL = "message.cointcore.reserved_slots.public_full";
     public static final String RESERVED_SLOTS_TOTAL_FULL = "message.cointcore.reserved_slots.total_full";
+    public static final String REG_USAGE = "message.cointcore.reg.usage";
+    public static final String REG_BAD_SCHEDULE = "message.cointcore.reg.bad_schedule";
+    public static final String REG_ADDED = "message.cointcore.reg.added";
+    public static final String REG_SAVE_FAILED = "message.cointcore.reg.save_failed";
+    public static final String REG_LIST_HEADER = "message.cointcore.reg.list_header";
+    public static final String REG_LIST_EMPTY = "message.cointcore.reg.list_empty";
+    public static final String REG_LIST_ENTRY = "message.cointcore.reg.list_entry";
+    public static final String REG_LIST_DELETE = "message.cointcore.reg.list_delete";
+    public static final String REG_LIST_DELETE_HOVER = "message.cointcore.reg.list_delete_hover";
+    public static final String REG_LIST_DISABLED = "message.cointcore.reg.list_disabled";
+    public static final String REG_NEXT_DONE = "message.cointcore.reg.next_done";
+    public static final String REG_DELETED = "message.cointcore.reg.deleted";
+    public static final String REG_NOT_FOUND = "message.cointcore.reg.not_found";
 
     private CointCoreMessages() {
     }
