@@ -5,6 +5,7 @@ import com.mawlee.cointcore.config.ChatChannelsConfig;
 import com.mawlee.cointcore.ignore.IgnoreService;
 import com.mawlee.cointcore.lang.CointCoreMessages;
 import com.mawlee.cointcore.lang.LegacyTextParser;
+import com.mawlee.cointcore.lang.MiniMessageLegacy;
 import com.mawlee.cointcore.luckperms.LuckPermsIntegration;
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.chat.ChatType;
@@ -190,7 +191,7 @@ public final class ChatChannelService {
     private static Component format(ServerPlayer sender, String channelPrefix, String text) {
         String lpPrefix = LuckPermsIntegration.getPrefix(sender.getUUID()).orElse("");
         MutableComponent line = Component.empty()
-                .append(LegacyTextParser.parse(channelPrefix + lpPrefix))
+                .append(LegacyTextParser.parse(channelPrefix + MiniMessageLegacy.toLegacy(lpPrefix)))
                 .append(LegacyTextParser.parse("&f" + sender.getGameProfile().getName() + "&7: "));
         return line.append(ChatLinkFormatter.linkify(Component.literal(text)));
     }
