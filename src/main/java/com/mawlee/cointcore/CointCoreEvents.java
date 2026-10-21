@@ -186,6 +186,7 @@ public final class CointCoreEvents {
             NightVisionService.onPlayerJoin(player);
             DonorPrivilegeService.onPlayerJoin(player);
             FluxAdminAccess.syncCapability(player);
+            com.mawlee.cointcore.shop.PlayerShopAdminPayload.sendTo(player);
             SeeInvisibleService.sync(player);
             ClaimFlagEditSync.sync(player);
             ChunkBonusService.onPlayerJoin(player);

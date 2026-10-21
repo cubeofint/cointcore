@@ -8,7 +8,14 @@ import net.minecraft.world.entity.player.Player;
 import java.util.UUID;
 
 public final class PlayerShopAccess {
+    /** Client copy of {@code playershop.admin}, sent by the server on login ({@link PlayerShopAdminPayload}). */
+    private static volatile boolean clientAdmin;
+
     private PlayerShopAccess() {
+    }
+
+    public static void setClientAdmin(boolean value) {
+        clientAdmin = value;
     }
 
     public static boolean canPlace(ServerPlayer player) {
@@ -27,7 +34,7 @@ public final class PlayerShopAccess {
         if (player instanceof ServerPlayer serverPlayer) {
             return canAdmin(serverPlayer);
         }
-        return player != null && ShopBreakPolicy.clientOperator(player.hasPermissions(2));
+        return player != null && (clientAdmin || ShopBreakPolicy.clientOperator(player.hasPermissions(2)));
     }
 
     public static boolean canManage(Player player, UUID ownerId) {

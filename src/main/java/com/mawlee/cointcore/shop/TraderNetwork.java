@@ -45,6 +45,11 @@ public final class TraderNetwork {
                 PlayerTraderManageSyncPayload.STREAM_CODEC,
                 PlayerTraderManageSyncPayload::handleClient
         );
+        registrar.playToClient(
+                PlayerShopAdminPayload.TYPE,
+                PlayerShopAdminPayload.STREAM_CODEC,
+                PlayerShopAdminPayload::handleClient
+        );
         registrar.playToServer(
                 RemoteMarketOpenPayload.TYPE,
                 RemoteMarketOpenPayload.STREAM_CODEC,
