@@ -11,8 +11,8 @@ import java.nio.file.Path;
  * Owns {@code config/cointcore/lag-fixes.json} — ATM10 8.2 lag mitigations
  * plus dedicated-server crash compat. Most lag sections default {@code enabled=false};
  * crash-fix, {@code mekmm_wind_generator_scan},
- * {@code neovitae_missing_mappings_fastpath}, {@code pipez_armory_fast_reject}, and
- * {@code irons_spectral_hammer} default {@code enabled=true}.
+ * {@code neovitae_missing_mappings_fastpath}, {@code pipez_armory_fast_reject},
+ * {@code irons_spectral_hammer}, and {@code apotheosis_salvage_cache} default {@code enabled=true}.
  */
 public final class LagFixesConfigs {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -42,6 +42,7 @@ public final class LagFixesConfigs {
             CrowdedMobsConfig.applySection(CrowdedMobsConfig.defaultFileData());
             PipezArmoryFastRejectConfig.applySection(PipezArmoryFastRejectConfig.defaultFileData());
             IronsSpectralHammerConfig.applySection(IronsSpectralHammerConfig.defaultFileData());
+            ApotheosisSalvageCacheConfig.applySection(ApotheosisSalvageCacheConfig.defaultFileData());
         }
     }
 
@@ -87,6 +88,10 @@ public final class LagFixesConfigs {
         root.add(
                 "irons_spectral_hammer",
                 ConfigMergeSupport.toJsonObject(IronsSpectralHammerConfig.defaultFileData())
+        );
+        root.add(
+                "apotheosis_salvage_cache",
+                ConfigMergeSupport.toJsonObject(ApotheosisSalvageCacheConfig.defaultFileData())
         );
         return root;
     }
@@ -146,6 +151,12 @@ public final class LagFixesConfigs {
                 IronsSpectralHammerConfig.Data.class,
                 IronsSpectralHammerConfig::defaultFileData
         ));
+        ApotheosisSalvageCacheConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root,
+                "apotheosis_salvage_cache",
+                ApotheosisSalvageCacheConfig.Data.class,
+                ApotheosisSalvageCacheConfig::defaultFileData
+        ));
         if (logReload) {
             JdtPortalChunkConfig.logReload();
             EnderIoItemConduitConfig.logReload();
@@ -159,6 +170,7 @@ public final class LagFixesConfigs {
             CrowdedMobsConfig.logReload();
             PipezArmoryFastRejectConfig.logReload();
             IronsSpectralHammerConfig.logReload();
+            ApotheosisSalvageCacheConfig.logReload();
         }
     }
 }

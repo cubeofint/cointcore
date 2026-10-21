@@ -304,6 +304,10 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.mekmm.TileEntityLargeWindGeneratorMixin"
     );
 
+    private static final Set<String> APOTHEOSIS_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.apotheosis.SalvagingMenuMatchCacheMixin"
+    );
+
     private static final Set<String> IRONS_SPELLBOOKS_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.irons.SpectralHammerSpellCapMixin"
     );
@@ -387,6 +391,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
         putAll(map, AD_ASTRA_MIXINS, "ad_astra");
         putAll(map, MEKMM_MIXINS, "mekmm");
         putAll(map, IRONS_SPELLBOOKS_MIXINS, "irons_spellbooks");
+        putAll(map, APOTHEOSIS_MIXINS, "apotheosis");
         putAll(map, NEOVITAE_MIXINS, "neovitae");
         return Map.copyOf(map);
     }

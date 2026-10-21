@@ -157,7 +157,8 @@
     "stevescarts.ModuleChunkLoaderMixin",
     "mekmm.TileEntityLargeWindGeneratorMixin",
     "neovitae.NVMissingMappingsMixin",
-    "irons.SpectralHammerSpellCapMixin"
+    "irons.SpectralHammerSpellCapMixin",
+    "apotheosis.SalvagingMenuMatchCacheMixin"
   ],
   "injectors": {
     "defaultRequire": 0

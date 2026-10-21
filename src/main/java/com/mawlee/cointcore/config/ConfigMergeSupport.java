@@ -53,7 +53,21 @@ final class ConfigMergeSupport {
         Files.createDirectories(merged.getParent());
 
         if (Files.exists(merged)) {
-            return readObject(merged);
+            JsonObject existing = readObject(merged);
+            // Sections added in newer versions are written out so they can be tuned without reading the source.
+            JsonObject defaultRoot = defaults.get();
+            boolean added = false;
+            for (Map.Entry<String, JsonElement> entry : defaultRoot.entrySet()) {
+                if (!existing.has(entry.getKey())) {
+                    existing.add(entry.getKey(), entry.getValue());
+                    added = true;
+                }
+            }
+            if (added) {
+                writeObject(merged, existing);
+                logger.info("Added new default sections to {}", merged);
+            }
+            return existing;
         }
 
         JsonObject root = defaults.get();

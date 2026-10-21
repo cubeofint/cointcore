@@ -78,6 +78,7 @@ public final class CointCoreRuntimeCleanup {
         runQuietly(AfkService::clearRuntimeState);
         runQuietly(ServerRestartService::cancelPendingRestart);
         runQuietly(com.mawlee.cointcore.chunklimit.TeamLimitIndex::invalidateAll);
+        runQuietly(com.mawlee.cointcore.apotheosis.SalvageMatchCache::clear);
     }
 
     private static void preloadClass(String className, ClassLoader classLoader) {
