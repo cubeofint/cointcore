@@ -312,6 +312,24 @@ public final class CointCoreMessages {
     public static final String REG_NEXT_DONE = "message.cointcore.reg.next_done";
     public static final String REG_DELETED = "message.cointcore.reg.deleted";
     public static final String REG_NOT_FOUND = "message.cointcore.reg.not_found";
+    public static final String MARKET_MIN_PRICE = "message.cointcore.market.min_price";
+    public static final String MARKETMOD_PLAYER_NOT_FOUND = "message.cointcore.marketmod.player_not_found";
+    public static final String MARKETMOD_LIST_EMPTY = "message.cointcore.marketmod.list_empty";
+    public static final String MARKETMOD_LIST_HEADER = "message.cointcore.marketmod.list_header";
+    public static final String MARKETMOD_LIST_ENTRY = "message.cointcore.marketmod.list_entry";
+    public static final String MARKETMOD_LIST_REMOVE = "message.cointcore.marketmod.list_remove";
+    public static final String MARKETMOD_LIST_REMOVE_HOVER = "message.cointcore.marketmod.list_remove_hover";
+    public static final String MARKETMOD_NOT_FOUND = "message.cointcore.marketmod.not_found";
+    public static final String MARKETMOD_REMOVED = "message.cointcore.marketmod.removed";
+    public static final String MARKETMOD_SELLER_NOTICE = "message.cointcore.marketmod.seller_notice";
+    public static final String MARKETMOD_NO_REASON = "message.cointcore.marketmod.no_reason";
+    public static final String MARKETMOD_EXPORTED = "message.cointcore.marketmod.exported";
+    public static final String MARKETMOD_EXPORT_FAILED = "message.cointcore.marketmod.export_failed";
+    public static final String BALANCETOP_EMPTY = "message.cointcore.balancetop.empty";
+    public static final String BALANCETOP_HEADER = "message.cointcore.balancetop.header";
+    public static final String BALANCETOP_ENTRY = "message.cointcore.balancetop.entry";
+    public static final String BALANCETOP_SELF_ENTRY = "message.cointcore.balancetop.self_entry";
+    public static final String BALANCETOP_YOUR_PLACE = "message.cointcore.balancetop.your_place";
 
     private CointCoreMessages() {
     }

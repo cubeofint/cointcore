@@ -21,6 +21,7 @@ import com.mawlee.cointcore.config.CleanupConfigs;
 import com.mawlee.cointcore.config.NaturalSpawnConfig;
 import com.mawlee.cointcore.config.ChatChannelsConfig;
 import com.mawlee.cointcore.config.RegularMessagesConfig;
+import com.mawlee.cointcore.config.MarketMinPricesConfig;
 import com.mawlee.cointcore.config.VoteConfig;
 import com.mawlee.cointcore.placeholder.CointCorePlaceholderRegistry;
 import com.mawlee.cointcore.placeholder.TabSparkPlaceholderRegistry;
@@ -92,6 +93,7 @@ public final class CointCoreEvents {
             ChatConfigs.load();
             ChatChannelsConfig.load();
             RegularMessagesConfig.load();
+            MarketMinPricesConfig.load();
             AfkConfig.load();
             FtbRanksLuckPermsBridgeConfig.load();
             ChatDiscordRelayConfig.load();

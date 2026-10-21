@@ -1,5 +1,6 @@
 package com.mawlee.cointcore.shop;
 
+import com.mawlee.cointcore.config.MarketMinPricesConfig;
 import com.mawlee.cointcore.config.TraderOffersConfig;
 import com.mawlee.cointcore.lang.CointCoreMessages;
 import com.mojang.logging.LogUtils;
@@ -98,6 +99,9 @@ public final class GlobalMarketService {
         if (sample.isEmpty() || items < count || safePrice < 1) {
             return false;
         }
+        if (rejectBelowMinPrice(player, sample, count, safePrice)) {
+            return false;
+        }
         GlobalMarketSavedData data = GlobalMarketSavedData.get(player.server);
         if (!GlobalMarketMath.canCreateListing(
                 data.listingCount(player.getUUID()),
@@ -166,6 +170,9 @@ public final class GlobalMarketService {
         if (count < 1 || safePrice < 1 || safeDeals < 0L) {
             return false;
         }
+        if (rejectBelowMinPrice(player, listing.template(), count, safePrice)) {
+            return false;
+        }
         long leftover = count == listing.countPerDeal()
                 ? GlobalMarketMath.leftoverItems(listing.stockItems(), listing.countPerDeal())
                 : 0L;
@@ -205,7 +212,90 @@ public final class GlobalMarketService {
             return false;
         }
         data.remove(id);
-        giveAmountOrReturn(player, listing.template(), listing.remainingStock());
+        if (player.getUUID().equals(listing.sellerId())) {
+            giveAmountOrReturn(player, listing.template(), listing.remainingStock());
+        } else {
+            // Admin cancelling someone else's lot: the goods belong to the seller.
+            data.addReturn(listing.sellerId(), listing.template(), listing.remainingStock());
+        }
+        return true;
+    }
+
+    /** Active lots of one seller, oldest first (for {@code /marketmod list}). */
+    public static List<GlobalMarketListing> sellerListings(MinecraftServer server, UUID sellerId) {
+        expire(server);
+        long now = System.currentTimeMillis();
+        List<GlobalMarketListing> rows = new ArrayList<>();
+        for (GlobalMarketListing listing : GlobalMarketSavedData.get(server).allListings()) {
+            if (sellerId.equals(listing.sellerId()) && listing.active(now)) {
+                rows.add(listing);
+            }
+        }
+        rows.sort(Comparator.comparingLong(GlobalMarketListing::createdAt));
+        return rows;
+    }
+
+    /** Sellers that have active lots now, by name (for command suggestions). */
+    public static List<String> activeSellerNames(MinecraftServer server) {
+        long now = System.currentTimeMillis();
+        return GlobalMarketSavedData.get(server).allListings().stream()
+                .filter(listing -> listing.active(now) && listing.sellerName() != null)
+                .map(GlobalMarketListing::sellerName)
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
+    /**
+     * Moderator removal: the lot disappears and its stock goes to the seller's returns (claimed in the shop
+     * management screen). Returns the removed lot, or null if it does not exist.
+     */
+    public static GlobalMarketListing moderatorRemove(MinecraftServer server, UUID listingId) {
+        expire(server);
+        GlobalMarketSavedData data = GlobalMarketSavedData.get(server);
+        GlobalMarketListing listing = data.remove(listingId);
+        if (listing == null) {
+            return null;
+        }
+        data.addReturn(listing.sellerId(), listing.template(), listing.remainingStock());
+        refreshOpenViewers(server);
+        return listing;
+    }
+
+    /** Item id → recommended unit price for every item on sale now (template for market-min-prices.json). */
+    public static Map<String, Long> currentPriceTemplate(MinecraftServer server) {
+        expire(server);
+        GlobalMarketSavedData data = GlobalMarketSavedData.get(server);
+        long now = System.currentTimeMillis();
+        Map<String, Long> prices = new java.util.TreeMap<>();
+        for (GlobalMarketListing listing : data.allListings()) {
+            if (!listing.active(now)) {
+                continue;
+            }
+            String id = BuiltInRegistries.ITEM.getKey(listing.stack().getItem()).toString();
+            long price = Math.max(1L, recommendUnitPrice(data, listing.stack(), now));
+            prices.merge(id, price, Math::min);
+        }
+        return prices;
+    }
+
+    public static long minUnitPrice(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return 0L;
+        }
+        return MarketMinPricesConfig.get().minUnitPrice(
+                BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),
+                stack.getTags().map(tag -> tag.location().toString())
+        );
+    }
+
+    private static boolean rejectBelowMinPrice(ServerPlayer player, ItemStack stack, int countPerDeal, int pricePerDeal) {
+        long min = minUnitPrice(stack);
+        if (!MarketMinPrices.belowMinimum(pricePerDeal, countPerDeal, min)) {
+            return false;
+        }
+        player.sendSystemMessage(CointCoreMessages.forPlayer(player, CointCoreMessages.MARKET_MIN_PRICE,
+                stack.getHoverName().getString(), min));
         return true;
     }
 

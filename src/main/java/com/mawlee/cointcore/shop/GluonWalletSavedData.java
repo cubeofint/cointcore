@@ -8,7 +8,10 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -29,6 +32,19 @@ public final class GluonWalletSavedData extends SavedData {
 
     public synchronized long get(UUID playerId) {
         return Math.max(0L, balances.getOrDefault(playerId, 0L));
+    }
+
+    /** All non-zero balances, richest first (ties by UUID so the order is stable). */
+    public synchronized List<Map.Entry<UUID, Long>> ranking() {
+        List<Map.Entry<UUID, Long>> rows = new ArrayList<>(balances.size());
+        for (Map.Entry<UUID, Long> entry : balances.entrySet()) {
+            if (entry.getValue() > 0L) {
+                rows.add(Map.entry(entry.getKey(), entry.getValue()));
+            }
+        }
+        rows.sort(Comparator.<Map.Entry<UUID, Long>>comparingLong(Map.Entry::getValue).reversed()
+                .thenComparing(Map.Entry::getKey));
+        return rows;
     }
 
     public synchronized long set(UUID playerId, long amount) {

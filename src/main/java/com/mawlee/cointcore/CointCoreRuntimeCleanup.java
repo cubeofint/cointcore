@@ -34,6 +34,8 @@ public final class CointCoreRuntimeCleanup {
             "com.mawlee.cointcore.reminder.RegularSchedule$Daily",
             "com.mawlee.cointcore.reminder.RegularSchedule$AfterStart",
             "com.mawlee.cointcore.reminder.RegularMessageText",
+            "com.mawlee.cointcore.shop.MarketMinPrices",
+            "com.mawlee.cointcore.config.MarketMinPricesConfig",
             "com.mawlee.cointcore.server.ServerAutomationEvents",
             "com.mawlee.cointcore.teleport.TplService",
             "com.mawlee.cointcore.teleport.OfflinePlayerPosition",

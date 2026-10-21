@@ -31,5 +31,7 @@ public final class ModCommands {
         AdminChatCommand.apply(dispatcher);
         PrivilegeCommands.apply(dispatcher);
         RegularMessageCommands.apply(dispatcher);
+        MarketModCommand.apply(dispatcher);
+        BalanceTopCommand.apply(dispatcher);
     }
 }

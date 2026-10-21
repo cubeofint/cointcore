@@ -19,6 +19,7 @@ import com.mawlee.cointcore.config.WorldCleanupConfig;
 import com.mawlee.cointcore.server.WorldCleanupService;
 import com.mawlee.cointcore.config.ChatChannelsConfig;
 import com.mawlee.cointcore.config.RegularMessagesConfig;
+import com.mawlee.cointcore.config.MarketMinPricesConfig;
 import com.mawlee.cointcore.config.VoteConfig;
 import com.mawlee.cointcore.config.ServerAutomationConfig;
 import com.mawlee.cointcore.config.SoulSurgePerfConfig;
@@ -162,6 +163,7 @@ public final class CointCoreCommand {
         if (ChatConfigs.reload()
                 && ChatChannelsConfig.reload()
                 && RegularMessagesConfig.reload()
+                && MarketMinPricesConfig.reload()
                 && AfkConfig.reload()
                 && FtbRanksLuckPermsBridgeConfig.reload()
                 && ChatDiscordRelayConfig.reload()

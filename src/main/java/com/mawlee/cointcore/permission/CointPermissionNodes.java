@@ -369,6 +369,20 @@ public final class CointPermissionNodes {
             Component.translatable("permission.desc.cointcore.gluons.balance")
     );
 
+    public static final PermissionNode<Boolean> GLUONS_TOP = new PermissionNode<>(
+            CointCore.MOD_ID, "gluons.top", PermissionTypes.BOOLEAN, EVERYONE
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.gluons.top"),
+            Component.translatable("permission.desc.cointcore.gluons.top")
+    );
+
+    public static final PermissionNode<Boolean> MARKET_MODERATE = new PermissionNode<>(
+            CointCore.MOD_ID, "market.moderate", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.market.moderate"),
+            Component.translatable("permission.desc.cointcore.market.moderate")
+    );
+
     public static final PermissionNode<Boolean> GLUONS_PAY = new PermissionNode<>(
             CointCore.MOD_ID, "gluons.pay", PermissionTypes.BOOLEAN, EVERYONE
     ).setInformation(
