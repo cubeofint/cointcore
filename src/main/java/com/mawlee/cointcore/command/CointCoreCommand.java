@@ -164,6 +164,7 @@ public final class CointCoreCommand {
                 && ChatChannelsConfig.reload()
                 && RegularMessagesConfig.reload()
                 && MarketMinPricesConfig.reload()
+                && com.mawlee.cointcore.config.QuizConfig.reload()
                 && AfkConfig.reload()
                 && FtbRanksLuckPermsBridgeConfig.reload()
                 && ChatDiscordRelayConfig.reload()

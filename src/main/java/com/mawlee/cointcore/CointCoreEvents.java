@@ -94,6 +94,7 @@ public final class CointCoreEvents {
             ChatChannelsConfig.load();
             RegularMessagesConfig.load();
             MarketMinPricesConfig.load();
+            com.mawlee.cointcore.config.QuizConfig.load();
             AfkConfig.load();
             FtbRanksLuckPermsBridgeConfig.load();
             ChatDiscordRelayConfig.load();
@@ -213,6 +214,7 @@ public final class CointCoreEvents {
             DonorPrivilegeService.onPlayerLeave(player);
             PlaytimeRewardService.onPlayerLeave(player);
             com.mawlee.cointcore.chat.ChatChannelService.onPlayerLeave(player);
+            com.mawlee.cointcore.quiz.QuizService.onLogout(player);
             com.mawlee.cointcore.ftb.ForceLoadIdleService.onPlayerLeave(player);
         }
     }

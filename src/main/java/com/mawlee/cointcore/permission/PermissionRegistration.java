@@ -67,6 +67,7 @@ public final class PermissionRegistration {
                 CointPermissionNodes.REMINDERS_MANAGE,
                 CointPermissionNodes.GLUONS_TOP,
                 CointPermissionNodes.MARKET_MODERATE,
+                CointPermissionNodes.QUIZ_MANAGE,
                 CointPermissionNodes.RESERVED_SLOT,
                 CointPermissionNodes.RESERVED_SLOT_BYPASS
         );

@@ -33,5 +33,6 @@ public final class ModCommands {
         RegularMessageCommands.apply(dispatcher);
         MarketModCommand.apply(dispatcher);
         BalanceTopCommand.apply(dispatcher);
+        QuizCommand.apply(dispatcher);
     }
 }

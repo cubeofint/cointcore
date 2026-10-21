@@ -376,6 +376,13 @@ public final class CointPermissionNodes {
             Component.translatable("permission.desc.cointcore.gluons.top")
     );
 
+    public static final PermissionNode<Boolean> QUIZ_MANAGE = new PermissionNode<>(
+            CointCore.MOD_ID, "quiz.manage", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.quiz.manage"),
+            Component.translatable("permission.desc.cointcore.quiz.manage")
+    );
+
     public static final PermissionNode<Boolean> MARKET_MODERATE = new PermissionNode<>(
             CointCore.MOD_ID, "market.moderate", PermissionTypes.BOOLEAN, OP_ONLY
     ).setInformation(

@@ -330,6 +330,27 @@ public final class CointCoreMessages {
     public static final String BALANCETOP_ENTRY = "message.cointcore.balancetop.entry";
     public static final String BALANCETOP_SELF_ENTRY = "message.cointcore.balancetop.self_entry";
     public static final String BALANCETOP_YOUR_PLACE = "message.cointcore.balancetop.your_place";
+    public static final String QUIZ_INVITE = "message.cointcore.quiz.invite";
+    public static final String QUIZ_INVITE_YES = "message.cointcore.quiz.invite_yes";
+    public static final String QUIZ_INVITE_YES_HOVER = "message.cointcore.quiz.invite_yes_hover";
+    public static final String QUIZ_INVITE_NO = "message.cointcore.quiz.invite_no";
+    public static final String QUIZ_NO_MOD = "message.cointcore.quiz.no_mod";
+    public static final String QUIZ_NO_INVITE = "message.cointcore.quiz.no_invite";
+    public static final String QUIZ_ALREADY_PLAYED = "message.cointcore.quiz.already_played";
+    public static final String QUIZ_IN_PROGRESS = "message.cointcore.quiz.in_progress";
+    public static final String QUIZ_NOT_ENOUGH = "message.cointcore.quiz.not_enough";
+    public static final String QUIZ_STARTED = "message.cointcore.quiz.started";
+    public static final String QUIZ_ADD_USAGE = "message.cointcore.quiz.add_usage";
+    public static final String QUIZ_ADDED = "message.cointcore.quiz.added";
+    public static final String QUIZ_SAVE_FAILED = "message.cointcore.quiz.save_failed";
+    public static final String QUIZ_LIST_EMPTY = "message.cointcore.quiz.list_empty";
+    public static final String QUIZ_LIST_HEADER = "message.cointcore.quiz.list_header";
+    public static final String QUIZ_LIST_ENTRY = "message.cointcore.quiz.list_entry";
+    public static final String QUIZ_LIST_REMOVE = "message.cointcore.quiz.list_remove";
+    public static final String QUIZ_LIST_REMOVE_HOVER = "message.cointcore.quiz.list_remove_hover";
+    public static final String QUIZ_NOT_FOUND = "message.cointcore.quiz.not_found";
+    public static final String QUIZ_REMOVED = "message.cointcore.quiz.removed";
+    public static final String QUIZ_REWARD_NOTE = "message.cointcore.quiz.reward_note";
 
     private CointCoreMessages() {
     }
