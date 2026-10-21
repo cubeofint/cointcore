@@ -176,7 +176,8 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.ae2.TagSearchPredicateMixin",
             "com.mawlee.cointcore.mixin.ae2.SpatialStorageHelperMixin",
             "com.mawlee.cointcore.mixin.ae2.AEItemKeyFuzzyMaxCacheMixin",
-            "com.mawlee.cointcore.mixin.ae2.ChunkLoadingServiceMixin"
+            "com.mawlee.cointcore.mixin.ae2.ChunkLoadingServiceMixin",
+            "com.mawlee.cointcore.mixin.ae2.StorageExportStrategyArmoryRejectMixin"
     );
 
     private static final Set<String> REFINED_STORAGE_MIXINS = Set.of(

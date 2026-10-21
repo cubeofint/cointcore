@@ -55,7 +55,7 @@ public final class PipezArmoryFastReject {
     public static String statusLine(boolean enabled) {
         return String.format(
                 Locale.ROOT,
-                "Pipez armory fast-reject: enabled=%s skipped=%d",
+                "Armory fast-reject (Pipez, AE2 export): enabled=%s skipped=%d",
                 enabled,
                 skippedInserts()
         );

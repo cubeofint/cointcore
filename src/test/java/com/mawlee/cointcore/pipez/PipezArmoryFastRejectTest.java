@@ -42,11 +42,11 @@ class PipezArmoryFastRejectTest {
         PipezArmoryFastReject.recordSkippedInsert();
         assertEquals(2L, PipezArmoryFastReject.skippedInserts());
         assertEquals(
-                "Pipez armory fast-reject: enabled=true skipped=2",
+                "Armory fast-reject (Pipez, AE2 export): enabled=true skipped=2",
                 PipezArmoryFastReject.statusLine(true)
         );
         assertEquals(
-                "Pipez armory fast-reject: enabled=false skipped=2",
+                "Armory fast-reject (Pipez, AE2 export): enabled=false skipped=2",
                 PipezArmoryFastReject.statusLine(false)
         );
     }

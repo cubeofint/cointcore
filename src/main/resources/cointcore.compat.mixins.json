@@ -158,7 +158,8 @@
     "mekmm.TileEntityLargeWindGeneratorMixin",
     "neovitae.NVMissingMappingsMixin",
     "irons.SpectralHammerSpellCapMixin",
-    "apotheosis.SalvagingMenuMatchCacheMixin"
+    "apotheosis.SalvagingMenuMatchCacheMixin",
+    "ae2.StorageExportStrategyArmoryRejectMixin"
   ],
   "injectors": {
     "defaultRequire": 0
