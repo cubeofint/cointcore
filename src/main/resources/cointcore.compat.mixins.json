@@ -159,7 +159,8 @@
     "neovitae.NVMissingMappingsMixin",
     "irons.SpectralHammerSpellCapMixin",
     "apotheosis.SalvagingMenuMatchCacheMixin",
-    "ae2.StorageExportStrategyArmoryRejectMixin"
+    "ae2.StorageExportStrategyArmoryRejectMixin",
+    "ae2.StorageServiceCacheThrottleMixin"
   ],
   "injectors": {
     "defaultRequire": 0

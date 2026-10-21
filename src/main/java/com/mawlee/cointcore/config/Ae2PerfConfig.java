@@ -16,12 +16,21 @@ public final class Ae2PerfConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private static boolean cacheFuzzySearchMaxValue = true;
+    private static int storageCacheIntervalTicks = 5;
 
     private Ae2PerfConfig() {
     }
 
     public static boolean isCacheFuzzySearchMaxValue() {
         return cacheFuzzySearchMaxValue;
+    }
+
+    /**
+     * How often a grid with stack watchers (level emitters, open terminals, …) rebuilds its cached inventory;
+     * AE2 does it every tick. 1 = vanilla AE2 behaviour.
+     */
+    public static int getStorageCacheIntervalTicks() {
+        return storageCacheIntervalTicks;
     }
 
     public static Path getConfigPath() {
@@ -42,28 +51,34 @@ public final class Ae2PerfConfig {
 
     static void logReload() {
         LOGGER.info(
-                "Reloaded AE2 perf config (cacheFuzzySearchMaxValue={})",
-                cacheFuzzySearchMaxValue
+                "Reloaded AE2 perf config (cacheFuzzySearchMaxValue={}, storageCacheIntervalTicks={})",
+                cacheFuzzySearchMaxValue,
+                storageCacheIntervalTicks
         );
     }
 
     private static void apply(LoadedConfig loaded) {
         cacheFuzzySearchMaxValue = loaded.cacheFuzzySearchMaxValue();
+        storageCacheIntervalTicks = loaded.storageCacheIntervalTicks();
     }
 
     private static LoadedConfig parse(Data data) {
-        return new LoadedConfig(data.cacheFuzzySearchMaxValue);
+        return new LoadedConfig(data.cacheFuzzySearchMaxValue, Math.max(1, Math.min(40, data.storageCacheIntervalTicks)));
     }
 
     static Data defaultFileData() {
         return new Data();
     }
 
-    private record LoadedConfig(boolean cacheFuzzySearchMaxValue) {
+    private record LoadedConfig(boolean cacheFuzzySearchMaxValue, int storageCacheIntervalTicks) {
     }
 
     static final class Data {
         @SerializedName("cache_fuzzy_search_max_value")
         boolean cacheFuzzySearchMaxValue = true;
+
+        /** Ticks between cached-inventory rebuilds of grids with watchers (AE2: every tick). 1 disables the throttle. */
+        @SerializedName("storage_cache_interval_ticks")
+        int storageCacheIntervalTicks = 5;
     }
 }
