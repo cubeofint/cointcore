@@ -304,6 +304,21 @@ public final class ChunkLimitConfig {
         return null;
     }
 
+    /**
+     * Limit key for an AE2 cable-bus part by its item id ({@code ae2:storage_bus}). Only exact ids and groups apply:
+     * tag and mod-mask rules are block rules and never catch parts.
+     */
+    public static ChunkLimitKey resolvePartKey(LimitScope scope, ResourceLocation partItemId) {
+        if (partItemId == null || !enabled) {
+            return null;
+        }
+        return rules(scope).blockIdKeys().get(partItemId);
+    }
+
+    public static boolean isLimitedPart(ResourceLocation partItemId) {
+        return resolvePartKey(LimitScope.CHUNK, partItemId) != null || resolvePartKey(LimitScope.TEAM, partItemId) != null;
+    }
+
     public static boolean isLimitedBlock(Block block) {
         return resolveBlockKey(block) != null
                 || resolveTeamBlockKey(block) != null
@@ -789,7 +804,7 @@ public final class ChunkLimitConfig {
                         LOGGER.warn("Skipping invalid {} chunk limit id: {}", label, raw);
                         continue;
                     }
-                    if (!BuiltInRegistries.BLOCK.containsKey(id)) {
+                    if (!BuiltInRegistries.BLOCK.containsKey(id) && !BuiltInRegistries.ITEM.containsKey(id)) {
                         LOGGER.warn("Unknown {} chunk limit block: {}", label, id);
                     }
                     exactBlocks.put(id, limit);
@@ -819,7 +834,7 @@ public final class ChunkLimitConfig {
                             LOGGER.warn("Skipping invalid {} group block id in {}: {}", label, entry.getKey(), blockId);
                             continue;
                         }
-                        if (!BuiltInRegistries.BLOCK.containsKey(id)) {
+                        if (!BuiltInRegistries.BLOCK.containsKey(id) && !BuiltInRegistries.ITEM.containsKey(id)) {
                             LOGGER.warn("Unknown {} group block in {}: {}", label, entry.getKey(), id);
                         }
                         blocks.add(id);

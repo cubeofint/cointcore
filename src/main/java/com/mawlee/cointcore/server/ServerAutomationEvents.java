@@ -40,6 +40,7 @@ public final class ServerAutomationEvents {
         // Own interval (default 200 ticks ≈ 10s). Must not sit behind the 1s gate below.
         SunkenCityRespawnService.tick(server);
         CataclysmStructureRespawnService.tick(server);
+        com.mawlee.cointcore.chunklimit.PartLimitIndex.tick(server);
         if (server.getTickCount() % 5 == 0) {
             QuizService.tick(server);
         }

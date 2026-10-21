@@ -33,6 +33,7 @@ public final class ChunkLimitIndex {
 
     public static void invalidateAll() {
         BY_DIMENSION.clear();
+        PartLimitIndex.invalidateAll();
     }
 
     /** Snapshot of indexed (loaded) chunks, used to rescan team contributions after a config change. */
@@ -52,6 +53,7 @@ public final class ChunkLimitIndex {
         if (dim != null) {
             dim.remove(chunkPos.toLong());
         }
+        PartLimitIndex.removeChunk(level, chunkPos);
         // Keep TeamLimitIndex contribution across unload.
     }
 
@@ -103,6 +105,8 @@ public final class ChunkLimitIndex {
         BY_DIMENSION
                 .computeIfAbsent(level.dimension(), ignored -> new ConcurrentHashMap<>())
                 .put(chunkPos.toLong(), bucket);
+        // After the block bucket is stored: part ranks read the block count of the same key.
+        PartLimitIndex.rescan(level, chunk);
         TeamLimitIndex.syncChunk(level, chunkPos);
     }
 
@@ -132,21 +136,34 @@ public final class ChunkLimitIndex {
         TeamLimitIndex.syncChunk(level, chunkPos);
     }
 
+    /** Blocks and cable-bus parts under this key in the chunk. */
     public static int count(ServerLevel level, ChunkPos chunkPos, ChunkLimitKey key) {
         ChunkBucket bucket = bucketFor(level, chunkPos, false);
-        if (bucket == null) {
-            return 0;
-        }
-        return bucket.count(key.id());
+        int blocks = bucket == null ? 0 : bucket.count(key.id());
+        return blocks + PartLimitIndex.count(level, chunkPos, key.id());
     }
 
-    /** Counts for team-scoped keys present in this chunk (for {@link TeamLimitIndex}). */
+    /** Blocks only, without rebuilding a missing bucket (used while ranking parts during a rebuild). */
+    static int blockCount(ServerLevel level, ChunkPos chunkPos, ChunkLimitKey key) {
+        Map<Long, ChunkBucket> dim = BY_DIMENSION.get(level.dimension());
+        ChunkBucket bucket = dim == null ? null : dim.get(chunkPos.toLong());
+        return bucket == null ? 0 : bucket.count(key.id());
+    }
+
+    /** Counts for team-scoped keys present in this chunk, blocks and parts (for {@link TeamLimitIndex}). */
     public static Map<String, Integer> teamKeyCounts(ServerLevel level, ChunkPos chunkPos) {
         ChunkBucket bucket = bucketFor(level, chunkPos, false);
         if (bucket == null || !ChunkLimitConfig.hasTeamBlockLimits()) {
             return Map.of();
         }
-        return bucket.countsMatching(ChunkLimitConfig::isTeamKeyId);
+        Map<String, Integer> counts = bucket.countsMatching(ChunkLimitConfig::isTeamKeyId);
+        Map<String, Integer> parts = PartLimitIndex.teamKeyCounts(level, chunkPos);
+        if (parts.isEmpty()) {
+            return counts;
+        }
+        Map<String, Integer> merged = new LinkedHashMap<>(counts);
+        parts.forEach((key, value) -> merged.merge(key, value, Integer::sum));
+        return merged;
     }
 
     public static boolean isActive(ServerLevel level, BlockPos pos, Block block) {
@@ -161,6 +178,7 @@ public final class ChunkLimitIndex {
         return bucket.isActive(key.id(), pos, key.limit());
     }
 
+    /** Blocks + parts over the limit (parts fill after blocks, so the excess is mostly inert parts). */
     public static int inertCount(ServerLevel level, ChunkPos chunkPos, ChunkLimitKey key) {
         int total = count(level, chunkPos, key);
         return Math.max(0, total - key.limit());

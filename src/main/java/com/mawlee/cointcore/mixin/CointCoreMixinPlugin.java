@@ -178,7 +178,14 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.ae2.AEItemKeyFuzzyMaxCacheMixin",
             "com.mawlee.cointcore.mixin.ae2.ChunkLoadingServiceMixin",
             "com.mawlee.cointcore.mixin.ae2.StorageExportStrategyArmoryRejectMixin",
-            "com.mawlee.cointcore.mixin.ae2.StorageServiceCacheThrottleMixin"
+            "com.mawlee.cointcore.mixin.ae2.StorageServiceCacheThrottleMixin",
+            "com.mawlee.cointcore.mixin.ae2.PartPlacementLimitMixin",
+            "com.mawlee.cointcore.mixin.ae2.AEBasePartLimitTrackingMixin",
+            "com.mawlee.cointcore.mixin.ae2.StorageBusLimitMixin"
+    );
+
+    private static final Set<String> EXTENDED_AE_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.extendedae.SpecialStorageBusLimitMixin"
     );
 
     private static final Set<String> REFINED_STORAGE_MIXINS = Set.of(
@@ -364,6 +371,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
         putAll(map, FORBIDDEN_ARCANUS_MIXINS, "forbidden_arcanus");
         putAll(map, APOTHIC_SPAWNERS_MIXINS, "apothic_spawners");
         putAll(map, AE2_MIXINS, "ae2");
+        putAll(map, EXTENDED_AE_MIXINS, "ae2", "extendedae");
         putAll(map, REFINED_STORAGE_MIXINS, "refinedstorage");
         putAll(map, DISCORD_CHAT_MOD_MIXINS, "discord_chat_mod");
         putAll(map, MOB_GRINDING_UTILS_MIXINS, "mob_grinding_utils");

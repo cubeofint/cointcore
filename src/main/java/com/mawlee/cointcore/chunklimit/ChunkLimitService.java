@@ -94,6 +94,43 @@ public final class ChunkLimitService {
         return ExceedReason.NONE;
     }
 
+    /**
+     * Checks placing one more cable-bus part ({@code ae2:storage_bus}, …) at {@code pos} against chunk and team
+     * limits. Sends the usual limit message and returns false when it would exceed one.
+     */
+    public static boolean allowPartPlacement(ServerPlayer player, ServerLevel level, net.minecraft.core.BlockPos pos,
+                                             ResourceLocation partItemId) {
+        if (!ChunkLimitConfig.isEnabled() || (!(player instanceof FakePlayer) && canBypass(player))) {
+            return true;
+        }
+        ChunkPos chunkPos = new ChunkPos(pos);
+        ChunkLimitKey chunkKey = ChunkLimitConfig.resolvePartKey(ChunkLimitConfig.LimitScope.CHUNK, partItemId);
+        if (chunkKey != null) {
+            int current = ChunkLimitIndex.count(level, chunkPos, chunkKey);
+            if (current + 1 > chunkKey.limit()) {
+                notifyPartDenied(player, CointCoreMessages.CHUNK_LIMIT_BLOCK_DENIED, chunkKey, current, chunkPos);
+                return false;
+            }
+        }
+        ChunkLimitKey teamKey = ChunkLimitConfig.resolvePartKey(ChunkLimitConfig.LimitScope.TEAM, partItemId);
+        if (teamKey != null) {
+            UUID teamId = FtbIntegration.getTeamIdAt(level, chunkPos).orElse(null);
+            int current = teamId == null ? 0 : TeamLimitIndex.count(teamId, teamKey);
+            if (teamId != null && current + 1 > teamKey.limit()) {
+                notifyPartDenied(player, CointCoreMessages.CHUNK_LIMIT_TEAM_BLOCK_DENIED, teamKey, current, chunkPos);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static void notifyPartDenied(ServerPlayer player, String messageKey, ChunkLimitKey key, int current,
+                                         ChunkPos chunkPos) {
+        if (!(player instanceof FakePlayer)) {
+            sendLimitMessage(player, messageKey, key.id(), current, key.limit(), chunkPos.x, chunkPos.z);
+        }
+    }
+
     public static boolean wouldExceedEntityLimit(ServerLevel level, ChunkPos chunkPos, EntityType<?> type) {
         return MobLimitService.wouldExceedIfAdded(level, chunkPos, type, true)
                 || MobLimitService.wouldExceedIfAdded(level, chunkPos, type, false);

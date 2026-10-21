@@ -35,6 +35,9 @@ public class CointCore {
     public static final String MOD_ID = "cointcore";
 
     public CointCore(IEventBus modEventBus) {
+        if (net.neoforged.fml.ModList.get().isLoaded("ae2")) {
+            com.mawlee.cointcore.ae.Ae2PartLimits.install();
+        }
         modEventBus.addListener(NonStackableItemTagPack::registerPackFinder);
         modEventBus.addListener(SeeInvisibleNetwork::register);
         modEventBus.addListener(com.mawlee.cointcore.chat.ChatChannelNetwork::register);

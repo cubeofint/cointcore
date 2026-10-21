@@ -160,7 +160,11 @@
     "irons.SpectralHammerSpellCapMixin",
     "apotheosis.SalvagingMenuMatchCacheMixin",
     "ae2.StorageExportStrategyArmoryRejectMixin",
-    "ae2.StorageServiceCacheThrottleMixin"
+    "ae2.StorageServiceCacheThrottleMixin",
+    "ae2.PartPlacementLimitMixin",
+    "ae2.AEBasePartLimitTrackingMixin",
+    "ae2.StorageBusLimitMixin",
+    "extendedae.SpecialStorageBusLimitMixin"
   ],
   "injectors": {
     "defaultRequire": 0
