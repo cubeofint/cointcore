@@ -351,6 +351,28 @@ public final class CointCoreMessages {
     public static final String QUIZ_NOT_FOUND = "message.cointcore.quiz.not_found";
     public static final String QUIZ_REMOVED = "message.cointcore.quiz.removed";
     public static final String QUIZ_REWARD_NOTE = "message.cointcore.quiz.reward_note";
+    public static final String GHOST_FOUND = "message.cointcore.ghost.found";
+    public static final String GHOST_ALL_FOUND = "message.cointcore.ghost.all_found";
+    public static final String GHOST_ALREADY = "message.cointcore.ghost.already";
+    public static final String GHOST_STAFF_FOUND = "message.cointcore.ghost.staff_found";
+    public static final String GHOST_STAFF_ALL_FOUND = "message.cointcore.ghost.staff_all_found";
+    public static final String GHOST_PROGRESS = "message.cointcore.ghost.progress";
+    public static final String GHOST_ADDED = "message.cointcore.ghost.added";
+    public static final String GHOST_ADD_FAILED = "message.cointcore.ghost.add_failed";
+    public static final String GHOST_NOT_LOOKING = "message.cointcore.ghost.not_looking";
+    public static final String GHOST_NOT_FOUND = "message.cointcore.ghost.not_found";
+    public static final String GHOST_REMOVED = "message.cointcore.ghost.removed";
+    public static final String GHOST_LIST_EMPTY = "message.cointcore.ghost.list_empty";
+    public static final String GHOST_LIST_HEADER = "message.cointcore.ghost.list_header";
+    public static final String GHOST_LIST_ENTRY = "message.cointcore.ghost.list_entry";
+    public static final String GHOST_LIST_TP = "message.cointcore.ghost.list_tp";
+    public static final String GHOST_TOP_EMPTY = "message.cointcore.ghost.top_empty";
+    public static final String GHOST_TOP_HEADER = "message.cointcore.ghost.top_header";
+    public static final String GHOST_TOP_ENTRY = "message.cointcore.ghost.top_entry";
+    public static final String GHOST_STATS = "message.cointcore.ghost.stats";
+    public static final String GHOST_RESET = "message.cointcore.ghost.reset";
+    public static final String GHOST_KIND_BLOCK = "message.cointcore.ghost.kind_block";
+    public static final String GHOST_KIND_ENTITY = "message.cointcore.ghost.kind_entity";
 
     private CointCoreMessages() {
     }

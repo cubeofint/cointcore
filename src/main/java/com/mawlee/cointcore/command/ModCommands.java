@@ -34,5 +34,6 @@ public final class ModCommands {
         MarketModCommand.apply(dispatcher);
         BalanceTopCommand.apply(dispatcher);
         QuizCommand.apply(dispatcher);
+        GhostCommand.apply(dispatcher);
     }
 }
