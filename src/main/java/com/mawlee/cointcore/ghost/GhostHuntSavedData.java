@@ -41,6 +41,8 @@ public final class GhostHuntSavedData extends SavedData {
     private final Map<UUID, Integer> byEntity = new HashMap<>();
     private final Map<UUID, Set<Integer>> finds = new HashMap<>();
     private final Map<UUID, String> names = new HashMap<>();
+    /** When the player made their latest find: ties in the ranking go to whoever got there first. */
+    private final Map<UUID, Long> lastFindAt = new HashMap<>();
     private int nextId = 1;
 
     private GhostHuntSavedData() {
@@ -114,9 +116,15 @@ public final class GhostHuntSavedData extends SavedData {
         names.put(playerId, playerName);
         boolean added = finds.computeIfAbsent(playerId, ignored -> new HashSet<>()).add(ghostId);
         if (added) {
+            lastFindAt.put(playerId, System.currentTimeMillis());
             setDirty();
         }
         return added;
+    }
+
+    /** Time of the player's latest find, 0 if unknown (finds made before times were recorded). */
+    public synchronized long lastFindAt(UUID playerId) {
+        return lastFindAt.getOrDefault(playerId, 0L);
     }
 
     public synchronized int foundCount(UUID playerId) {
@@ -142,7 +150,7 @@ public final class GhostHuntSavedData extends SavedData {
         return names.getOrDefault(playerId, playerId.toString().substring(0, 8));
     }
 
-    /** Players by found count, most first. */
+    /** Players by found count, most first; on a tie whoever reached that count earlier is higher. */
     public synchronized List<Map.Entry<UUID, Integer>> ranking() {
         List<Map.Entry<UUID, Integer>> rows = new ArrayList<>();
         for (UUID playerId : finds.keySet()) {
@@ -151,12 +159,14 @@ public final class GhostHuntSavedData extends SavedData {
                 rows.add(Map.entry(playerId, count));
             }
         }
-        rows.sort(Map.Entry.<UUID, Integer>comparingByValue().reversed());
+        rows.sort(Map.Entry.<UUID, Integer>comparingByValue().reversed()
+                .thenComparingLong(entry -> lastFindAt(entry.getKey())));
         return rows;
     }
 
     public synchronized void resetFinds() {
         finds.clear();
+        lastFindAt.clear();
         setDirty();
     }
 
@@ -194,6 +204,9 @@ public final class GhostHuntSavedData extends SavedData {
             if (entry.contains("name")) {
                 data.names.put(playerId, entry.getString("name"));
             }
+            if (entry.contains("last_find_at")) {
+                data.lastFindAt.put(playerId, entry.getLong("last_find_at"));
+            }
         }
         return data;
     }
@@ -223,6 +236,10 @@ public final class GhostHuntSavedData extends SavedData {
             String name = names.get(entry.getKey());
             if (name != null) {
                 row.putString("name", name);
+            }
+            Long foundAt = lastFindAt.get(entry.getKey());
+            if (foundAt != null) {
+                row.putLong("last_find_at", foundAt);
             }
             findList.add(row);
         }

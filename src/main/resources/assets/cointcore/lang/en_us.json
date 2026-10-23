@@ -706,7 +706,7 @@
   "message.cointcore.ghost.list_tp": "&b[tp]",
   "message.cointcore.ghost.top_empty": "&7Nobody has found a ghost yet.",
   "message.cointcore.ghost.top_header": "&6Ghost hunters (total ghosts: %s):",
-  "message.cointcore.ghost.top_entry": "&e%s. &f%s &7— &d%s/%s",
+  "message.cointcore.ghost.top_entry": "&e%s. &f%s &7— &d%s/%s &8(last find %s)",
   "message.cointcore.ghost.stats": "&6%s&7: found &d%s/%s&7 (%s)",
   "message.cointcore.ghost.reset": "&aAll finds reset, the ghosts stay in place.",
   "message.cointcore.ghost.kind_block": "block",

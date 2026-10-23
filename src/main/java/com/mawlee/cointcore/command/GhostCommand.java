@@ -32,6 +32,8 @@ import java.util.UUID;
  */
 public final class GhostCommand {
     private static final int TOP = 15;
+    private static final java.time.format.DateTimeFormatter TIME_FORMAT =
+            java.time.format.DateTimeFormatter.ofPattern("dd.MM HH:mm:ss");
 
     private GhostCommand() {
     }
@@ -154,8 +156,12 @@ public final class GhostCommand {
             Map.Entry<UUID, Integer> row = ranking.get(i);
             int place = i + 1;
             String name = data.nameOf(row.getKey());
+            long at = data.lastFindAt(row.getKey());
+            String when = at <= 0L ? "—" : java.time.Instant.ofEpochMilli(at)
+                    .atZone(com.mawlee.cointcore.config.RegularMessagesConfig.get().zone())
+                    .format(TIME_FORMAT);
             source.sendSuccess(() -> CointCoreMessages.forSource(source, CointCoreMessages.GHOST_TOP_ENTRY,
-                    place, name, row.getValue(), total), false);
+                    place, name, row.getValue(), total, when), false);
         }
         return ranking.size();
     }
