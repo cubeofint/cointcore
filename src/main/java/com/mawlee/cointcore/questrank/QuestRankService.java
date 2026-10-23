@@ -159,9 +159,11 @@ public final class QuestRankService {
             if (minecraftServer == null) {
                 return;
             }
-            QuestRankSavedData.get(minecraftServer).record(playerId.get(), questId);
+            boolean firstCompletion = QuestRankSavedData.get(minecraftServer).record(playerId.get(), questId);
             CACHE.invalidatePlayer(playerId.get());
-            if (QuestRankConfig.get().resetRankQuestTeamProgress() && teamId != null) {
+            // Only the first completion frees the quest for teammates. Stat / advancement tasks re-complete from the
+            // same player's lasting progress right after a reset, which looped reset -> "Quest completed" spam.
+            if (firstCompletion && QuestRankConfig.get().resetRankQuestTeamProgress() && teamId != null) {
                 try {
                     FtbQuestProgress.resetMappedQuest(teamId, questId, playerId.get());
                 } catch (Throwable exception) {
