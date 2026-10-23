@@ -17,8 +17,14 @@ public final class Ae2PerfConfig {
 
     private static boolean cacheFuzzySearchMaxValue = true;
     private static int storageCacheIntervalTicks = 5;
+    private static boolean sophisticatedFastExtract = true;
 
     private Ae2PerfConfig() {
+    }
+
+    /** Storage buses extract from Sophisticated Storage through its slot index instead of walking every slot. */
+    public static boolean isSophisticatedFastExtract() {
+        return sophisticatedFastExtract;
     }
 
     public static boolean isCacheFuzzySearchMaxValue() {
@@ -60,17 +66,20 @@ public final class Ae2PerfConfig {
     private static void apply(LoadedConfig loaded) {
         cacheFuzzySearchMaxValue = loaded.cacheFuzzySearchMaxValue();
         storageCacheIntervalTicks = loaded.storageCacheIntervalTicks();
+        sophisticatedFastExtract = loaded.sophisticatedFastExtract();
     }
 
     private static LoadedConfig parse(Data data) {
-        return new LoadedConfig(data.cacheFuzzySearchMaxValue, Math.max(1, Math.min(40, data.storageCacheIntervalTicks)));
+        return new LoadedConfig(data.cacheFuzzySearchMaxValue, Math.max(1, Math.min(40, data.storageCacheIntervalTicks)),
+                data.sophisticatedFastExtract);
     }
 
     static Data defaultFileData() {
         return new Data();
     }
 
-    private record LoadedConfig(boolean cacheFuzzySearchMaxValue, int storageCacheIntervalTicks) {
+    private record LoadedConfig(boolean cacheFuzzySearchMaxValue, int storageCacheIntervalTicks,
+                                boolean sophisticatedFastExtract) {
     }
 
     static final class Data {
@@ -80,5 +89,9 @@ public final class Ae2PerfConfig {
         /** Ticks between cached-inventory rebuilds of grids with watchers (AE2: every tick). 1 disables the throttle. */
         @SerializedName("storage_cache_interval_ticks")
         int storageCacheIntervalTicks = 5;
+
+        /** Storage-bus extraction from Sophisticated Storage via its slot index. */
+        @SerializedName("sophisticated_fast_extract")
+        boolean sophisticatedFastExtract = true;
     }
 }

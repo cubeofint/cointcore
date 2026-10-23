@@ -181,7 +181,8 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.ae2.StorageServiceCacheThrottleMixin",
             "com.mawlee.cointcore.mixin.ae2.PartPlacementLimitMixin",
             "com.mawlee.cointcore.mixin.ae2.AEBasePartLimitTrackingMixin",
-            "com.mawlee.cointcore.mixin.ae2.StorageBusLimitMixin"
+            "com.mawlee.cointcore.mixin.ae2.StorageBusLimitMixin",
+            "com.mawlee.cointcore.mixin.ae2.ItemHandlerFacadeSophisticatedMixin"
     );
 
     private static final Set<String> EXTENDED_AE_MIXINS = Set.of(

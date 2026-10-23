@@ -165,6 +165,7 @@
     "ae2.PartPlacementLimitMixin",
     "ae2.AEBasePartLimitTrackingMixin",
     "ae2.StorageBusLimitMixin",
+    "ae2.ItemHandlerFacadeSophisticatedMixin",
     "extendedae.SpecialStorageBusLimitMixin"
   ],
   "injectors": {
