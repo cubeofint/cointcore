@@ -159,6 +159,7 @@
     "neovitae.NVMissingMappingsMixin",
     "irons.SpectralHammerSpellCapMixin",
     "apotheosis.SalvagingMenuMatchCacheMixin",
+    "logisticsnetworks.NetworkDispatcherBudgetMixin",
     "ae2.StorageExportStrategyArmoryRejectMixin",
     "ae2.StorageServiceCacheThrottleMixin",
     "ae2.PartPlacementLimitMixin",

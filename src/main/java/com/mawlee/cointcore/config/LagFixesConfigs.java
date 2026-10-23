@@ -43,6 +43,7 @@ public final class LagFixesConfigs {
             PipezArmoryFastRejectConfig.applySection(PipezArmoryFastRejectConfig.defaultFileData());
             IronsSpectralHammerConfig.applySection(IronsSpectralHammerConfig.defaultFileData());
             ApotheosisSalvageCacheConfig.applySection(ApotheosisSalvageCacheConfig.defaultFileData());
+            LogisticsNetworksBudgetConfig.applySection(LogisticsNetworksBudgetConfig.defaultFileData());
         }
     }
 
@@ -92,6 +93,10 @@ public final class LagFixesConfigs {
         root.add(
                 "apotheosis_salvage_cache",
                 ConfigMergeSupport.toJsonObject(ApotheosisSalvageCacheConfig.defaultFileData())
+        );
+        root.add(
+                "logistics_networks_budget",
+                ConfigMergeSupport.toJsonObject(LogisticsNetworksBudgetConfig.defaultFileData())
         );
         return root;
     }
@@ -157,6 +162,12 @@ public final class LagFixesConfigs {
                 ApotheosisSalvageCacheConfig.Data.class,
                 ApotheosisSalvageCacheConfig::defaultFileData
         ));
+        LogisticsNetworksBudgetConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root,
+                "logistics_networks_budget",
+                LogisticsNetworksBudgetConfig.Data.class,
+                LogisticsNetworksBudgetConfig::defaultFileData
+        ));
         if (logReload) {
             JdtPortalChunkConfig.logReload();
             EnderIoItemConduitConfig.logReload();
@@ -171,6 +182,7 @@ public final class LagFixesConfigs {
             PipezArmoryFastRejectConfig.logReload();
             IronsSpectralHammerConfig.logReload();
             ApotheosisSalvageCacheConfig.logReload();
+            LogisticsNetworksBudgetConfig.logReload();
         }
     }
 }
