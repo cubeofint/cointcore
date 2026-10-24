@@ -16,14 +16,15 @@ import net.neoforged.neoforge.event.level.BlockEvent;
 
 /**
  * Right-click on a ghost counts it (and does nothing else, so a ghost chest does not open); ghosts cannot be broken
- * or hit except by staff. Staff sneaking interact normally so they can set ghosts up.
+ * or hit except by staff. Staff sneaking interact normally so they can set ghosts up. The click handlers also take
+ * events a claim mod (FTB Chunks) already cancelled, so ghosts inside someone's claim can still be found.
  */
 @EventBusSubscriber(modid = CointCore.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
 public final class GhostHuntEvents {
     private GhostHuntEvents() {
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         if (!(event.getEntity() instanceof ServerPlayer player) || !(event.getLevel() instanceof ServerLevel level)) {
             return;
@@ -40,17 +41,17 @@ public final class GhostHuntEvents {
         });
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public static void onInteractEntitySpecific(PlayerInteractEvent.EntityInteractSpecific event) {
-        if (!event.isCanceled() && handleEntity(event, event.getTarget())) {
+        if (handleEntity(event, event.getTarget())) {
             event.setCanceled(true);
             event.setCancellationResult(InteractionResult.SUCCESS);
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public static void onInteractEntity(PlayerInteractEvent.EntityInteract event) {
-        if (!event.isCanceled() && handleEntity(event, event.getTarget())) {
+        if (handleEntity(event, event.getTarget())) {
             event.setCanceled(true);
             event.setCancellationResult(InteractionResult.SUCCESS);
         }
@@ -78,7 +79,8 @@ public final class GhostHuntEvents {
 
     private static final java.util.Map<java.util.UUID, Long> LAST_ENTITY_CLICK = new java.util.concurrent.ConcurrentHashMap<>();
 
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    /** LOWEST and not on cancelled events: a staff break removes the ghost only if the block really goes. */
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onBreak(BlockEvent.BreakEvent event) {
         if (!(event.getLevel() instanceof ServerLevel level) || !(event.getPlayer() instanceof ServerPlayer player)) {
             return;
