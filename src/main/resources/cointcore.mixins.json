@@ -47,6 +47,8 @@
     "minecraft.BaseSpawnerPerfMixin",
     "minecraft.NaturalSpawnerPerfMixin",
     "minecraft.PlayerAdvancementsLocalMixin",
+    "minecraft.ChunkMapTrackingThrottleMixin",
+    "minecraft.MobFarAiThrottleMixin",
     "minecraft.ItemEntityPerfMixin",
     "minecraft.ItemEntityMoveCollisionMixin",
     "minecraft.ContainersDropItemStackMixin",

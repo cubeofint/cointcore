@@ -44,6 +44,8 @@ public final class LagFixesConfigs {
             IronsSpectralHammerConfig.applySection(IronsSpectralHammerConfig.defaultFileData());
             ApotheosisSalvageCacheConfig.applySection(ApotheosisSalvageCacheConfig.defaultFileData());
             LogisticsNetworksBudgetConfig.applySection(LogisticsNetworksBudgetConfig.defaultFileData());
+            EntityPerfConfig.applyTracking(new EntityPerfConfig.TrackingData());
+            EntityPerfConfig.applyFarAi(new EntityPerfConfig.FarAiData());
         }
     }
 
@@ -98,6 +100,8 @@ public final class LagFixesConfigs {
                 "logistics_networks_budget",
                 ConfigMergeSupport.toJsonObject(LogisticsNetworksBudgetConfig.defaultFileData())
         );
+        root.add("entity_tracking_throttle", ConfigMergeSupport.toJsonObject(new EntityPerfConfig.TrackingData()));
+        root.add("far_mob_ai", ConfigMergeSupport.toJsonObject(new EntityPerfConfig.FarAiData()));
         return root;
     }
 
@@ -168,6 +172,12 @@ public final class LagFixesConfigs {
                 LogisticsNetworksBudgetConfig.Data.class,
                 LogisticsNetworksBudgetConfig::defaultFileData
         ));
+        EntityPerfConfig.applyTracking(ConfigMergeSupport.sectionOrDefault(
+                root, "entity_tracking_throttle", EntityPerfConfig.TrackingData.class, EntityPerfConfig.TrackingData::new
+        ));
+        EntityPerfConfig.applyFarAi(ConfigMergeSupport.sectionOrDefault(
+                root, "far_mob_ai", EntityPerfConfig.FarAiData.class, EntityPerfConfig.FarAiData::new
+        ));
         if (logReload) {
             JdtPortalChunkConfig.logReload();
             EnderIoItemConduitConfig.logReload();
@@ -183,6 +193,7 @@ public final class LagFixesConfigs {
             IronsSpectralHammerConfig.logReload();
             ApotheosisSalvageCacheConfig.logReload();
             LogisticsNetworksBudgetConfig.logReload();
+            EntityPerfConfig.logReload();
         }
     }
 }
