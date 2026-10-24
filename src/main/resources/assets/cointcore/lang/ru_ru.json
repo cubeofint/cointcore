@@ -710,5 +710,11 @@
   "message.cointcore.ghost.stats": "&6%s&7: найдено &d%s/%s&7 (%s)",
   "message.cointcore.ghost.reset": "&aВсе находки сброшены, призраки остались на местах.",
   "message.cointcore.ghost.kind_block": "блок",
-  "message.cointcore.ghost.kind_entity": "сущность"
+  "message.cointcore.ghost.kind_entity": "сущность",
+  "tooltip.cointcore.limit.header": "Лимит установки:",
+  "tooltip.cointcore.limit.chunk": " • на чанк: %s",
+  "tooltip.cointcore.limit.team": " • на команду: %s",
+  "tooltip.cointcore.limit.player": " • на игрока: %s",
+  "tooltip.cointcore.limit.header_shared": "Лимит установки (общий для %s):",
+  "tooltip.cointcore.limit.shared": "(общий для %s)"
 }

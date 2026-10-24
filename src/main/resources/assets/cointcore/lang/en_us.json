@@ -710,5 +710,11 @@
   "message.cointcore.ghost.stats": "&6%s&7: found &d%s/%s&7 (%s)",
   "message.cointcore.ghost.reset": "&aAll finds reset, the ghosts stay in place.",
   "message.cointcore.ghost.kind_block": "block",
-  "message.cointcore.ghost.kind_entity": "entity"
+  "message.cointcore.ghost.kind_entity": "entity",
+  "tooltip.cointcore.limit.header": "Placement limit:",
+  "tooltip.cointcore.limit.chunk": " • per chunk: %s",
+  "tooltip.cointcore.limit.team": " • per team: %s",
+  "tooltip.cointcore.limit.player": " • per player: %s",
+  "tooltip.cointcore.limit.header_shared": "Placement limit (shared by %s):",
+  "tooltip.cointcore.limit.shared": "(shared by %s)"
 }

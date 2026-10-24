@@ -52,6 +52,7 @@ public final class ServerAutomationEvents {
         ScheduledRestartService.tick(server);
         DimensionWipeService.tick(server);
         RegularMessageService.tick(server);
+        com.mawlee.cointcore.chunklimit.ChunkLimitTooltipSync.tick(server);
         com.mawlee.cointcore.ftb.ForceLoadIdleService.tick(server);
         SparkProfilerService.tick(server);
         SparkMetricsService.tick(server);

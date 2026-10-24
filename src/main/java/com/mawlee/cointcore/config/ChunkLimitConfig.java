@@ -91,6 +91,15 @@ public final class ChunkLimitConfig {
         return rules(scope).groups();
     }
 
+    /** Human label of a {@code group:<name>} limit key, "" for other keys or groups without a label. */
+    public static String groupLabel(LimitScope scope, ChunkLimitKey key) {
+        if (key == null || !key.id().startsWith("group:")) {
+            return "";
+        }
+        GroupLimit group = rules(scope).groups().get(key.id().substring("group:".length()));
+        return group == null ? "" : group.label();
+    }
+
     public static List<TagLimitBinding> getTagBindings(LimitScope scope) {
         return rules(scope).tagBindings();
     }
@@ -449,7 +458,7 @@ public final class ChunkLimitConfig {
         Map<String, GroupLimit> groups = new LinkedHashMap<>(rules.groups());
         GroupLimit existing = groups.get(groupName);
         List<ResourceLocation> blocks = existing != null ? existing.blocks() : List.of();
-        groups.put(groupName, new GroupLimit(groupName, limit, blocks));
+        groups.put(groupName, new GroupLimit(groupName, limit, blocks, existing != null ? existing.label() : ""));
         setRules(scope, rebuildRules(rules.exactLimits(), groups, toTagMap(rules.tagBindings()), toModMap(rules.modBindings())));
         afterMutation();
         return saveCurrentState();
@@ -470,7 +479,7 @@ public final class ChunkLimitConfig {
         if (!blocks.contains(blockId)) {
             blocks.add(blockId);
         }
-        groups.put(groupName, new GroupLimit(groupName, existing.limit(), List.copyOf(blocks)));
+        groups.put(groupName, new GroupLimit(groupName, existing.limit(), List.copyOf(blocks), existing.label()));
         setRules(scope, rebuildRules(rules.exactLimits(), groups, toTagMap(rules.tagBindings()), toModMap(rules.modBindings())));
         afterMutation();
         return saveCurrentState();
@@ -491,7 +500,7 @@ public final class ChunkLimitConfig {
         if (!blocks.remove(blockId)) {
             return false;
         }
-        groups.put(groupName, new GroupLimit(groupName, existing.limit(), List.copyOf(blocks)));
+        groups.put(groupName, new GroupLimit(groupName, existing.limit(), List.copyOf(blocks), existing.label()));
         setRules(scope, rebuildRules(rules.exactLimits(), groups, toTagMap(rules.tagBindings()), toModMap(rules.modBindings())));
         afterMutation();
         return saveCurrentState();
@@ -671,6 +680,7 @@ public final class ChunkLimitConfig {
         for (Map.Entry<String, GroupLimit> entry : source.entrySet()) {
             GroupFileData group = new GroupFileData();
             group.limit = entry.getValue().limit();
+            group.label = entry.getValue().label().isEmpty() ? null : entry.getValue().label();
             group.blocks = new ArrayList<>();
             for (ResourceLocation blockId : entry.getValue().blocks()) {
                 group.blocks.add(blockId.toString());
@@ -841,7 +851,8 @@ public final class ChunkLimitConfig {
                     }
                 }
                 ChunkLimitKey key = new ChunkLimitKey("group:" + entry.getKey(), groupData.limit);
-                GroupLimit group = new GroupLimit(entry.getKey(), groupData.limit, List.copyOf(blocks));
+                GroupLimit group = new GroupLimit(entry.getKey(), groupData.limit, List.copyOf(blocks),
+                        groupData.label == null ? "" : groupData.label.trim());
                 parsedGroups.put(entry.getKey(), group);
                 for (ResourceLocation blockId : blocks) {
                     idKeys.putIfAbsent(blockId, key);
@@ -878,6 +889,7 @@ public final class ChunkLimitConfig {
         for (Map.Entry<String, GroupLimit> entry : groups.entrySet()) {
             GroupFileData file = new GroupFileData();
             file.limit = entry.getValue().limit();
+            file.label = entry.getValue().label().isEmpty() ? null : entry.getValue().label();
             file.blocks = new ArrayList<>();
             for (ResourceLocation id : entry.getValue().blocks()) {
                 file.blocks.add(id.toString());
@@ -1047,7 +1059,8 @@ public final class ChunkLimitConfig {
                 || !resolveEntityKeys(LimitScope.TEAM, type, isMob).isEmpty();
     }
 
-    public record GroupLimit(String name, int limit, List<ResourceLocation> blocks) {
+    /** {@code label}: optional human name shown in item tooltips ("всех шин хранения"), "" when unset. */
+    public record GroupLimit(String name, int limit, List<ResourceLocation> blocks, String label) {
     }
 
     public record TagLimitBinding(TagKey<Block> tag, ChunkLimitKey key) {
@@ -1132,6 +1145,9 @@ public final class ChunkLimitConfig {
     private static final class GroupFileData {
         @SerializedName("limit")
         private Integer limit;
+
+        @SerializedName("label")
+        private String label;
 
         @SerializedName("blocks")
         private List<String> blocks = new ArrayList<>();

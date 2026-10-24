@@ -187,6 +187,7 @@ public final class CointCoreEvents {
             DonorPrivilegeService.onPlayerJoin(player);
             FluxAdminAccess.syncCapability(player);
             com.mawlee.cointcore.shop.PlayerShopAdminPayload.sendTo(player);
+            com.mawlee.cointcore.chunklimit.ChunkLimitTooltipSync.onLogin(player);
             SeeInvisibleService.sync(player);
             ClaimFlagEditSync.sync(player);
             ChunkBonusService.onPlayerJoin(player);

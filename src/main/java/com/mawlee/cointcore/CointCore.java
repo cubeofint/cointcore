@@ -42,6 +42,7 @@ public class CointCore {
         modEventBus.addListener(SeeInvisibleNetwork::register);
         modEventBus.addListener(com.mawlee.cointcore.chat.ChatChannelNetwork::register);
         modEventBus.addListener(com.mawlee.cointcore.quiz.QuizPayloads::register);
+        modEventBus.addListener(com.mawlee.cointcore.chunklimit.ChunkLimitTooltipPayload::register);
         modEventBus.addListener(ClaimFlagEditNetwork::register);
         modEventBus.addListener(AfkNetwork::register);
         modEventBus.addListener(InvSeeNetwork::register);
