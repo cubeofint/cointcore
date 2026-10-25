@@ -8,8 +8,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 /**
- * Owns {@code config/cointcore/cataclysm-respawn.json} with sections {@code sunken_city}
- * and {@code structures}.
+ * Owns {@code config/cointcore/cataclysm-respawn.json} with sections {@code sunken_city}, {@code structures}
+ * and {@code draconic_chaos_guardian}.
  */
 public final class CataclysmRespawnConfigs {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -29,6 +29,7 @@ public final class CataclysmRespawnConfigs {
             LOGGER.error("Failed to load {}; using defaults", FILE_NAME, exception);
             SunkenCityRespawnConfig.applySection(SunkenCityRespawnConfig.defaultFileData());
             CataclysmStructureRespawnConfig.applySection(CataclysmStructureRespawnConfig.defaultFileData());
+            ChaosGuardianRespawnConfig.applySection(ChaosGuardianRespawnConfig.defaultFileData());
         }
     }
 
@@ -59,6 +60,7 @@ public final class CataclysmRespawnConfigs {
         JsonObject root = new JsonObject();
         root.add("sunken_city", ConfigMergeSupport.toJsonObject(SunkenCityRespawnConfig.defaultFileData()));
         root.add("structures", ConfigMergeSupport.toJsonObject(CataclysmStructureRespawnConfig.defaultFileData()));
+        root.add("draconic_chaos_guardian", ConfigMergeSupport.toJsonObject(ChaosGuardianRespawnConfig.defaultFileData()));
         return root;
     }
 
@@ -70,9 +72,14 @@ public final class CataclysmRespawnConfigs {
                 root, "structures", CataclysmStructureRespawnConfig.FileData.class,
                 CataclysmStructureRespawnConfig::defaultFileData
         ));
+        ChaosGuardianRespawnConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root, "draconic_chaos_guardian", ChaosGuardianRespawnConfig.FileData.class,
+                ChaosGuardianRespawnConfig::defaultFileData
+        ));
         if (logReload) {
             SunkenCityRespawnConfig.logReload();
             CataclysmStructureRespawnConfig.logReload();
+            ChaosGuardianRespawnConfig.logReload();
         }
     }
 }
