@@ -180,6 +180,7 @@ public final class CointCoreCommand {
                 && SoulSurgePerfConfig.reload()
                 && SoulSurgeDenyConfig.reload()
                 && TickAccelerationDenyConfig.reload()
+                && com.mawlee.cointcore.config.CurioLimitConfig.reload()
                 && SpawnerPerfConfig.reload()
                 && SpawnerLootConfig.reload()
                 && ItemPerfConfig.reload()

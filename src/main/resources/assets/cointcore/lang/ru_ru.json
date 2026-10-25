@@ -716,5 +716,7 @@
   "tooltip.cointcore.limit.team": " • на команду: %s",
   "tooltip.cointcore.limit.player": " • на игрока: %s",
   "tooltip.cointcore.limit.header_shared": "Лимит установки (общий для %s):",
-  "tooltip.cointcore.limit.shared": "(общий для %s)"
+  "tooltip.cointcore.limit.shared": "(общий для %s)",
+  "message.cointcore.curio_limit": "Можно носить не больше %s × %s",
+  "tooltip.cointcore.curio_limit": "Можно носить только %s одновременно"
 }

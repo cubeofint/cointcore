@@ -35,6 +35,9 @@ public class CointCore {
     public static final String MOD_ID = "cointcore";
 
     public CointCore(IEventBus modEventBus) {
+        if (net.neoforged.fml.ModList.get().isLoaded("curios")) {
+            com.mawlee.cointcore.curio.CurioLimitEvents.install();
+        }
         if (net.neoforged.fml.ModList.get().isLoaded("ae2")) {
             com.mawlee.cointcore.ae.Ae2PartLimits.install();
         }

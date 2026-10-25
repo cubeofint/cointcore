@@ -125,6 +125,7 @@ public final class CointCoreEvents {
             SoulSurgePerfConfig.load();
             SoulSurgeDenyConfig.load();
             TickAccelerationDenyConfig.load();
+            com.mawlee.cointcore.config.CurioLimitConfig.load();
             SpawnerPerfConfig.load();
             SpawnerLootConfig.load();
             ItemPerfConfig.load();

@@ -716,5 +716,7 @@
   "tooltip.cointcore.limit.team": " • per team: %s",
   "tooltip.cointcore.limit.player": " • per player: %s",
   "tooltip.cointcore.limit.header_shared": "Placement limit (shared by %s):",
-  "tooltip.cointcore.limit.shared": "(shared by %s)"
+  "tooltip.cointcore.limit.shared": "(shared by %s)",
+  "message.cointcore.curio_limit": "You can wear at most %s × %s",
+  "tooltip.cointcore.curio_limit": "Only %s can be worn at a time"
 }
