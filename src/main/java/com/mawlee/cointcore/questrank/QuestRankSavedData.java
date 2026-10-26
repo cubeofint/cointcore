@@ -41,6 +41,14 @@ public final class QuestRankSavedData extends SavedData {
         return added;
     }
 
+    public int forget(UUID playerId, Set<Long> questIds) {
+        int removed = store.forget(playerId, questIds);
+        if (removed > 0) {
+            setDirty();
+        }
+        return removed;
+    }
+
     public Set<Long> completed(UUID playerId) {
         return store.completed(playerId);
     }

@@ -20,6 +20,24 @@ public final class QuestRankCompletionStore {
         return completedByPlayer.computeIfAbsent(playerId, ignored -> new LinkedHashSet<>()).add(questId);
     }
 
+    /** Drops these quest ids from the player's record; returns how many were there. */
+    public synchronized int forget(UUID playerId, Set<Long> questIds) {
+        Set<Long> completed = playerId == null ? null : completedByPlayer.get(playerId);
+        if (completed == null || questIds == null) {
+            return 0;
+        }
+        int removed = 0;
+        for (Long questId : questIds) {
+            if (completed.remove(questId)) {
+                removed++;
+            }
+        }
+        if (completed.isEmpty()) {
+            completedByPlayer.remove(playerId);
+        }
+        return removed;
+    }
+
     public synchronized boolean has(UUID playerId, long questId) {
         if (playerId == null) {
             return false;

@@ -255,7 +255,7 @@ public final class LuckPermsUsers {
             return CompletableFuture.completedFuture(null);
         }
         return LuckPermsUserMutations.enqueue(playerId, () -> loadUser(playerId).thenCompose(user -> {
-            List<String> missing = InheritanceNodes.groupsNotInherited(names, inheritedGroupNamesOf(user));
+            List<String> missing = InheritanceNodes.groupsNotInherited(names, directGroupNamesOf(user));
             if (missing.isEmpty()) {
                 return CompletableFuture.completedFuture(null);
             }
@@ -279,31 +279,51 @@ public final class LuckPermsUsers {
     }
 
     /**
-     * Inherited group names from the in-memory user. Empty if the user is not loaded.
+     * Groups assigned to the in-memory user directly. Empty if the user is not loaded.
      * Offline players are not in {@code getUser}; call {@link #loadUser} first or use
-     * {@link #inheritedGroupNamesOf}.
+     * {@link #directGroupNamesOf}.
      */
-    public static Set<String> inheritedGroupNames(UUID playerId) {
+    public static Set<String> directGroupNames(UUID playerId) {
         if (!LuckPermsIntegration.isAvailable() || playerId == null) {
             return Set.of();
         }
         try {
-            return inheritedGroupNamesOf(LuckPermsIntegration.getUser(playerId));
+            return directGroupNamesOf(LuckPermsIntegration.getUser(playerId));
         } catch (ReflectiveOperationException ignored) {
             return Set.of();
         }
     }
 
     /**
-     * Inherited group names, including parents of parents, from an already-loaded user.
+     * Groups the user has its own inheritance node for ({@code lp user parent add}), on this server or global.
+     * Parents of those groups are not included: a quest rank group inheriting another rank must not hand out
+     * that rank's prefix or count as having earned it.
      */
-    public static Set<String> inheritedGroupNamesOf(Object user) {
+    public static Set<String> directGroupNamesOf(Object user) {
         if (user == null) {
             return Set.of();
         }
         Set<String> names = new LinkedHashSet<>();
-        for (HeldGroup group : inheritedGroups(user)) {
-            names.add(group.name());
+        try {
+            Object inheritanceType = LuckPermsIntegration.getNodeType("INHERITANCE");
+            Iterable<?> nodes = nodesOf(user);
+            if (nodes == null) {
+                return Set.of();
+            }
+            String server = serverName();
+            for (Object node : nodes) {
+                if (!inheritanceType.equals(LuckPermsIntegration.invoke(node, "getType"))
+                        || !Boolean.TRUE.equals(LuckPermsIntegration.invoke(node, "getValue"))
+                        || !matchesThisServer(node, server)) {
+                    continue;
+                }
+                String name = PrefixSnapshot.normalize((String) LuckPermsIntegration.invoke(node, "getGroupName"));
+                if (name != null) {
+                    names.add(name);
+                }
+            }
+        } catch (ReflectiveOperationException exception) {
+            LOGGER.debug("Failed to resolve direct groups", exception);
         }
         return Set.copyOf(names);
     }
@@ -421,19 +441,15 @@ public final class LuckPermsUsers {
     public static PrefixSnapshot snapshotOf(Object user) {
         PrefixConfig.Settings settings = PrefixConfig.get();
         List<String> quest = ranksTrackGroups();
-        List<HeldGroup> held = inheritedGroups(user);
         List<PrefixOption> heldOptions = new ArrayList<>();
-        for (HeldGroup group : held) {
-            int trackIndex = quest.indexOf(group.name());
+        for (String group : directGroupNamesOf(user)) {
+            int trackIndex = quest.indexOf(group);
             if (trackIndex < 0) {
                 continue;
             }
-            OwnPrefix own = group.own();
-            if (own.raw().isBlank()) {
-                own = readOwnPrefix(findGroup(group.name()));
-            }
+            OwnPrefix own = readOwnPrefix(findGroup(group));
             heldOptions.add(new PrefixOption(
-                    group.name(),
+                    group,
                     own.raw(),
                     "quest",
                     own.priority(),
@@ -443,36 +459,6 @@ public final class LuckPermsUsers {
         List<PrefixOption> available = PrefixSelectionRules.available(heldOptions, quest, settings.excludeGroups());
         String selected = selectedOverride(user, settings);
         return PrefixSnapshot.of(available, selected);
-    }
-
-    private static List<HeldGroup> inheritedGroups(Object user) {
-        List<HeldGroup> result = new ArrayList<>();
-        Set<String> seen = new LinkedHashSet<>();
-        try {
-            Object queryOptions = LuckPermsIntegration.invoke(user, "getQueryOptions");
-            if (queryOptions == null) {
-                return List.of();
-            }
-            @SuppressWarnings("unchecked")
-            Collection<Object> groups = (Collection<Object>) LuckPermsIntegration.invoke(
-                    user,
-                    "getInheritedGroups",
-                    new Class<?>[]{LuckPermsIntegration.queryOptionsClass()},
-                    queryOptions
-            );
-            if (groups != null) {
-                for (Object group : groups) {
-                    String name = PrefixSnapshot.normalize((String) LuckPermsIntegration.invoke(group, "getName"));
-                    if (name == null || !seen.add(name)) {
-                        continue;
-                    }
-                    result.add(new HeldGroup(name, readOwnPrefix(group)));
-                }
-            }
-        } catch (ReflectiveOperationException exception) {
-            LOGGER.debug("Failed to resolve inherited groups", exception);
-        }
-        return result;
     }
 
     static QuestPrefixState readOwnQuestState(Object user, PrefixConfig.Settings settings) {
@@ -894,6 +880,4 @@ public final class LuckPermsUsers {
         static final OwnPrefix EMPTY = new OwnPrefix("", 0);
     }
 
-    private record HeldGroup(String name, OwnPrefix own) {
-    }
 }

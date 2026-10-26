@@ -288,7 +288,7 @@ public final class QuestRankService {
         boolean online = onlinePlayer != null;
         String fallbackName = online ? onlinePlayer.getGameProfile().getName() : "offline";
         if (online) {
-            Set<String> held = LuckPermsUsers.inheritedGroupNames(playerId);
+            Set<String> held = LuckPermsUsers.directGroupNames(playerId);
             List<String> missing = QuestRankGrantLogic.groupsToGrant(recorded, held, table);
             if (QuestRankTeamSyncLogic.shouldBackoff(reason)) {
                 missing = QuestRankGrantBackoff.filter(playerId, missing);
@@ -340,7 +340,7 @@ public final class QuestRankService {
             if (user == null) {
                 return CompletableFuture.completedFuture(null);
             }
-            Set<String> held = LuckPermsUsers.inheritedGroupNamesOf(user);
+            Set<String> held = LuckPermsUsers.directGroupNamesOf(user);
             List<String> missing = knownMissing != null
                     ? knownMissing
                     : QuestRankGrantLogic.groupsToGrant(completed, held, table);
@@ -399,7 +399,7 @@ public final class QuestRankService {
             }
             return;
         }
-        Set<String> held = LuckPermsUsers.inheritedGroupNames(playerId);
+        Set<String> held = LuckPermsUsers.directGroupNames(playerId);
         for (String group : groups) {
             if (held.contains(group)) {
                 QuestRankGrantBackoff.clear(playerId, group);
@@ -445,6 +445,30 @@ public final class QuestRankService {
             }
         }
         return FtbQuestProgress.questServer();
+    }
+
+    /**
+     * Takes a quest rank away for good: forgets the player's recorded completions of every quest that grants
+     * {@code group} (otherwise the next sync grants it again) and removes the group in LuckPerms.
+     * Returns how many recorded completions were dropped; the future completes when LuckPerms saved the user.
+     */
+    public static RevokeResult revoke(MinecraftServer minecraftServer, UUID playerId, String group) {
+        String name = QuestRankTable.normalizeGroup(group);
+        Set<Long> quests = new LinkedHashSet<>();
+        for (long questId : QuestRankConfig.get().table().questIds()) {
+            if (QuestRankConfig.get().table().groupFor(questId).filter(name::equals).isPresent()) {
+                quests.add(questId);
+            }
+        }
+        int forgotten = QuestRankSavedData.get(minecraftServer).forget(playerId, quests);
+        CACHE.invalidatePlayer(playerId);
+        QuestRankGrantBackoff.clear(playerId, name);
+        LOGGER.info("Quest rank revoked: uuid={} group={} forgotten completions={}", playerId, name, forgotten);
+        return new RevokeResult(quests.size(), forgotten, LuckPermsUsers.removeGroup(playerId, name));
+    }
+
+    /** {@code mappedQuests}: quests granting the group in quest-ranks.json; 0 means the group is not a quest rank. */
+    public record RevokeResult(int mappedQuests, int forgotten, CompletableFuture<Void> luckPerms) {
     }
 
     public static SyncSummary lastSummary() {

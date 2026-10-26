@@ -279,6 +279,10 @@ public final class CointCoreMessages {
     public static final String QUEST_RANKS_SYNC_ALL = "message.cointcore.questranks.sync.all";
     public static final String QUEST_RANKS_SYNC_PLAYER = "message.cointcore.questranks.sync.player";
     public static final String QUEST_RANKS_PLAYER_OFFLINE = "message.cointcore.questranks.player_offline";
+    public static final String QUEST_RANKS_REVOKE_DONE = "message.cointcore.questranks.revoke.done";
+    public static final String QUEST_RANKS_REVOKE_FAILED = "message.cointcore.questranks.revoke.failed";
+    public static final String QUEST_RANKS_REVOKE_UNKNOWN_PLAYER = "message.cointcore.questranks.revoke.unknown_player";
+    public static final String QUEST_RANKS_REVOKE_NOT_QUEST_RANK = "message.cointcore.questranks.revoke.not_quest_rank";
     public static final String PRIVILEGE_COMMAND_COOLDOWN = "message.cointcore.privilege.cooldown";
     public static final String PRIVILEGE_REPAIR_DONE = "message.cointcore.privilege.repair.done";
     public static final String PRIVILEGE_REPAIR_NOT_DAMAGEABLE = "message.cointcore.privilege.repair.not_damageable";

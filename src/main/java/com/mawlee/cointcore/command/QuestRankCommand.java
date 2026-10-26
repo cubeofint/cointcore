@@ -1,6 +1,7 @@
 package com.mawlee.cointcore.command;
 
 import com.mawlee.cointcore.config.QuestRankConfig;
+import com.mawlee.cointcore.ignore.IgnoreService;
 import com.mawlee.cointcore.lang.CointCoreMessages;
 import com.mawlee.cointcore.permission.CointPermissionNodes;
 import com.mawlee.cointcore.permission.PermissionService;
@@ -15,6 +16,9 @@ import net.minecraft.server.level.ServerPlayer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.TreeSet;
+import java.util.UUID;
 
 public final class QuestRankCommand {
     private QuestRankCommand() {
@@ -32,7 +36,45 @@ public final class QuestRankCommand {
                                         onlineNames(context.getSource()),
                                         builder
                                 ))
-                                .executes(QuestRankCommand::syncPlayer)));
+                                .executes(QuestRankCommand::syncPlayer)))
+                .then(Commands.literal("revoke")
+                        .then(Commands.argument("player", StringArgumentType.word())
+                                .suggests((context, builder) -> SharedSuggestionProvider.suggest(
+                                        onlineNames(context.getSource()),
+                                        builder
+                                ))
+                                .then(Commands.argument("group", StringArgumentType.word())
+                                        .suggests((context, builder) -> SharedSuggestionProvider.suggest(
+                                                new TreeSet<>(QuestRankConfig.get().table().questToGroup().values()),
+                                                builder
+                                        ))
+                                        .executes(QuestRankCommand::revoke))));
+    }
+
+    private static int revoke(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        String name = StringArgumentType.getString(context, "player");
+        String group = StringArgumentType.getString(context, "group");
+        Optional<UUID> playerId = IgnoreService.resolveTargetId(source.getServer(), name);
+        if (playerId.isEmpty()) {
+            source.sendFailure(CointCoreMessages.forSource(source, CointCoreMessages.QUEST_RANKS_REVOKE_UNKNOWN_PLAYER, name));
+            return 0;
+        }
+        QuestRankService.RevokeResult result = QuestRankService.revoke(source.getServer(), playerId.get(), group);
+        if (result.mappedQuests() == 0) {
+            source.sendSuccess(() -> CointCoreMessages.forSource(
+                    source, CointCoreMessages.QUEST_RANKS_REVOKE_NOT_QUEST_RANK, group), false);
+        }
+        result.luckPerms().whenComplete((ignored, error) -> source.getServer().execute(() -> {
+            if (error != null) {
+                source.sendFailure(CointCoreMessages.forSource(
+                        source, CointCoreMessages.QUEST_RANKS_REVOKE_FAILED, group, name, error.toString()));
+                return;
+            }
+            source.sendSuccess(() -> CointCoreMessages.forSource(
+                    source, CointCoreMessages.QUEST_RANKS_REVOKE_DONE, group, name, result.forgotten()), true);
+        }));
+        return 1;
     }
 
     private static boolean canAdmin(CommandSourceStack source) {
