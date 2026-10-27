@@ -5,12 +5,18 @@
   "plugin": "com.mawlee.cointcore.mixin.CointCoreMixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "refinedstorage.UniversalGridPatternModeMixin",
+    "refinedstorage.WirelessPatternMenuConstructor",
+    "refinedstorage.WirelessPatternMenuMixin",
     "refinedstorage.InfinityDiskStateTrackingMixin",
     "refinedstorage.InfinityDiskConfiguredStorageMixin",
     "ae2.AEItemKeyFuzzyMaxCacheMixin",
     "functionalstorage.ArmoryCabinetMenuMixin"
   ],
   "client": [
+    "refinedstorage.WirelessPatternBackgroundMixin",
+    "refinedstorage.WirelessPatternMonitorBackgroundMixin",
+    "refinedstorage.WirelessPatternTabsMixin",
     "functionalstorage.ArmoryCabinetScreenMixin",
     "ae2.TagSearchPredicateMixin",
     "ftbteams.TeamSettingsEditMixin",

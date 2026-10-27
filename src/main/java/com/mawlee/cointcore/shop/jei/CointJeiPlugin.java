@@ -19,6 +19,14 @@ public final class CointJeiPlugin implements IModPlugin {
     private static IJeiRuntime runtime;
 
     @Override
+    public void registerRecipeTransferHandlers(mezz.jei.api.registration.IRecipeTransferRegistration registration) {
+        if (net.neoforged.fml.ModList.get().isLoaded("refinedstorage")
+                && net.neoforged.fml.ModList.get().isLoaded("universalgrid")) {
+            com.mawlee.cointcore.refinedstorage.wireless.WirelessPatternJei.register(registration);
+        }
+    }
+
+    @Override
     public ResourceLocation getPluginUid() {
         return ResourceLocation.fromNamespaceAndPath(CointCore.MOD_ID, "jei");
     }

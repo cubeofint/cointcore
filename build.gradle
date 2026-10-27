@@ -191,6 +191,11 @@ dependencies {
     packMods(curseMod(curse_ae2)) { transitive = false }
     packMods(curseMod(curse_refined_storage)) { transitive = false }
     localRuntime(curseMod(curse_refined_storage)) { transitive = false }
+    // Universal Grid 0.3.2 and Quartz Arsenal 1.0.8 for the wireless pattern editor integration.
+    compileOnly "maven.modrinth:universal-grid:fa0WBjoC"
+    localRuntime "maven.modrinth:universal-grid:fa0WBjoC"
+    localRuntime "maven.modrinth:refined-storage-quartz-arsenal:toDdIhGu"
+    localRuntime "maven.modrinth:refined-storage-jei-integration:BYZmHubv"
     packMods(curseMod(curse_create)) { transitive = false }
     packMods(curseMod(curse_entangled)) { transitive = false }
     packMods(curseMod(curse_supermartijn_core)) { transitive = false }
@@ -244,6 +249,7 @@ dependencies {
     testImplementation "net.luckperms:api:5.4"
     testImplementation "it.unimi.dsi:fastutil:8.5.15"
     testImplementation(curseMod(curse_refined_storage)) { transitive = false }
+    testImplementation "maven.modrinth:universal-grid:fa0WBjoC"
 
     compileOnly "mezz.jei:jei-1.21.1-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"

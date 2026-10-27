@@ -37,6 +37,9 @@ public class CointCore {
     public CointCore(IEventBus modEventBus) {
         if (net.neoforged.fml.ModList.get().isLoaded("refinedstorage")) {
             com.mawlee.cointcore.refinedstorage.InfinityDisks.register(modEventBus);
+            if (net.neoforged.fml.ModList.get().isLoaded("universalgrid")) {
+                com.mawlee.cointcore.refinedstorage.wireless.WirelessPatternIntegration.register(modEventBus);
+            }
         }
         if (net.neoforged.fml.ModList.get().isLoaded("curios")) {
             com.mawlee.cointcore.curio.CurioLimitEvents.install();

@@ -764,5 +764,7 @@
   "item.cointcore.infinity_purple_disk": "Infinite Purple Dye Disk",
   "item.cointcore.infinity_magenta_disk": "Infinite Magenta Dye Disk",
   "item.cointcore.infinity_pink_disk": "Infinite Pink Dye Disk",
-  "tooltip.cointcore.infinity_disk.unavailable": "The mod providing this resource is not installed."
+  "tooltip.cointcore.infinity_disk.unavailable": "The mod providing this resource is not installed.",
+  "menu.cointcore.wireless_pattern_grid": "Wireless Pattern Grid",
+  "message.cointcore.wireless_patterns.unavailable": "The grid is out of range, out of energy, or you do not have permission to open it."
 }

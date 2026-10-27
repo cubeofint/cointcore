@@ -764,5 +764,7 @@
   "item.cointcore.infinity_purple_disk": "Бесконечный диск фиолетового красителя",
   "item.cointcore.infinity_magenta_disk": "Бесконечный диск пурпурного красителя",
   "item.cointcore.infinity_pink_disk": "Бесконечный диск розового красителя",
-  "tooltip.cointcore.infinity_disk.unavailable": "Мод, добавляющий этот ресурс, не установлен."
+  "tooltip.cointcore.infinity_disk.unavailable": "Мод, добавляющий этот ресурс, не установлен.",
+  "menu.cointcore.wireless_pattern_grid": "Беспроводной терминал шаблонов",
+  "message.cointcore.wireless_patterns.unavailable": "Терминал вне зоны действия, разряжен или у вас нет права его открыть."
 }

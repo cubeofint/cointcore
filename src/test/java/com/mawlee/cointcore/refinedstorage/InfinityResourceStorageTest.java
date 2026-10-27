@@ -108,6 +108,29 @@ class InfinityResourceStorageTest {
     }
 
     @Test
+    void emptyFiniteDiskAcceptsDepositsWithAndWithoutInfinitySources() {
+        for (boolean withInfinity : new boolean[]{false, true}) {
+            var ordinary = new com.refinedmods.refinedstorage.api.storage.limited.LimitedStorageImpl(65_536);
+            var drive = new CompositeStorageImpl(MutableResourceListImpl.create());
+            drive.addSource(new StateTrackedStorage(ordinary, () -> { }));
+            if (withInfinity) drive.addSource(new InfinityStateTrackedStorage(source, () -> { }));
+            var network = new CompositeStorageImpl(MutableResourceListImpl.create());
+            network.addSource(new ConfiguredDrive(drive));
+
+            assertEquals(64, network.insert(other, 64, Action.SIMULATE, Actor.EMPTY));
+            assertEquals(0, ordinary.getStored());
+            assertEquals(64, network.insert(other, 64, Action.EXECUTE, Actor.EMPTY));
+            assertEquals(64, ordinary.getStored());
+            assertEquals(64, network.extract(other, 64, Action.EXECUTE, Actor.EMPTY));
+            assertEquals(0, ordinary.getStored());
+            // Returning the infinite resource must also go into the finite disk, without voiding it.
+            assertEquals(32, network.insert(resource, 32, Action.EXECUTE, Actor.EMPTY));
+            assertEquals(32, ordinary.getStored());
+            assertEquals(32 + (withInfinity ? InfinityResourceStorage.DISPLAY_AMOUNT : 0), advertisedAmount(network));
+        }
+    }
+
+    @Test
     void finiteAndInfiniteCopiesOfTheSameResourceKeepCorrectRootAccounting() {
         var drive = new CompositeStorageImpl(MutableResourceListImpl.create());
         var ordinary = new StorageImpl();

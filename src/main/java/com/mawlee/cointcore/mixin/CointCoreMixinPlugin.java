@@ -195,6 +195,15 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.refinedstorage.ImporterNetworkNodeIdleSkipMixin"
     );
 
+    private static final Set<String> UNIVERSAL_GRID_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.refinedstorage.UniversalGridPatternModeMixin",
+            "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternMenuConstructor",
+            "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternMenuMixin",
+            "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternBackgroundMixin",
+            "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternMonitorBackgroundMixin",
+            "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternTabsMixin"
+    );
+
     private static final Set<String> DISCORD_CHAT_MOD_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.discord.MinecraftUtilsMixin",
             "com.mawlee.cointcore.mixin.discord.MinecraftEventsMixin"
@@ -380,6 +389,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
         putAll(map, AE2_MIXINS, "ae2");
         putAll(map, EXTENDED_AE_MIXINS, "ae2", "extendedae");
         putAll(map, REFINED_STORAGE_MIXINS, "refinedstorage");
+        putAll(map, UNIVERSAL_GRID_MIXINS, "refinedstorage", "universalgrid");
         putAll(map, DISCORD_CHAT_MOD_MIXINS, "discord_chat_mod");
         putAll(map, MOB_GRINDING_UTILS_MIXINS, "mob_grinding_utils");
         putAll(map, RFTOOLS_BUILDER_MIXINS, "rftoolsbuilder");
