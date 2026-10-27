@@ -58,7 +58,7 @@ public final class WirelessPatternSession {
         refreshPatternPreview();
     }
 
-    private static Grid createNativeWirelessGrid(NetworkItemContext context) {
+    static Grid createNativeWirelessGrid(NetworkItemContext context) {
         // RS does not expose a wireless Grid factory. Reuse its implementation to retain secured
         // insert/extract operations, transmitter range checks, energy usage and watcher cleanup.
         try {

@@ -53,6 +53,15 @@ public final class CointJeiPlugin implements IModPlugin {
         return runtime;
     }
 
+    public static ItemStack itemUnderMouse() {
+        if (runtime == null) return ItemStack.EMPTY;
+        ItemStack stack = runtime.getIngredientListOverlay().getIngredientUnderMouse(VanillaTypes.ITEM_STACK);
+        if (stack != null && !stack.isEmpty()) return stack;
+        stack = runtime.getBookmarkOverlay().getIngredientUnderMouse(VanillaTypes.ITEM_STACK);
+        if (stack != null && !stack.isEmpty()) return stack;
+        return runtime.getRecipesGui().getIngredientUnderMouse(VanillaTypes.ITEM_STACK).orElse(ItemStack.EMPTY);
+    }
+
     public static boolean matchesListing(String query, ItemStack listing) {
         List<ItemStack> filtered = filteredStacks(query);
         if (filtered == null || listing == null || listing.isEmpty()) {

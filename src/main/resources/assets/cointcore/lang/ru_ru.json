@@ -770,5 +770,8 @@
   "tooltip.cointcore.wireless_patterns.available": "Доступно в сети: %s",
   "tooltip.cointcore.wireless_patterns.consume": "При записи автоматически расходуется один шаблон.",
   "menu.cointcore.wireless_pattern_grid": "Беспроводной терминал шаблонов",
+  "tooltip.cointcore.orders.row": "Заказанные предметы — доступное количество в сети",
+  "tooltip.cointcore.orders.remove": "Shift + ПКМ: убрать из строки заказов",
+  "message.cointcore.wireless_pick.unavailable": "Не удалось забрать предмет: проверьте наличие, свободное место, доступ и связь терминала.",
   "message.cointcore.wireless_patterns.unavailable": "Терминал вне зоны действия, разряжен или у вас нет права его открыть."
 }

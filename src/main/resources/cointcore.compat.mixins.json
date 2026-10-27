@@ -6,6 +6,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "refinedstorage.UniversalGridPatternModeMixin",
+    "refinedstorage.TerminalSlotProviderAccessor",
     "refinedstorage.WirelessPatternEncodingMixin",
     "refinedstorage.WirelessPatternMenuConstructor",
     "refinedstorage.WirelessPatternMenuMixin",
@@ -15,6 +16,10 @@
     "functionalstorage.ArmoryCabinetMenuMixin"
   ],
   "client": [
+    "refinedstorage.RecentOrdersMenuMixin",
+    "refinedstorage.RecentOrdersScreenMixin",
+    "refinedstorage.AutocraftingRequestAccessor",
+    "refinedstorage.RecentOrdersRequestMixin",
     "refinedstorage.WirelessPatternBackgroundMixin",
     "refinedstorage.WirelessPatternMonitorBackgroundMixin",
     "refinedstorage.WirelessPatternTabsMixin",

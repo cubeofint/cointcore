@@ -29,6 +29,26 @@ class WirelessPatternCompatibilityTest {
     }
 
     @Test
+    void pickUsesNativeSecuredWirelessOperationsAndRequestConfirmationHooksExist() throws IOException {
+        var wireless = read("com/refinedmods/refinedstorage/common/grid/WirelessGrid");
+        var constructed = wireless.methods.stream().flatMap(method -> java.util.Arrays.stream(method.instructions.toArray()))
+                .filter(instruction -> instruction instanceof TypeInsnNode type && type.getOpcode() == Opcodes.NEW)
+                .map(instruction -> ((TypeInsnNode) instruction).desc).toList();
+        assertTrue(constructed.contains("com/refinedmods/refinedstorage/common/grid/SecuredGridOperations"));
+        assertTrue(constructed.contains("com/refinedmods/refinedstorage/common/grid/WirelessGridOperations"));
+        var api = read("com/refinedmods/refinedstorage/common/RefinedStorageApiImpl");
+        assertTrue(api.fields.stream().anyMatch(field -> field.name.equals("slotReferenceProvider")
+                && field.desc.equals("Lcom/refinedmods/refinedstorage/common/support/slotreference/CompositeSlotReferenceProvider;")));
+        var request = read("com/refinedmods/refinedstorage/common/autocrafting/preview/AutocraftingRequest");
+        assertTrue(request.fields.stream().anyMatch(field -> field.name.equals("id") && field.desc.equals("Ljava/util/UUID;")));
+        assertTrue(request.fields.stream().anyMatch(field -> field.name.equals("resource")
+                && field.desc.equals("Lcom/refinedmods/refinedstorage/api/resource/ResourceKey;")));
+        var preview = read("com/refinedmods/refinedstorage/common/autocrafting/preview/AutocraftingPreviewContainerMenu");
+        assertTrue(preview.methods.stream().anyMatch(method -> method.name.equals("responseReceived")
+                && method.desc.equals("(Ljava/util/UUID;Z)V")));
+    }
+
+    @Test
     void networkPatternPreviewHooksCoverNativeInputAndSuccessfulOutputCommit() throws IOException {
         var backend = read("com/refinedmods/refinedstorage/common/autocrafting/patterngrid/PatternGridBlockEntity");
         var encoding = backend.methods.stream().filter(method -> method.name.equals("createPattern")).findFirst().orElseThrow();
