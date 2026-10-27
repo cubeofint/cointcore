@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["IRI", "RCR", "IRI"],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "R": { "item": "minecraft:redstone" },
+    "C": { "item": "refinedstorage:upgrade" }
+  },
+  "result": { "id": "cointcore:wireless_magnet_card", "count": 1 },
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "refinedstorage" },
+    { "type": "neoforge:mod_loaded", "modid": "universalgrid" }
+  ]
+}

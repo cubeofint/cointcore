@@ -226,6 +226,8 @@ dependencies {
     packMods(curseMod(curse_cosmetic_armor)) { transitive = false }
     packMods(curseMod(curse_pocket_storage)) { transitive = false }
     packMods(curseMod(curse_sophisticated_backpacks)) { transitive = false }
+    // Dev version matching Sophisticated Core 1.5.12 already present in run/mods.
+    localRuntime("maven.modrinth:sophisticated-backpacks:QkVLEgt1") { transitive = false }
     packMods(curseMod(curse_sophisticated_core)) { transitive = false }
     packMods(curseMod(curse_ad_astra)) { transitive = false }
     packMods(curseMod(curse_mystical_agriculture)) { transitive = false }
