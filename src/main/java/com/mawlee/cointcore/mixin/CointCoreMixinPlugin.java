@@ -192,7 +192,9 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     private static final Set<String> REFINED_STORAGE_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.refinedstorage.InfinityDiskStateTrackingMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.InfinityDiskConfiguredStorageMixin",
-            "com.mawlee.cointcore.mixin.refinedstorage.ImporterNetworkNodeIdleSkipMixin"
+            "com.mawlee.cointcore.mixin.refinedstorage.ImporterNetworkNodeIdleSkipMixin",
+            "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternEncodingMixin",
+            "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternMenuMixin"
     );
 
     private static final Set<String> UNIVERSAL_GRID_MIXINS = Set.of(
@@ -202,9 +204,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.refinedstorage.RecentOrdersScreenMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.AutocraftingRequestAccessor",
             "com.mawlee.cointcore.mixin.refinedstorage.RecentOrdersRequestMixin",
-            "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternEncodingMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternMenuConstructor",
-            "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternMenuMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternBackgroundMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternMonitorBackgroundMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternTabsMixin"

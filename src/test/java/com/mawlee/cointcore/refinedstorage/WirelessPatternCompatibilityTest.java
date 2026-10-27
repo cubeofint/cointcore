@@ -82,6 +82,50 @@ class WirelessPatternCompatibilityTest {
     }
 
     @Test
+    void wiredPreviewScopeCoversBothConstructorsAndTheOnlyNativeEncodingEntry() throws IOException {
+        var menu = read("com/refinedmods/refinedstorage/common/autocrafting/patterngrid/PatternGridContainerMenu");
+        assertEquals(2, menu.methods.stream().filter(method -> method.name.equals("<init>")).count(),
+                "Client and server must both install the same four count properties");
+        var mixin = read("com/mawlee/cointcore/mixin/refinedstorage/WirelessPatternMenuMixin");
+        var initializer = mixin.methods.stream().filter(method -> method.name.equals("cointcore$initializeNetworkPatterns"))
+                .findFirst().orElseThrow();
+        var inject = initializer.visibleAnnotations.stream()
+                .filter(annotation -> annotation.desc.equals("Lorg/spongepowered/asm/mixin/injection/Inject;"))
+                .findFirst().orElseThrow();
+        @SuppressWarnings("unchecked")
+        var targets = (java.util.List<String>) inject.values.get(inject.values.indexOf("method") + 1);
+        assertEquals(menu.methods.stream().filter(method -> method.name.equals("<init>"))
+                .map(method -> "<init>" + method.desc).collect(java.util.stream.Collectors.toSet()),
+                new java.util.HashSet<>(targets), "Explicitly target both constructors; a bare <init> only selects one");
+        var create = menu.methods.stream().filter(method -> method.name.equals("createPattern")).findFirst().orElseThrow();
+        assertEquals(1, java.util.Arrays.stream(create.instructions.toArray())
+                .filter(instruction -> instruction instanceof MethodInsnNode call
+                        && call.owner.equals("com/refinedmods/refinedstorage/common/autocrafting/patterngrid/PatternGridBlockEntity")
+                        && call.name.equals("createPattern") && call.desc.equals("()V")).count(),
+                "All menu encoding requests must enter the per-player network scope");
+
+        var block = read("com/refinedmods/refinedstorage/common/autocrafting/patterngrid/PatternGridBlockEntity");
+        var encode = block.methods.stream().filter(method -> method.name.equals("createPattern")).findFirst().orElseThrow();
+        assertEquals(1, java.util.Arrays.stream(encode.instructions.toArray())
+                .filter(instruction -> instruction instanceof MethodInsnNode call && call.name.equals("isPatternAvailable")
+                        && call.desc.equals("()Z")).count(),
+                "The wired preview must replace native blank availability without modifying the block inventory");
+        assertTrue(block.fields.stream().anyMatch(field -> field.name.equals("patternOutput")
+                && field.desc.equals("Lcom/refinedmods/refinedstorage/common/support/FilteredContainer;")
+                && (field.access & Opcodes.ACC_FINAL) != 0));
+    }
+
+    @Test
+    void wiredConsumptionUsesSecuredNativeGridOperations() throws IOException {
+        var grid = read("com/refinedmods/refinedstorage/common/grid/AbstractGridBlockEntity");
+        var operations = grid.methods.stream().filter(method -> method.name.equals("createOperations")).findFirst().orElseThrow();
+        assertTrue(java.util.Arrays.stream(operations.instructions.toArray())
+                .anyMatch(instruction -> instruction instanceof TypeInsnNode type && type.getOpcode() == Opcodes.NEW
+                        && type.desc.equals("com/refinedmods/refinedstorage/common/grid/SecuredGridOperations")),
+                "Network blank extraction must retain the wired grid's security wrapper");
+    }
+
+    @Test
     void universalGridTabHookAndDisabledSlotContractRemainCompatible() throws IOException {
         var client = read("com/ultramega/universalgrid/common/ClientUtils");
         assertTrue(client.methods.stream().anyMatch(method -> method.name.equals("isUniversalGrid")

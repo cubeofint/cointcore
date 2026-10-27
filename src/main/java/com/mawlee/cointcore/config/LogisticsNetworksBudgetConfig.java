@@ -7,7 +7,8 @@ import org.slf4j.Logger;
 /**
  * Per-tick time budget for Logistics Networks' synchronous transfers. The mod processes every woken network in one
  * tick with no limit (10–31 ms average, spikes to 785 ms); past the budget the remaining networks wait one tick.
- * A network deferred last tick always runs, so none starves. Networks slower than {@code slow_network_log_ms} on
+ * Deferred networks get FIFO priority, with at least one network processed per tick. Retries share the same budget.
+ * Networks slower than {@code slow_network_log_ms} on
  * their own are logged with name and owner.
  *
  * <p>File: {@code config/cointcore/lag-fixes.json} section {@code logistics_networks_budget}. Defaults to enabled.

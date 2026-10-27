@@ -1,6 +1,8 @@
 package com.mawlee.cointcore.mixin.logisticsnetworks;
 
 import com.mawlee.cointcore.config.LogisticsNetworksBudgetConfig;
+import com.mawlee.cointcore.logisticsnetworks.FairDispatchBudget;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.mojang.logging.LogUtils;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
@@ -14,15 +16,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 /**
  * Soft mixin: only applied when {@code logisticsnetworks} is loaded. Caps the time its synchronous dispatch may take
- * per tick ({@link LogisticsNetworksBudgetConfig}); networks past the budget are re-queued for the next tick, and one
- * deferred last tick always runs this tick. Logs single networks that are slow on their own.
+ * per tick ({@link LogisticsNetworksBudgetConfig}); networks past the budget are re-queued and get FIFO priority
+ * in the next batch. At least one network runs per tick. Logs single networks that are slow on their own.
  *
  * <p>Verified against logisticsnetworks-1.21.1-1.17.2 ({@code NetworkDispatcher#processSynchronously}).
  */
@@ -35,37 +36,32 @@ public abstract class NetworkDispatcherBudgetMixin {
     private static final long COINTCORE$SLOW_LOG_INTERVAL_MS = 60_000L;
 
     @Unique
-    private long cointcore$tick = Long.MIN_VALUE;
-    @Unique
-    private long cointcore$tickStartNanos;
-    @Unique
     private long cointcore$networkStartNanos;
     @Unique
-    private Set<UUID> cointcore$deferredLastTick = new HashSet<>();
-    @Unique
-    private Set<UUID> cointcore$deferredThisTick = new HashSet<>();
+    private final FairDispatchBudget<UUID> cointcore$budget = new FairDispatchBudget<>();
     @Unique
     private final Map<UUID, Long> cointcore$slowLoggedAt = new HashMap<>();
 
     @Shadow
     abstract void markDirty(UUID networkId);
 
+    @ModifyExpressionValue(method = "processDirtyNetworks", at = @At(value = "INVOKE",
+            target = "Lme/almana/logisticsnetworks/data/NetworkDispatchState;takeAllPendingNetworks()Ljava/util/Set;"), require = 1)
+    private Set<UUID> cointcore$oldestDeferredFirst(Set<UUID> pending) {
+        if (!LogisticsNetworksBudgetConfig.isEnabled()) {
+            cointcore$budget.clear();
+            return pending;
+        }
+        return cointcore$budget.order(pending);
+    }
+
     @Inject(method = "processSynchronously", at = @At("HEAD"), cancellable = true, remap = false)
     private void cointcore$budgetHead(UUID networkId, @Coerce Object network, MinecraftServer server, long gameTime,
                                       CallbackInfo ci) {
         long now = System.nanoTime();
-        if (gameTime != cointcore$tick) {
-            cointcore$tick = gameTime;
-            cointcore$tickStartNanos = now;
-            Set<UUID> swap = cointcore$deferredLastTick;
-            cointcore$deferredLastTick = cointcore$deferredThisTick;
-            cointcore$deferredThisTick = swap;
-            cointcore$deferredThisTick.clear();
-        }
         if (LogisticsNetworksBudgetConfig.isEnabled()
-                && now - cointcore$tickStartNanos > LogisticsNetworksBudgetConfig.budgetNanos()
-                && !cointcore$deferredLastTick.contains(networkId)) {
-            cointcore$deferredThisTick.add(networkId);
+                && !cointcore$budget.tryStart(networkId, gameTime, now, LogisticsNetworksBudgetConfig.budgetNanos())) {
+            cointcore$networkStartNanos = 0;
             markDirty(networkId);
             ci.cancel();
             return;
@@ -76,6 +72,7 @@ public abstract class NetworkDispatcherBudgetMixin {
     @Inject(method = "processSynchronously", at = @At("RETURN"), remap = false)
     private void cointcore$budgetReturn(UUID networkId, @Coerce Object network, MinecraftServer server, long gameTime,
                                         CallbackInfo ci) {
+        if (cointcore$networkStartNanos == 0) return;
         long took = System.nanoTime() - cointcore$networkStartNanos;
         if (took < LogisticsNetworksBudgetConfig.slowNetworkNanos()) {
             return;

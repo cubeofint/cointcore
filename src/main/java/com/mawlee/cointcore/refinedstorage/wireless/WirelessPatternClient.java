@@ -57,7 +57,7 @@ public final class WirelessPatternClient {
     public static final class GameEvents {
         @SubscribeEvent
         public static void patternTooltip(ItemTooltipEvent event) {
-            if (!available()) return;
+            if (!ModList.get().isLoaded("refinedstorage")) return;
             if (!(Minecraft.getInstance().screen instanceof AbstractContainerScreen<?> screen)
                     || !(screen.getSlotUnderMouse() instanceof NetworkPatternSlot slot)
                     || !(screen.getMenu() instanceof WirelessPatternMenu menu)
@@ -67,10 +67,9 @@ public final class WirelessPatternClient {
 
         @SubscribeEvent
         public static void patternCount(ScreenEvent.Render.Post event) {
-            if (!available()) return;
+            if (!ModList.get().isLoaded("refinedstorage")) return;
             if (!(event.getScreen() instanceof AbstractContainerScreen<?> screen)
-                    || !(screen.getMenu() instanceof WirelessPatternMenu menu)
-                    || menu.cointcore$patternGridReference() == null) return;
+                    || !(screen.getMenu() instanceof WirelessPatternMenu menu)) return;
             var graphics = event.getGuiGraphics();
             var font = Minecraft.getInstance().font;
             long count = menu.cointcore$availablePatterns();

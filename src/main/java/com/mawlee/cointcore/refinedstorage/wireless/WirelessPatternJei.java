@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
-/** Native RS transfer packets, registered for our additional menu type rather than the block's menu type. */
+/** Native RS packets with a separate client class key, preserving the block Pattern Grid's JEI handlers. */
 public final class WirelessPatternJei {
     private WirelessPatternJei() {
     }
@@ -65,7 +65,7 @@ public final class WirelessPatternJei {
 
     private record Handler<R>(RecipeType<R> recipeType, BiConsumer<PatternGridContainerMenu, IRecipeSlotsView> transfer)
             implements IRecipeTransferHandler<PatternGridContainerMenu, R> {
-        @Override public Class<? extends PatternGridContainerMenu> getContainerClass() { return PatternGridContainerMenu.class; }
+        @Override public Class<? extends PatternGridContainerMenu> getContainerClass() { return WirelessPatternContainerMenu.class; }
         @Override public Optional<MenuType<PatternGridContainerMenu>> getMenuType() { return Optional.of(WirelessPatternIntegration.MENU.get()); }
         @Override public RecipeType<R> getRecipeType() { return recipeType; }
         @Override public IRecipeTransferError transferRecipe(PatternGridContainerMenu menu, R recipe, IRecipeSlotsView slots,
@@ -76,7 +76,7 @@ public final class WirelessPatternJei {
     }
 
     private static final class ProcessingHandler implements IUniversalRecipeTransferHandler<PatternGridContainerMenu> {
-        @Override public Class<? extends PatternGridContainerMenu> getContainerClass() { return PatternGridContainerMenu.class; }
+        @Override public Class<? extends PatternGridContainerMenu> getContainerClass() { return WirelessPatternContainerMenu.class; }
         @Override public Optional<MenuType<PatternGridContainerMenu>> getMenuType() { return Optional.of(WirelessPatternIntegration.MENU.get()); }
         @Override public IRecipeTransferError transferRecipe(PatternGridContainerMenu menu, Object recipe, IRecipeSlotsView slots,
                                                              Player player, boolean maxTransfer, boolean doTransfer) {

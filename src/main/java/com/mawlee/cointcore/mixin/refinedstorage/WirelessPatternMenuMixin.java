@@ -4,6 +4,10 @@ import com.mawlee.cointcore.refinedstorage.wireless.WirelessPatternIntegration;
 import com.mawlee.cointcore.refinedstorage.wireless.WirelessPatternMenu;
 import com.mawlee.cointcore.refinedstorage.wireless.WirelessPatternSession;
 import com.mawlee.cointcore.refinedstorage.wireless.NetworkPatternSlot;
+import com.mawlee.cointcore.refinedstorage.wireless.BlockPatternSession;
+import com.mawlee.cointcore.refinedstorage.wireless.WirelessPatternBackend;
+import com.refinedmods.refinedstorage.common.autocrafting.patterngrid.PatternGridBlockEntity;
+import net.minecraft.server.level.ServerPlayer;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.refinedmods.refinedstorage.common.support.containermenu.ValidatedSlot;
@@ -22,6 +26,9 @@ import net.minecraft.world.inventory.ClickType;
 import com.mawlee.cointcore.refinedstorage.wireless.NetworkPatternCountPart;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -31,8 +38,12 @@ public abstract class WirelessPatternMenuMixin extends AbstractGridContainerMenu
     @Unique private SlotReference cointcore$reference;
     @Unique private WirelessPatternSession cointcore$session;
     @Unique private long cointcore$availablePatterns;
+    @Unique private BlockPatternSession cointcore$blockSession;
+    @Shadow private PatternGridBlockEntity patternGrid;
+    @Shadow @Final @Mutable private Container patternInput;
 
     @Override public long cointcore$availablePatterns() {
+        if (cointcore$blockSession != null) return cointcore$blockSession.available();
         return cointcore$session == null ? cointcore$availablePatterns : cointcore$session.availablePatterns();
     }
 
@@ -41,15 +52,28 @@ public abstract class WirelessPatternMenuMixin extends AbstractGridContainerMenu
         super(type, id, inventory, data);
     }
 
-    @Override
-    public void cointcore$initializeWirelessPatterns(SlotReference reference, WirelessPatternSession session) {
-        cointcore$reference = reference;
-        cointcore$session = session;
+    @Inject(method = {
+            "<init>(ILnet/minecraft/world/entity/player/Inventory;Lcom/refinedmods/refinedstorage/common/autocrafting/patterngrid/PatternGridData;)V",
+            "<init>(ILnet/minecraft/world/entity/player/Inventory;Lcom/refinedmods/refinedstorage/common/autocrafting/patterngrid/PatternGridBlockEntity;)V"
+    }, at = @At("RETURN"), require = 2)
+    private void cointcore$initializeNetworkPatterns(CallbackInfo callback) {
         for (int part = 0; part < 4; part++) {
             final int shift = part * 16;
             addDataSlot(new NetworkPatternCountPart(this::cointcore$availablePatterns,
                     value -> cointcore$availablePatterns = value, shift));
         }
+        if (patternGrid != null && !(patternGrid instanceof WirelessPatternBackend)
+                && playerInventory.player instanceof ServerPlayer player) {
+            cointcore$blockSession = new BlockPatternSession(patternGrid, player);
+            patternInput = cointcore$blockSession.preview();
+            resized(0, 0, 0);
+        }
+    }
+
+    @Override
+    public void cointcore$initializeWirelessPatterns(SlotReference reference, WirelessPatternSession session) {
+        cointcore$reference = reference;
+        cointcore$session = session;
         disabledSlot = reference;
         // Rebuild inventory slots after installing the device lock, including offhand/Curios references.
         resized(0, 0, 0);
@@ -73,7 +97,7 @@ public abstract class WirelessPatternMenuMixin extends AbstractGridContainerMenu
     @Override
     public void clicked(int slot, int button, ClickType type, Player player) {
         // Also reject creative clone clicks, which do not consult Slot.mayPickup.
-        if (cointcore$reference != null && slot >= 0 && slot < slots.size()
+        if (slot >= 0 && slot < slots.size()
                 && slots.get(slot) instanceof NetworkPatternSlot) return;
         if (cointcore$session == null || cointcore$session.canUse()) super.clicked(slot, button, type, player);
     }
@@ -91,11 +115,17 @@ public abstract class WirelessPatternMenuMixin extends AbstractGridContainerMenu
         if (cointcore$session != null) cointcore$session.refreshPatternPreview();
     }
 
+    @WrapOperation(method = "createPattern", at = @At(value = "INVOKE",
+            target = "Lcom/refinedmods/refinedstorage/common/autocrafting/patterngrid/PatternGridBlockEntity;createPattern()V"), require = 1)
+    private void cointcore$encodeFromBlockNetwork(PatternGridBlockEntity grid, Operation<Void> original) {
+        if (cointcore$blockSession == null) original.call(grid);
+        else cointcore$blockSession.encode(() -> original.call(grid));
+    }
+
     @WrapOperation(method = "addPatternSlots", at = @At(value = "NEW",
             target = "com/refinedmods/refinedstorage/common/support/containermenu/ValidatedSlot"), require = 1)
     private ValidatedSlot cointcore$networkPatternPreview(Container container, int slot, int x, int y,
                                                          Predicate<ItemStack> filter, Operation<ValidatedSlot> original) {
-        if (cointcore$reference == null) return original.call(container, slot, x, y, filter);
         return new NetworkPatternSlot(container, slot, x, y);
     }
 
@@ -103,12 +133,13 @@ public abstract class WirelessPatternMenuMixin extends AbstractGridContainerMenu
             target = "Lcom/refinedmods/refinedstorage/common/support/containermenu/TransferManager;addBiTransfer(Lnet/minecraft/world/Container;Lnet/minecraft/world/Container;)V"), require = 1)
     private void cointcore$disablePreviewTransfers(TransferManager manager, Container inventory, Container input,
                                                   Operation<Void> original) {
-        if (cointcore$reference == null) original.call(manager, inventory, input);
+        // Both wired and wireless inputs are read-only network previews.
     }
 
     @Override
     public void broadcastChanges() {
         if (cointcore$session != null) cointcore$session.refresh();
+        if (cointcore$blockSession != null) cointcore$blockSession.refresh();
         super.broadcastChanges();
     }
 

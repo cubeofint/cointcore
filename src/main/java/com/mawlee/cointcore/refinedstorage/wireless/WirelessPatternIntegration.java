@@ -30,7 +30,7 @@ public final class WirelessPatternIntegration {
     public static final DeferredHolder<MenuType<?>, MenuType<PatternGridContainerMenu>> MENU = MENUS.register(
             "wireless_pattern_grid", () -> IMenuTypeExtension.create((id, inventory, buf) -> {
                 var data = MenuData.CODEC.decode(buf);
-                var menu = new PatternGridContainerMenu(id, inventory, data.patterns());
+                PatternGridContainerMenu menu = new WirelessPatternContainerMenu(id, inventory, data.patterns());
                 ((WirelessPatternMenu) menu).cointcore$initializeWirelessPatterns(data.reference(), null);
                 return menu;
             }));
