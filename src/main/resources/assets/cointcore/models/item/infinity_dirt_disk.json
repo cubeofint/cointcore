@@ -1,0 +1,6 @@
+{
+  "parent": "cointcore:item/infinity_disk",
+  "textures": {
+    "disk": "refinedstorage:item/creative_storage_disk"
+  }
+}

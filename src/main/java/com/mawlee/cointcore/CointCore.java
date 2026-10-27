@@ -35,6 +35,9 @@ public class CointCore {
     public static final String MOD_ID = "cointcore";
 
     public CointCore(IEventBus modEventBus) {
+        if (net.neoforged.fml.ModList.get().isLoaded("refinedstorage")) {
+            com.mawlee.cointcore.refinedstorage.InfinityDisks.register(modEventBus);
+        }
         if (net.neoforged.fml.ModList.get().isLoaded("curios")) {
             com.mawlee.cointcore.curio.CurioLimitEvents.install();
         }

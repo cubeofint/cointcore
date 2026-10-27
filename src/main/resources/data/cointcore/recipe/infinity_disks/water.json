@@ -1,0 +1,44 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "refinedstorage"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "cointcore:infinity_water_disk"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "refinedstorage:16k_storage_part"
+    }
+  ],
+  "pattern": [
+    "GIG",
+    "WCW",
+    "DDD"
+  ],
+  "key": {
+    "G": {
+      "tag": "c:glass_blocks"
+    },
+    "I": {
+      "item": "minecraft:water_bucket"
+    },
+    "W": {
+      "item": "minecraft:water_bucket"
+    },
+    "C": {
+      "item": "refinedstorage:16k_storage_part"
+    },
+    "D": {
+      "tag": "c:gems/diamond"
+    }
+  },
+  "result": {
+    "id": "cointcore:infinity_water_disk",
+    "count": 1
+  }
+}

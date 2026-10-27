@@ -1,0 +1,69 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "refinedstorage"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "allthecompressed:lime_concrete_6x"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "allthemodium:unobtainium_allthemodium_alloy_ingot"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "allthemodium:unobtainium_vibranium_alloy_ingot"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "allthemodium:vibranium_allthemodium_alloy_ingot"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "cointcore:infinity_lime_disk"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "extradisks:262144k_item_storage_part"
+    }
+  ],
+  "pattern": [
+    "GIG",
+    "XCY",
+    "AVU"
+  ],
+  "key": {
+    "G": {
+      "tag": "c:glass_blocks"
+    },
+    "I": {
+      "item": "allthecompressed:lime_concrete_6x"
+    },
+    "X": {
+      "item": "minecraft:lava_bucket"
+    },
+    "Y": {
+      "item": "minecraft:water_bucket"
+    },
+    "C": {
+      "item": "extradisks:262144k_item_storage_part"
+    },
+    "A": {
+      "item": "allthemodium:unobtainium_allthemodium_alloy_ingot"
+    },
+    "V": {
+      "item": "allthemodium:unobtainium_vibranium_alloy_ingot"
+    },
+    "U": {
+      "item": "allthemodium:vibranium_allthemodium_alloy_ingot"
+    }
+  },
+  "result": {
+    "id": "cointcore:infinity_lime_disk",
+    "count": 1
+  }
+}

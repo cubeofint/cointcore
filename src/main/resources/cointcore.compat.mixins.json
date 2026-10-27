@@ -5,6 +5,8 @@
   "plugin": "com.mawlee.cointcore.mixin.CointCoreMixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "refinedstorage.InfinityDiskStateTrackingMixin",
+    "refinedstorage.InfinityDiskConfiguredStorageMixin",
     "ae2.AEItemKeyFuzzyMaxCacheMixin",
     "functionalstorage.ArmoryCabinetMenuMixin"
   ],

@@ -40,6 +40,9 @@ repo/
 !**/src/**/repo/
 
 ### Local analysis / extracted modpack junk ###
+.agents/
+AGENTS.md
+agent.md
 /assets/
 dev/
 net/

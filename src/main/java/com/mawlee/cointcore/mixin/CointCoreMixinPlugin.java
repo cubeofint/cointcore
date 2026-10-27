@@ -190,6 +190,8 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     );
 
     private static final Set<String> REFINED_STORAGE_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.refinedstorage.InfinityDiskStateTrackingMixin",
+            "com.mawlee.cointcore.mixin.refinedstorage.InfinityDiskConfiguredStorageMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.ImporterNetworkNodeIdleSkipMixin"
     );
 

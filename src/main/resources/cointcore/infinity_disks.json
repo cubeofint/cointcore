@@ -1,0 +1,236 @@
+[
+  {
+    "name": "cobblestone",
+    "resource": "minecraft:cobblestone",
+    "fluid": false,
+    "color": "#858585"
+  },
+  {
+    "name": "water",
+    "resource": "minecraft:water",
+    "fluid": true,
+    "color": "#3F76E4"
+  },
+  {
+    "name": "lava",
+    "resource": "minecraft:lava",
+    "fluid": true,
+    "color": "#F58222"
+  },
+  {
+    "name": "dirt",
+    "resource": "minecraft:dirt",
+    "fluid": false,
+    "color": "#91674A"
+  },
+  {
+    "name": "moss",
+    "resource": "minecraft:moss_block",
+    "fluid": false,
+    "color": "#6B8F32"
+  },
+  {
+    "name": "andesite",
+    "resource": "minecraft:andesite",
+    "fluid": false,
+    "color": "#9A9A91"
+  },
+  {
+    "name": "diorite",
+    "resource": "minecraft:diorite",
+    "fluid": false,
+    "color": "#D8D7D2"
+  },
+  {
+    "name": "granite",
+    "resource": "minecraft:granite",
+    "fluid": false,
+    "color": "#AC7867"
+  },
+  {
+    "name": "tuff",
+    "resource": "minecraft:tuff",
+    "fluid": false,
+    "color": "#74796B"
+  },
+  {
+    "name": "gravel",
+    "resource": "minecraft:gravel",
+    "fluid": false,
+    "color": "#9A9091"
+  },
+  {
+    "name": "sand",
+    "resource": "minecraft:sand",
+    "fluid": false,
+    "color": "#E8D7A3"
+  },
+  {
+    "name": "red_sand",
+    "resource": "minecraft:red_sand",
+    "fluid": false,
+    "color": "#C77732"
+  },
+  {
+    "name": "end_stone",
+    "resource": "minecraft:end_stone",
+    "fluid": false,
+    "color": "#DDDFA2"
+  },
+  {
+    "name": "netherrack",
+    "resource": "minecraft:netherrack",
+    "fluid": false,
+    "color": "#8A4242"
+  },
+  {
+    "name": "clay",
+    "resource": "minecraft:clay",
+    "fluid": false,
+    "color": "#A4ABB8"
+  },
+  {
+    "name": "blackstone",
+    "resource": "minecraft:blackstone",
+    "fluid": false,
+    "color": "#3C3540"
+  },
+  {
+    "name": "basalt",
+    "resource": "minecraft:basalt",
+    "fluid": false,
+    "color": "#606064"
+  },
+  {
+    "name": "calcite",
+    "resource": "minecraft:calcite",
+    "fluid": false,
+    "color": "#E4E0D2"
+  },
+  {
+    "name": "cobbled_deepslate",
+    "resource": "minecraft:cobbled_deepslate",
+    "fluid": false,
+    "color": "#55555B"
+  },
+  {
+    "name": "soul_sand",
+    "resource": "minecraft:soul_sand",
+    "fluid": false,
+    "color": "#715344"
+  },
+  {
+    "name": "sky_stone",
+    "resource": "ae2:sky_stone_block",
+    "fluid": false,
+    "color": "#48464C"
+  },
+  {
+    "name": "kivi",
+    "resource": "xycraft_world:kivi",
+    "fluid": false,
+    "color": "#7995A0"
+  },
+  {
+    "name": "ancient_stone",
+    "resource": "allthemodium:ancient_stone",
+    "fluid": false,
+    "color": "#57685E"
+  },
+  {
+    "name": "white",
+    "resource": "minecraft:white_dye",
+    "fluid": false,
+    "color": "#F9FFFE"
+  },
+  {
+    "name": "light_gray",
+    "resource": "minecraft:light_gray_dye",
+    "fluid": false,
+    "color": "#9D9D97"
+  },
+  {
+    "name": "gray",
+    "resource": "minecraft:gray_dye",
+    "fluid": false,
+    "color": "#474F52"
+  },
+  {
+    "name": "black",
+    "resource": "minecraft:black_dye",
+    "fluid": false,
+    "color": "#1D1D21"
+  },
+  {
+    "name": "brown",
+    "resource": "minecraft:brown_dye",
+    "fluid": false,
+    "color": "#835432"
+  },
+  {
+    "name": "red",
+    "resource": "minecraft:red_dye",
+    "fluid": false,
+    "color": "#B02E26"
+  },
+  {
+    "name": "orange",
+    "resource": "minecraft:orange_dye",
+    "fluid": false,
+    "color": "#F9801D"
+  },
+  {
+    "name": "yellow",
+    "resource": "minecraft:yellow_dye",
+    "fluid": false,
+    "color": "#FED83D"
+  },
+  {
+    "name": "lime",
+    "resource": "minecraft:lime_dye",
+    "fluid": false,
+    "color": "#80C71F"
+  },
+  {
+    "name": "green",
+    "resource": "minecraft:green_dye",
+    "fluid": false,
+    "color": "#5E7C16"
+  },
+  {
+    "name": "cyan",
+    "resource": "minecraft:cyan_dye",
+    "fluid": false,
+    "color": "#169C9C"
+  },
+  {
+    "name": "light_blue",
+    "resource": "minecraft:light_blue_dye",
+    "fluid": false,
+    "color": "#3AB3DA"
+  },
+  {
+    "name": "blue",
+    "resource": "minecraft:blue_dye",
+    "fluid": false,
+    "color": "#3C44AA"
+  },
+  {
+    "name": "purple",
+    "resource": "minecraft:purple_dye",
+    "fluid": false,
+    "color": "#8932B8"
+  },
+  {
+    "name": "magenta",
+    "resource": "minecraft:magenta_dye",
+    "fluid": false,
+    "color": "#C74EBD"
+  },
+  {
+    "name": "pink",
+    "resource": "minecraft:pink_dye",
+    "fluid": false,
+    "color": "#F38BAA"
+  }
+]
