@@ -6,6 +6,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "refinedstorage.UniversalGridPatternModeMixin",
+    "refinedstorage.WirelessPatternEncodingMixin",
     "refinedstorage.WirelessPatternMenuConstructor",
     "refinedstorage.WirelessPatternMenuMixin",
     "refinedstorage.InfinityDiskStateTrackingMixin",

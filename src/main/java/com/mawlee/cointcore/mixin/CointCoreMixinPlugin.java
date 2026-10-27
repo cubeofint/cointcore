@@ -197,6 +197,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
 
     private static final Set<String> UNIVERSAL_GRID_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.refinedstorage.UniversalGridPatternModeMixin",
+            "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternEncodingMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternMenuConstructor",
             "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternMenuMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternBackgroundMixin",

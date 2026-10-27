@@ -44,6 +44,10 @@ public final class WirelessPatternBackend extends PatternGridBlockEntity {
         mainNetworkNode.setNetwork(context.resolveNetwork().orElse(null));
     }
 
+    public boolean consumeNetworkPattern() {
+        return session.consumeNetworkPattern();
+    }
+
     @Override public void setChanged() {
         // Constructor/load callbacks occur before the session is fully initialized.
         if (session != null) session.save();

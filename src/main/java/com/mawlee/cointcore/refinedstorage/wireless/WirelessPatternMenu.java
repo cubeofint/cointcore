@@ -4,6 +4,7 @@ import com.refinedmods.refinedstorage.common.api.support.slotreference.SlotRefer
 
 /** Added to RS PatternGridContainerMenu so all native RS/JEI packet handlers still recognize the editor. */
 public interface WirelessPatternMenu {
+    long cointcore$availablePatterns();
     void cointcore$initializeWirelessPatterns(SlotReference reference, WirelessPatternSession session);
     SlotReference cointcore$patternGridReference();
 }

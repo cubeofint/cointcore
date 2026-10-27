@@ -24,6 +24,12 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import java.util.function.Consumer;
+import java.util.List;
+import java.util.Optional;
+import java.text.NumberFormat;
+import java.util.Locale;
+import net.minecraft.ChatFormatting;
+import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 public final class WirelessPatternClient {
     private WirelessPatternClient() {
@@ -50,11 +56,58 @@ public final class WirelessPatternClient {
     @EventBusSubscriber(modid = CointCore.MOD_ID, value = Dist.CLIENT)
     public static final class GameEvents {
         @SubscribeEvent
+        public static void patternTooltip(ItemTooltipEvent event) {
+            if (!available()) return;
+            if (!(Minecraft.getInstance().screen instanceof AbstractContainerScreen<?> screen)
+                    || !(screen.getSlotUnderMouse() instanceof NetworkPatternSlot slot)
+                    || !(screen.getMenu() instanceof WirelessPatternMenu menu)
+                    || !ItemStack.isSameItemSameComponents(event.getItemStack(), slot.getItem())) return;
+            event.getToolTip().addAll(patternPreviewTooltip(menu.cointcore$availablePatterns()));
+        }
+
+        @SubscribeEvent
+        public static void patternCount(ScreenEvent.Render.Post event) {
+            if (!available()) return;
+            if (!(event.getScreen() instanceof AbstractContainerScreen<?> screen)
+                    || !(screen.getMenu() instanceof WirelessPatternMenu menu)
+                    || menu.cointcore$patternGridReference() == null) return;
+            var graphics = event.getGuiGraphics();
+            var font = Minecraft.getInstance().font;
+            long count = menu.cointcore$availablePatterns();
+            for (var slot : screen.getMenu().slots) {
+                if (!(slot instanceof NetworkPatternSlot)) continue;
+                if (count > 0 && slot.hasItem()) {
+                    String label = count < 10_000 ? Long.toString(count)
+                            : NumberFormat.getCompactNumberInstance(Locale.US, NumberFormat.Style.SHORT).format(count);
+                    graphics.pose().pushPose();
+                    graphics.pose().translate(screen.getGuiLeft() + slot.x + 17,
+                            screen.getGuiTop() + slot.y + 10, 300);
+                    float scale = Math.min(1f, 20f / font.width(label));
+                    graphics.pose().scale(scale, scale, 1);
+                    graphics.drawString(font, label, -font.width(label), 0, 0xffffff, true);
+                    graphics.pose().popPose();
+                }
+                if (!slot.hasItem() && screen.getSlotUnderMouse() == slot) {
+                    graphics.renderTooltip(font, patternPreviewTooltip(count), Optional.empty(), event.getMouseX(), event.getMouseY());
+                }
+            }
+        }
+
+        @SubscribeEvent
         public static void init(ScreenEvent.Init.Post event) {
             if (event.getScreen() instanceof AbstractContainerScreen<?> screen) {
                 ensureTabs(screen, event::addListener);
             }
         }
+    }
+
+    private static List<Component> patternPreviewTooltip(long count) {
+        return List.of(
+                Component.translatable("tooltip.cointcore.wireless_patterns.ghost").withStyle(ChatFormatting.AQUA),
+                Component.translatable("tooltip.cointcore.wireless_patterns.read_only").withStyle(ChatFormatting.GRAY),
+                Component.translatable("tooltip.cointcore.wireless_patterns.available", NumberFormat.getIntegerInstance().format(count))
+                        .withStyle(ChatFormatting.GRAY),
+                Component.translatable("tooltip.cointcore.wireless_patterns.consume").withStyle(ChatFormatting.GRAY));
     }
 
     public static void ensureTabs(AbstractContainerScreen<?> screen, Consumer<AbstractWidget> addWidget) {
