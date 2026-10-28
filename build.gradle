@@ -151,6 +151,12 @@ configurations {
 def curseMod = { String coord -> "curse.maven:${coord}" }
 
 dependencies {
+    implementation 'javazoom:jlayer:1.0.1'
+    // NeoForge 1.21.1 does not discover plain Java libraries in dev runs automatically.
+    additionalRuntimeClasspath 'javazoom:jlayer:1.0.1'
+    jarJar('javazoom:jlayer:1.0.1') {
+        version { strictly '[1.0.1,1.1)'; prefer '1.0.1' }
+    }
     compileOnly "net.luckperms:api:5.4"
     compileOnly("dev.ftb.mods:ftb-essentials-neoforge:${ftb_essentials_version}") {
         transitive = false

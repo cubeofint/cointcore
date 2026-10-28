@@ -783,5 +783,8 @@
   "message.cointcore.backpack.unavailable": "Cannot unload: check interface power and network insert permission.",
   "tooltip.cointcore.orders.row": "Requested items — currently available in the network",
   "tooltip.cointcore.orders.remove": "Shift + right-click: remove from requested items",
-  "message.cointcore.wireless_patterns.unavailable": "The grid is out of range, out of energy, or you do not have permission to open it."
+  "message.cointcore.wireless_patterns.unavailable": "The grid is out of range, out of energy, or you do not have permission to open it.",
+  "block.cointcore.coint_radio": "Radio",
+  "block.cointcore.coint_speaker": "Speaker",
+  "item.cointcore.coint_tuner": "Radio Tuner"
 }

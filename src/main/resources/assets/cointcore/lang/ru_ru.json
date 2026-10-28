@@ -783,5 +783,8 @@
   "message.cointcore.backpack.unavailable": "Выгрузка недоступна: проверьте питание интерфейса и право вставки в сеть.",
   "tooltip.cointcore.orders.row": "Заказанные предметы — доступное количество в сети",
   "tooltip.cointcore.orders.remove": "Shift + ПКМ: убрать из строки заказов",
-  "message.cointcore.wireless_patterns.unavailable": "Терминал вне зоны действия, разряжен или у вас нет права его открыть."
+  "message.cointcore.wireless_patterns.unavailable": "Терминал вне зоны действия, разряжен или у вас нет права его открыть.",
+  "block.cointcore.coint_radio": "Радио",
+  "block.cointcore.coint_speaker": "Динамик",
+  "item.cointcore.coint_tuner": "Тюнер радио"
 }

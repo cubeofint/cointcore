@@ -34,7 +34,11 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 public class CointCore {
     public static final String MOD_ID = "cointcore";
 
-    public CointCore(IEventBus modEventBus) {
+    public CointCore(IEventBus modEventBus, net.neoforged.fml.ModContainer container) {
+        container.registerConfig(net.neoforged.fml.config.ModConfig.Type.COMMON,
+                com.mawlee.cointcore.radio.CointRadioSettings.SPEC, "cointcore-radio.toml");
+        com.mawlee.cointcore.radio.CointRadioBlocks.register(modEventBus);
+        modEventBus.addListener(com.mawlee.cointcore.radio.CointRadioNetwork::register);
         if (net.neoforged.fml.ModList.get().isLoaded("refinedstorage")) {
             com.mawlee.cointcore.refinedstorage.InfinityDisks.register(modEventBus);
             if (net.neoforged.fml.ModList.get().isLoaded("universalgrid")) {
