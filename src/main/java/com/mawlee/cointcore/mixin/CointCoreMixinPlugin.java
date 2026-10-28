@@ -72,6 +72,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
 
     private static final Set<String> SFM_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.sfm.IntervalMixin",
+            "com.mawlee.cointcore.mixin.sfm.LabelGunManagerLimitMixin",
             "com.mawlee.cointcore.mixin.sfm.ManagerBlockEntityMixin"
     );
 

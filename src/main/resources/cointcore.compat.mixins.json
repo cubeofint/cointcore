@@ -114,6 +114,7 @@
     "industrialforegoing.MobDuplicatorLootMixin",
     "industrialforegoingsouls.SoulSurgeBlockEntityMixin",
     "sfm.IntervalMixin",
+    "sfm.LabelGunManagerLimitMixin",
     "sfm.ManagerBlockEntityMixin",
     "botanypots.BotanyPotBlockEntityMixin",
     "ftbchunks.PermissionsHelperBonusMixin",

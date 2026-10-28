@@ -130,7 +130,7 @@ final class ConfigMergeSupport {
         }
     }
 
-    private static void writeObject(Path path, JsonObject object) throws IOException {
+    static void writeObject(Path path, JsonObject object) throws IOException {
         try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
             GSON.toJson(object, writer);
         }

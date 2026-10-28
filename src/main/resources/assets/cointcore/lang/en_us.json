@@ -786,5 +786,7 @@
   "message.cointcore.wireless_patterns.unavailable": "The grid is out of range, out of energy, or you do not have permission to open it.",
   "block.cointcore.coint_radio": "Radio",
   "block.cointcore.coint_speaker": "Speaker",
-  "item.cointcore.coint_tuner": "Radio Tuner"
+  "item.cointcore.coint_tuner": "Radio Tuner",
+  "message.cointcore.sfm.block_limit_rejected": "Bindings unchanged: SFM allows at most %s unique blocks per manager.",
+  "message.cointcore.sfm.block_limit_paused": "SFM manager paused: more than %s unique blocks are bound. Reduce the bindings; all labels are preserved."
 }

@@ -47,7 +47,7 @@ public final class TickThrottleConfigs {
     }
 
     private static JsonObject readRoot() throws IOException {
-        return ConfigMergeSupport.loadMergedObject(
+        JsonObject root = ConfigMergeSupport.loadMergedObject(
                 FILE_NAME,
                 ConfigMergeSupport.legacyMap(
                         "machine", "machine_perf.json",
@@ -62,6 +62,16 @@ public final class TickThrottleConfigs {
                 false,
                 LOGGER
         );
+        if (addSfmBlockLimitDefault(root)) ConfigMergeSupport.writeObject(path(), root);
+        return root;
+    }
+
+    static boolean addSfmBlockLimitDefault(JsonObject root) {
+        if (!root.has("sfm") || !root.get("sfm").isJsonObject()) return false;
+        JsonObject sfm = root.getAsJsonObject("sfm");
+        if (sfm.has("maxBoundBlocksPerManager")) return false;
+        sfm.addProperty("maxBoundBlocksPerManager", 0);
+        return true;
     }
 
     private static JsonObject defaults() {

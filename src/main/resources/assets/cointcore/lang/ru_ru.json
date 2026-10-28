@@ -786,5 +786,7 @@
   "message.cointcore.wireless_patterns.unavailable": "Терминал вне зоны действия, разряжен или у вас нет права его открыть.",
   "block.cointcore.coint_radio": "Радио",
   "block.cointcore.coint_speaker": "Динамик",
-  "item.cointcore.coint_tuner": "Тюнер радио"
+  "item.cointcore.coint_tuner": "Тюнер радио",
+  "message.cointcore.sfm.block_limit_rejected": "Привязки не изменены: лимит SFM — %s уникальных блоков на менеджер.",
+  "message.cointcore.sfm.block_limit_paused": "Менеджер SFM приостановлен: привязано больше %s уникальных блоков. Уменьшите привязки; метки сохранены."
 }

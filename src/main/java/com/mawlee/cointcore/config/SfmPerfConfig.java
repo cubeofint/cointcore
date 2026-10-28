@@ -31,6 +31,8 @@ public final class SfmPerfConfig {
     private static double msptSkipThreshold = 0.0D;
     /** When MSPT ≥ threshold, allow Program.tick only once every N manager ticks. */
     private static int msptSkipAllowEvery = 4;
+    /** Independent of the performance throttle switch. 0 means no block limit. */
+    private static int maxBoundBlocksPerManager;
 
     private SfmPerfConfig() {
     }
@@ -55,6 +57,10 @@ public final class SfmPerfConfig {
 
     public static int getMsptSkipAllowEvery() {
         return msptSkipAllowEvery;
+    }
+
+    public static int getMaxBoundBlocksPerManager() {
+        return maxBoundBlocksPerManager;
     }
 
     public static int clampTimerInterval(int ticks) {
@@ -105,11 +111,12 @@ public final class SfmPerfConfig {
 
     static void logReload() {
         LOGGER.info(
-                "Reloaded SFM perf config (enabled={} minTimerInterval={} msptSkipThreshold={} msptSkipAllowEvery={})",
+                "Reloaded SFM config (enabled={} minTimerInterval={} msptSkipThreshold={} msptSkipAllowEvery={} maxBoundBlocksPerManager={})",
                 enabled,
                 minTimerIntervalTicks,
                 msptSkipThreshold,
-                msptSkipAllowEvery
+                msptSkipAllowEvery,
+                maxBoundBlocksPerManager
         );
     }
 
@@ -118,6 +125,7 @@ public final class SfmPerfConfig {
         minTimerIntervalTicks = loaded.minTimerIntervalTicks();
         msptSkipThreshold = loaded.msptSkipThreshold();
         msptSkipAllowEvery = loaded.msptSkipAllowEvery();
+        maxBoundBlocksPerManager = loaded.maxBoundBlocksPerManager();
         if (msptSkipThreshold > 0.0D) {
             LOGGER.info(
                     "SFM MSPT soft-throttle active (threshold={}ms allowEvery={}): Program.tick runs 1/{} ticks when MSPT is high",
@@ -156,7 +164,8 @@ public final class SfmPerfConfig {
                             + "To re-enable soft throttle, set msptSkipThreshold (e.g. 80) and msptSkipAllowEvery (e.g. 4)"
             );
         }
-        return new LoadedConfig(on, minInterval, msptSkip, allowEvery);
+        int maxBlocks = Math.max(0, data.maxBoundBlocksPerManager == null ? 0 : data.maxBoundBlocksPerManager);
+        return new LoadedConfig(on, minInterval, msptSkip, allowEvery, maxBlocks);
     }
 
     private static int clamp(int value, int min, int max) {
@@ -173,6 +182,7 @@ public final class SfmPerfConfig {
         data.minTimerIntervalTicks = 5;
         data.msptSkipThreshold = 0.0D;
         data.msptSkipAllowEvery = 4;
+        data.maxBoundBlocksPerManager = 0;
         return data;
     }
 
@@ -180,7 +190,8 @@ public final class SfmPerfConfig {
             boolean enabled,
             int minTimerIntervalTicks,
             double msptSkipThreshold,
-            int msptSkipAllowEvery
+            int msptSkipAllowEvery,
+            int maxBoundBlocksPerManager
     ) {
     }
 
@@ -196,5 +207,8 @@ public final class SfmPerfConfig {
 
         @SerializedName("msptSkipAllowEvery")
         private Integer msptSkipAllowEvery;
+
+        @SerializedName("maxBoundBlocksPerManager")
+        private Integer maxBoundBlocksPerManager;
     }
 }
