@@ -13,7 +13,6 @@ import com.ultramega.universalgrid.common.interfaces.MixinDisabledSlot;
 import com.ultramega.universalgrid.common.mixin.InvokerRefinedStorageApiProxy;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -41,7 +40,10 @@ public final class WirelessTerminalActions {
         Set<Item> items = Set.of(
                 BuiltInRegistries.ITEM.get(ResourceLocation.parse("universalgrid:wireless_universal_grid")),
                 BuiltInRegistries.ITEM.get(ResourceLocation.parse("universalgrid:creative_wireless_universal_grid")));
-        return ((TerminalSlotProviderAccessor) api).cointcore$slotReferences().find(player, items);
+        return ((TerminalSlotProviderAccessor) api).cointcore$slotReferences().find(player, items).stream()
+                .filter(reference -> reference.resolve(player)
+                        .filter(WirelessPatternIntegration::isUniversalGrid).isPresent())
+                .toList();
     }
 
     public static void registerPackets(RegisterPayloadHandlersEvent event) {
@@ -84,7 +86,6 @@ public final class WirelessTerminalActions {
                 return;
             }
         }
-        player.displayClientMessage(Component.translatable("message.cointcore.wireless_pick.unavailable"), true);
     }
 
     private static final class PickDestination {

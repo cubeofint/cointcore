@@ -21,12 +21,14 @@ public final class WirelessPickClient {
     private WirelessPickClient() { }
 
     private static boolean enabled() {
-        return ModList.get().isLoaded("refinedstorage") && ModList.get().isLoaded("universalgrid");
+        if (!ModList.get().isLoaded("refinedstorage") || !ModList.get().isLoaded("universalgrid")) return false;
+        var player = Minecraft.getInstance().player;
+        return player != null && !WirelessTerminalActions.terminals(player).isEmpty();
     }
 
     private static boolean pick(ItemStack stack, boolean cursor) {
         var player = Minecraft.getInstance().player;
-        if (stack.isEmpty() || player == null || WirelessTerminalActions.terminals(player).isEmpty()) return false;
+        if (stack.isEmpty() || player == null) return false;
         PacketDistributor.sendToServer(new WirelessTerminalActions.PickPayload(stack.copyWithCount(1), cursor));
         return true;
     }
@@ -48,6 +50,10 @@ public final class WirelessPickClient {
     @SubscribeEvent
     public static void inScreen(ScreenEvent.MouseButtonPressed.Pre event) {
         if (!enabled() || !Minecraft.getInstance().options.keyPickItem.matchesMouse(event.getButton())) return;
+        // AE2 owns middle-click crafting/amount selection in its menus, including addon subclasses.
+        if (isAppliedEnergisticsType(event.getScreen().getClass())) return;
+        if (event.getScreen() instanceof AbstractContainerScreen<?> container
+                && isAppliedEnergisticsType(container.getMenu().getClass())) return;
         ItemStack stack = ItemStack.EMPTY;
         if (ModList.get().isLoaded("jei")) stack = CointJeiPlugin.itemUnderMouse();
         if (stack.isEmpty() && event.getScreen() instanceof AbstractGridScreen<?> grid) {
@@ -59,5 +65,12 @@ public final class WirelessPickClient {
             if (slot != null && slot.hasItem()) stack = slot.getItem();
         }
         if (pick(stack, true)) event.setCanceled(true);
+    }
+
+    private static boolean isAppliedEnergisticsType(Class<?> type) {
+        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+            if (current.getName().startsWith("appeng.")) return true;
+        }
+        return false;
     }
 }
