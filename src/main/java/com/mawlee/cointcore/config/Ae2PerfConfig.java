@@ -18,6 +18,7 @@ public final class Ae2PerfConfig {
     private static boolean cacheFuzzySearchMaxValue = true;
     private static int storageCacheIntervalTicks = 5;
     private static boolean sophisticatedFastExtract = true;
+    private static int automaticCraftingRetryTicks = 20;
 
     private Ae2PerfConfig() {
     }
@@ -25,6 +26,10 @@ public final class Ae2PerfConfig {
     /** Storage buses extract from Sophisticated Storage through its slot index instead of walking every slot. */
     public static boolean isSophisticatedFastExtract() {
         return sophisticatedFastExtract;
+    }
+
+    public static int getAutomaticCraftingRetryTicks() {
+        return automaticCraftingRetryTicks;
     }
 
     public static boolean isCacheFuzzySearchMaxValue() {
@@ -57,9 +62,10 @@ public final class Ae2PerfConfig {
 
     static void logReload() {
         LOGGER.info(
-                "Reloaded AE2 perf config (cacheFuzzySearchMaxValue={}, storageCacheIntervalTicks={})",
+                "Reloaded AE2 perf config (cacheFuzzySearchMaxValue={}, storageCacheIntervalTicks={}, automaticCraftingRetryTicks={})",
                 cacheFuzzySearchMaxValue,
-                storageCacheIntervalTicks
+                storageCacheIntervalTicks,
+                automaticCraftingRetryTicks
         );
     }
 
@@ -67,11 +73,12 @@ public final class Ae2PerfConfig {
         cacheFuzzySearchMaxValue = loaded.cacheFuzzySearchMaxValue();
         storageCacheIntervalTicks = loaded.storageCacheIntervalTicks();
         sophisticatedFastExtract = loaded.sophisticatedFastExtract();
+        automaticCraftingRetryTicks = loaded.automaticCraftingRetryTicks();
     }
 
     private static LoadedConfig parse(Data data) {
         return new LoadedConfig(data.cacheFuzzySearchMaxValue, Math.max(1, Math.min(40, data.storageCacheIntervalTicks)),
-                data.sophisticatedFastExtract);
+                data.sophisticatedFastExtract, Math.max(1, Math.min(200, data.automaticCraftingRetryTicks)));
     }
 
     static Data defaultFileData() {
@@ -79,7 +86,7 @@ public final class Ae2PerfConfig {
     }
 
     private record LoadedConfig(boolean cacheFuzzySearchMaxValue, int storageCacheIntervalTicks,
-                                boolean sophisticatedFastExtract) {
+                                boolean sophisticatedFastExtract, int automaticCraftingRetryTicks) {
     }
 
     static final class Data {
@@ -93,5 +100,9 @@ public final class Ae2PerfConfig {
         /** Storage-bus extraction from Sophisticated Storage via its slot index. */
         @SerializedName("sophisticated_fast_extract")
         boolean sophisticatedFastExtract = true;
+
+        /** Retry an unchanged automatic request after rejection; 1 restores native retries. */
+        @SerializedName("automatic_crafting_retry_ticks")
+        int automaticCraftingRetryTicks = 20;
     }
 }

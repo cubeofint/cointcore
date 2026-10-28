@@ -42,7 +42,7 @@ public final class StoragePerfConfigs {
     }
 
     private static JsonObject readRoot() throws IOException {
-        return ConfigMergeSupport.loadMergedObject(
+        JsonObject root = ConfigMergeSupport.loadMergedObject(
                 FILE_NAME,
                 ConfigMergeSupport.legacyMap(
                         "ae2", "ae2_perf.json",
@@ -52,6 +52,9 @@ public final class StoragePerfConfigs {
                 false,
                 LOGGER
         );
+        if (ConfigMergeSupport.addMissingSectionValues(root, "ae2", Ae2PerfConfig.defaultFileData()))
+            ConfigMergeSupport.writeObject(path(), root);
+        return root;
     }
 
     private static JsonObject defaults() {

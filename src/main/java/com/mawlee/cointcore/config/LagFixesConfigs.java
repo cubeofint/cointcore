@@ -60,13 +60,16 @@ public final class LagFixesConfigs {
     }
 
     private static JsonObject readRoot() throws IOException {
-        return ConfigMergeSupport.loadMergedObject(
+        JsonObject root = ConfigMergeSupport.loadMergedObject(
                 FILE_NAME,
                 java.util.Map.of(),
                 LagFixesConfigs::defaults,
                 false,
                 LOGGER
         );
+        if (ConfigMergeSupport.addMissingSectionValues(root, "logistics_networks_budget",
+                LogisticsNetworksBudgetConfig.defaultFileData())) ConfigMergeSupport.writeObject(path(), root);
+        return root;
     }
 
     private static JsonObject defaults() {

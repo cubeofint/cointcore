@@ -31,6 +31,7 @@ public final class CurioLimitConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private static boolean enabled = true;
+    private static long revision;
     private static Map<ResourceLocation, Integer> limits = defaultLimits();
 
     private CurioLimitConfig() {
@@ -38,6 +39,10 @@ public final class CurioLimitConfig {
 
     public static boolean isEnabled() {
         return enabled;
+    }
+
+    public static long getRevision() {
+        return revision;
     }
 
     public static Map<ResourceLocation, Integer> getLimits() {
@@ -85,6 +90,7 @@ public final class CurioLimitConfig {
             }
         }
         limits = Map.copyOf(parsed);
+        revision++;
     }
 
     private static FileData loadFromDisk(boolean reloading) {

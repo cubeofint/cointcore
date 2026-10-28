@@ -18,6 +18,7 @@ public final class LogisticsNetworksBudgetConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private static boolean enabled = true;
+    private static boolean optimizeSignals = true;
     private static long budgetNanos = 6_000_000L;
     private static long slowNetworkNanos = 20_000_000L;
 
@@ -26,6 +27,10 @@ public final class LogisticsNetworksBudgetConfig {
 
     public static boolean isEnabled() {
         return enabled;
+    }
+
+    public static boolean isOptimizeSignals() {
+        return optimizeSignals;
     }
 
     public static long budgetNanos() {
@@ -39,13 +44,14 @@ public final class LogisticsNetworksBudgetConfig {
     static void applySection(Data data) {
         Data resolved = data != null ? data : defaultFileData();
         enabled = resolved.enabled;
+        optimizeSignals = resolved.optimizeSignals;
         budgetNanos = Math.max(1, Math.min(50, resolved.budgetMs)) * 1_000_000L;
         slowNetworkNanos = Math.max(1, resolved.slowNetworkLogMs) * 1_000_000L;
     }
 
     static void logReload() {
-        LOGGER.info("Reloaded Logistics Networks budget (enabled={}, budget={} ms, slow log={} ms)",
-                enabled, budgetNanos / 1_000_000L, slowNetworkNanos / 1_000_000L);
+        LOGGER.info("Reloaded Logistics Networks budget (enabled={}, budget={} ms, slow log={} ms, optimizeSignals={})",
+                enabled, budgetNanos / 1_000_000L, slowNetworkNanos / 1_000_000L, optimizeSignals);
     }
 
     static Data defaultFileData() {
@@ -55,6 +61,10 @@ public final class LogisticsNetworksBudgetConfig {
     static final class Data {
         @SerializedName("enabled")
         boolean enabled = true;
+
+        /** Deduplicate exact signals within a pass and skip preparations with no enabled exporter. */
+        @SerializedName("optimize_signals")
+        boolean optimizeSignals = true;
 
         /** Milliseconds per tick Logistics Networks may spend before the rest of its networks wait a tick. */
         @SerializedName("budget_ms")

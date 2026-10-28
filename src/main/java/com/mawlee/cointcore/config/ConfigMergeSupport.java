@@ -109,6 +109,20 @@ final class ConfigMergeSupport {
         return GSON.toJsonTree(data).getAsJsonObject();
     }
 
+    /** Add newly introduced direct fields; keep configured values and nested user maps intact. */
+    static boolean addMissingSectionValues(JsonObject root, String key, Object defaults) {
+        if (!root.has(key) || !root.get(key).isJsonObject()) return false;
+        JsonObject section = root.getAsJsonObject(key);
+        boolean added = false;
+        for (var entry : toJsonObject(defaults).entrySet()) {
+            if (!section.has(entry.getKey())) {
+                section.add(entry.getKey(), entry.getValue());
+                added = true;
+            }
+        }
+        return added;
+    }
+
     static Map<String, String> legacyMap(String... sectionAndFilePairs) {
         if (sectionAndFilePairs.length % 2 != 0) {
             throw new IllegalArgumentException("section/file pairs required");

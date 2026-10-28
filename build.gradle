@@ -28,6 +28,13 @@ sourceSets.main.resources {
 
 repositories {
     mavenCentral()
+    ivy {
+        name = 'LogisticsNetworksReleases'
+        url = 'https://github.com/Almana-mc/LogisticsNetworks/releases/download'
+        patternLayout { artifact '[revision]/[module]-[revision].[ext]' }
+        metadataSources { artifact() }
+        content { includeModule 'com.github.Almana-mc', 'logisticsnetworks' }
+    }
     maven {
         name = 'FTB'
         url = 'https://maven.ftb.dev/releases'
@@ -195,6 +202,8 @@ dependencies {
     packMods(curseMod(curse_apotheosis)) { transitive = false }
     packMods(curseMod(curse_placebo)) { transitive = false }
     packMods(curseMod(curse_ae2)) { transitive = false }
+    // Pinned to the Logistics Networks build used by ATM10 and the server profile.
+    compileOnly("com.github.Almana-mc:logisticsnetworks:1.21.1-1.17.2") { transitive = false }
     packMods(curseMod(curse_refined_storage)) { transitive = false }
     localRuntime(curseMod(curse_refined_storage)) { transitive = false }
     // Universal Grid 0.3.2 and Quartz Arsenal 1.0.8 for the wireless pattern editor integration.
@@ -260,6 +269,8 @@ dependencies {
     testImplementation "it.unimi.dsi:fastutil:8.5.15"
     testImplementation(curseMod(curse_refined_storage)) { transitive = false }
     testImplementation(curseMod(curse_sfm)) { transitive = false }
+    testImplementation(curseMod(curse_ae2)) { transitive = false }
+    testImplementation("com.github.Almana-mc:logisticsnetworks:1.21.1-1.17.2") { transitive = false }
     testImplementation "maven.modrinth:universal-grid:fa0WBjoC"
 
     compileOnly "mezz.jei:jei-1.21.1-common-api:${jei_version}"

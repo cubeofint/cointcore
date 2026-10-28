@@ -23,6 +23,7 @@ import java.util.List;
  * Registered only when Curios is loaded.
  */
 public final class CurioLimitEvents {
+    private static final CurioValidationCache<ServerPlayer> VALIDATION = new CurioValidationCache<>();
     private CurioLimitEvents() {
     }
 
@@ -53,6 +54,10 @@ public final class CurioLimitEvents {
     private static void onChange(CurioChangeEvent event) {
         if (event.getEntity() instanceof ServerPlayer player && !event.getTo().isEmpty()
                 && CurioLimitConfig.limitFor(event.getTo().getItem()) >= 0) {
+            var before = event.getFrom();
+            var after = event.getTo();
+            if (!VALIDATION.needsValidation(player, CurioLimitConfig.getRevision(),
+                    before.getItem() == after.getItem(), before.getCount(), after.getCount())) return;
             // Curios fires this from its own slot scan; change the slots after it finishes.
             player.server.execute(() -> enforce(player));
         }
@@ -86,6 +91,7 @@ public final class CurioLimitEvents {
                         limit, item.getDefaultInstance().getHoverName()), true);
             }
         });
+        VALIDATION.validated(player, CurioLimitConfig.getRevision());
     }
 
     /** Non-cosmetic Curios slots holding this item. */

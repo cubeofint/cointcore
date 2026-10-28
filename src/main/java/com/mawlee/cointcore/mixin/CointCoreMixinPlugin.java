@@ -180,6 +180,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.ae2.ChunkLoadingServiceMixin",
             "com.mawlee.cointcore.mixin.ae2.StorageExportStrategyArmoryRejectMixin",
             "com.mawlee.cointcore.mixin.ae2.StorageServiceCacheThrottleMixin",
+            "com.mawlee.cointcore.mixin.ae2.MultiCraftingRetryMixin",
             "com.mawlee.cointcore.mixin.ae2.PartPlacementLimitMixin",
             "com.mawlee.cointcore.mixin.ae2.AEBasePartLimitTrackingMixin",
             "com.mawlee.cointcore.mixin.ae2.StorageBusLimitMixin",
@@ -333,7 +334,8 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     );
 
     private static final Set<String> LOGISTICS_NETWORKS_MIXINS = Set.of(
-            "com.mawlee.cointcore.mixin.logisticsnetworks.NetworkDispatcherBudgetMixin"
+            "com.mawlee.cointcore.mixin.logisticsnetworks.NetworkDispatcherBudgetMixin",
+            "com.mawlee.cointcore.mixin.logisticsnetworks.TransferEngineSignalsMixin"
     );
 
     private static final Set<String> APOTHEOSIS_MIXINS = Set.of(
