@@ -788,5 +788,7 @@
   "block.cointcore.coint_speaker": "Speaker",
   "item.cointcore.coint_tuner": "Radio Tuner",
   "message.cointcore.sfm.block_limit_rejected": "Bindings unchanged: SFM allows at most %s unique blocks per manager.",
-  "message.cointcore.sfm.block_limit_paused": "SFM manager paused: more than %s unique blocks are bound. Reduce the bindings; all labels are preserved."
+  "message.cointcore.sfm.block_limit_paused": "SFM manager paused: more than %s unique blocks are bound. Reduce the bindings; all labels are preserved.",
+  "tooltip.cointcore.modularbees_rs.connection": "Supports AE2 or Refined Storage. Connect the cable to the hatch's front.",
+  "tooltip.cointcore.modularbees_rs.schedule": "Online AE2 takes priority. RS transfers in configurable batches."
 }

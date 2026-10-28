@@ -205,6 +205,9 @@ dependencies {
     // Pinned to the Logistics Networks build used by ATM10 and the server profile.
     compileOnly("com.github.Almana-mc:logisticsnetworks:1.21.1-1.17.2") { transitive = false }
     packMods(curseMod(curse_refined_storage)) { transitive = false }
+    localRuntime("curse.maven:modular-bees-1350380:8705124") { transitive = false }
+    localRuntime("maven.modrinth:glodium:pfbmdJ3b") { transitive = false }
+    localRuntime("curse.maven:productivebees-377897:8022994") { transitive = false }
     localRuntime(curseMod(curse_refined_storage)) { transitive = false }
     // Universal Grid 0.3.2 and Quartz Arsenal 1.0.8 for the wireless pattern editor integration.
     compileOnly "maven.modrinth:universal-grid:fa0WBjoC"
@@ -270,6 +273,7 @@ dependencies {
     testImplementation(curseMod(curse_refined_storage)) { transitive = false }
     testImplementation(curseMod(curse_sfm)) { transitive = false }
     testImplementation(curseMod(curse_ae2)) { transitive = false }
+    testImplementation("curse.maven:modular-bees-1350380:8705124") { transitive = false }
     testImplementation("com.github.Almana-mc:logisticsnetworks:1.21.1-1.17.2") { transitive = false }
     testImplementation "maven.modrinth:universal-grid:fa0WBjoC"
 

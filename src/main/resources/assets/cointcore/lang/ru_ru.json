@@ -788,5 +788,7 @@
   "block.cointcore.coint_speaker": "Динамик",
   "item.cointcore.coint_tuner": "Тюнер радио",
   "message.cointcore.sfm.block_limit_rejected": "Привязки не изменены: лимит SFM — %s уникальных блоков на менеджер.",
-  "message.cointcore.sfm.block_limit_paused": "Менеджер SFM приостановлен: привязано больше %s уникальных блоков. Уменьшите привязки; метки сохранены."
+  "message.cointcore.sfm.block_limit_paused": "Менеджер SFM приостановлен: привязано больше %s уникальных блоков. Уменьшите привязки; метки сохранены.",
+  "tooltip.cointcore.modularbees_rs.connection": "Поддерживает AE2 и Refined Storage. Подключите кабель к лицевой стороне хатча.",
+  "tooltip.cointcore.modularbees_rs.schedule": "Работающая AE2 имеет приоритет. RS передаёт ресурсы пакетами с настраиваемым интервалом."
 }

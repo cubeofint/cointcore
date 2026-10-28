@@ -338,6 +338,12 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.logisticsnetworks.TransferEngineSignalsMixin"
     );
 
+    private static final Set<String> MODULAR_BEES_RS_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.modularbees.TileAENetworkHostRsMixin",
+            "com.mawlee.cointcore.mixin.modularbees.TileMEExportRsMixin",
+            "com.mawlee.cointcore.mixin.modularbees.TileMEImportRsMixin"
+    );
+
     private static final Set<String> APOTHEOSIS_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.apotheosis.SalvagingMenuMatchCacheMixin"
     );
@@ -429,6 +435,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
         putAll(map, IRONS_SPELLBOOKS_MIXINS, "irons_spellbooks");
         putAll(map, APOTHEOSIS_MIXINS, "apotheosis");
         putAll(map, LOGISTICS_NETWORKS_MIXINS, "logisticsnetworks");
+        putAll(map, MODULAR_BEES_RS_MIXINS, "modularbees", "refinedstorage", "ae2");
         putAll(map, NEOVITAE_MIXINS, "neovitae");
         return Map.copyOf(map);
     }

@@ -28,6 +28,7 @@ public final class StoragePerfConfigs {
             LOGGER.error("Failed to load {}; using defaults", FILE_NAME, exception);
             Ae2PerfConfig.applySection(Ae2PerfConfig.defaultFileData());
             RsImporterPerfConfig.applySection(RsImporterPerfConfig.defaultFileData());
+            ModularBeesRsConfig.applySection(ModularBeesRsConfig.defaultFileData());
         }
     }
 
@@ -61,6 +62,7 @@ public final class StoragePerfConfigs {
         JsonObject root = new JsonObject();
         root.add("ae2", ConfigMergeSupport.toJsonObject(Ae2PerfConfig.defaultFileData()));
         root.add("rs_importer", ConfigMergeSupport.toJsonObject(RsImporterPerfConfig.defaultFileData()));
+        root.add("modularbees_rs", ConfigMergeSupport.toJsonObject(ModularBeesRsConfig.defaultFileData()));
         return root;
     }
 
@@ -70,6 +72,9 @@ public final class StoragePerfConfigs {
         ));
         RsImporterPerfConfig.applySection(ConfigMergeSupport.sectionOrDefault(
                 root, "rs_importer", RsImporterPerfConfig.Data.class, RsImporterPerfConfig::defaultFileData
+        ));
+        ModularBeesRsConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root, "modularbees_rs", ModularBeesRsConfig.Data.class, ModularBeesRsConfig::defaultFileData
         ));
         if (logReload) {
             Ae2PerfConfig.logReload();

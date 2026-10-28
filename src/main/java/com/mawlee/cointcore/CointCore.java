@@ -35,6 +35,11 @@ public class CointCore {
     public static final String MOD_ID = "cointcore";
 
     public CointCore(IEventBus modEventBus, net.neoforged.fml.ModContainer container) {
+        if (net.neoforged.fml.ModList.get().isLoaded("modularbees")
+                && net.neoforged.fml.ModList.get().isLoaded("refinedstorage")
+                && net.neoforged.fml.ModList.get().isLoaded("ae2")) {
+            com.mawlee.cointcore.modularbees.ModularBeesRsIntegration.register(modEventBus);
+        }
         container.registerConfig(net.neoforged.fml.config.ModConfig.Type.COMMON,
                 com.mawlee.cointcore.radio.CointRadioSettings.SPEC, "cointcore-radio.toml");
         com.mawlee.cointcore.radio.CointRadioBlocks.register(modEventBus);
