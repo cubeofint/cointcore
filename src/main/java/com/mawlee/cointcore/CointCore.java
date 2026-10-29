@@ -43,6 +43,7 @@ public class CointCore {
         container.registerConfig(net.neoforged.fml.config.ModConfig.Type.COMMON,
                 com.mawlee.cointcore.radio.CointRadioSettings.SPEC, "cointcore-radio.toml");
         com.mawlee.cointcore.radio.CointRadioBlocks.register(modEventBus);
+        com.mawlee.cointcore.oiia.OiiaCat.register(modEventBus);
         modEventBus.addListener(com.mawlee.cointcore.radio.CointRadioNetwork::register);
         if (net.neoforged.fml.ModList.get().isLoaded("refinedstorage")) {
             com.mawlee.cointcore.refinedstorage.InfinityDisks.register(modEventBus);

@@ -1,0 +1,11 @@
+{
+  "oiia_cat": {
+    "subtitle": "subtitles.cointcore.oiia_cat",
+    "sounds": [
+      {
+        "name": "cointcore:oiia_cat",
+        "stream": false
+      }
+    ]
+  }
+}
