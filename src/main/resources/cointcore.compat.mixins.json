@@ -5,8 +5,9 @@
   "plugin": "com.mawlee.cointcore.mixin.CointCoreMixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "refinedstorage.GridToolsAccessor",
+    "refinedstorage.AutocrafterPatternsAccessor",
     "refinedstorage.UniversalGridPatternModeMixin",
-    "refinedstorage.TerminalSlotProviderAccessor",
     "refinedstorage.WirelessPatternEncodingMixin",
     "refinedstorage.WirelessPatternMenuConstructor",
     "refinedstorage.WirelessPatternMenuMixin",

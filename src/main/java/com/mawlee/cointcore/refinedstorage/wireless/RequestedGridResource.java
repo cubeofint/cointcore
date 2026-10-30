@@ -24,16 +24,20 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
-public record RequestedGridResource(ResourceKey key, GridResource delegate) implements GridResource {
+public record RequestedGridResource(ResourceKey key, GridResource delegate, PinBoard.Section section, int slot) implements GridResource {
     @Override public void render(GuiGraphics graphics, int x, int y) {
-        graphics.fill(x - 1, y - 1, x + 17, y + 17, 0x55449bbc);
+        graphics.fill(x - 1, y - 1, x + 17, y + 17, section == PinBoard.Section.MANUAL ? 0x55d8ae37 : 0x55449bbc);
         if (key != null) delegate.render(graphics, x, y);
     }
     @Override public List<Component> getTooltip() {
         var lines = new ArrayList<Component>();
         if (key != null) lines.addAll(delegate.getTooltip());
-        lines.add(Component.translatable("tooltip.cointcore.orders.row").withStyle(ChatFormatting.AQUA));
-        if (key != null) lines.add(Component.translatable("tooltip.cointcore.orders.remove").withStyle(ChatFormatting.GRAY));
+        lines.add(Component.translatable(section == PinBoard.Section.MANUAL ? "tooltip.cointcore.pins.manual" : "tooltip.cointcore.orders.row").withStyle(ChatFormatting.AQUA));
+        if (section == PinBoard.Section.MANUAL) lines.add(Component.translatable("tooltip.cointcore.pins.place").withStyle(ChatFormatting.GRAY));
+        if (key != null) {
+            lines.add(Component.translatable("tooltip.cointcore.orders.remove").withStyle(ChatFormatting.GRAY));
+            lines.add(Component.translatable("tooltip.cointcore.orders.craft").withStyle(ChatFormatting.GRAY));
+        }
         return lines;
     }
     @Override public long getAmount(ResourceRepository<GridResource> repository) { return key == null ? 0 : delegate.getAmount(repository); }
@@ -43,8 +47,8 @@ public record RequestedGridResource(ResourceKey key, GridResource delegate) impl
     @Override public boolean canExtract(ItemStack stack, ResourceRepository<GridResource> repository) { return key != null && delegate.canExtract(stack, repository); }
     @Override public void onExtract(GridExtractMode mode, boolean cursor, GridExtractionStrategy strategy) { if (key != null) delegate.onExtract(mode, cursor, strategy); }
     @Override public void onScroll(GridScrollMode mode, GridScrollingStrategy strategy) { if (key != null) delegate.onScroll(mode, strategy); }
-    @Override public boolean isAutocraftable(ResourceRepository<GridResource> repository) { return false; }
-    @Override public ResourceAmount getAutocraftingRequest() { return null; }
+    @Override public boolean isAutocraftable(ResourceRepository<GridResource> repository) { return key != null && delegate.isAutocraftable(repository); }
+    @Override public ResourceAmount getAutocraftingRequest() { return key == null ? null : delegate.getAutocraftingRequest(); }
     @Override public String getName() { return key == null ? "" : delegate.getName(); }
     @Override public Set<String> getAttribute(GridResourceAttributeKey attribute) { return delegate.getAttribute(attribute); }
     @Override public TrackedResource getTrackedResource(Function<ResourceKey, TrackedResource> lookup) { return delegate.getTrackedResource(lookup); }
@@ -53,5 +57,5 @@ public record RequestedGridResource(ResourceKey key, GridResource delegate) impl
     @Override public Optional<TooltipComponent> getTooltipImage() { return key == null ? Optional.empty() : delegate.getTooltipImage(); }
     @Override public int getRegistryId() { return delegate.getRegistryId(); }
     @Override public List<ClientTooltipComponent> getExtractionHints(ItemStack stack, ResourceRepository<GridResource> repository) { return key == null ? List.of() : delegate.getExtractionHints(stack, repository); }
-    @Override public PlatformResourceKey getResourceForRecipeMods() { return delegate.getResourceForRecipeMods(); }
+    @Override public PlatformResourceKey getResourceForRecipeMods() { return key == null ? null : delegate.getResourceForRecipeMods(); }
 }

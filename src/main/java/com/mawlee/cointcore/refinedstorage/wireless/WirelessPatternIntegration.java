@@ -41,7 +41,7 @@ public final class WirelessPatternIntegration {
     public static void register(IEventBus bus) {
         MENUS.register(bus);
         WirelessMagnet.register(bus);
-        bus.addListener(WirelessTerminalActions::registerPackets);
+        bus.addListener(GridToolsPackets::register);
     }
 
     public static boolean isUniversalGrid(ItemStack stack) {

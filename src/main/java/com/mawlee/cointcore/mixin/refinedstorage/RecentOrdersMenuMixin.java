@@ -21,7 +21,9 @@ public abstract class RecentOrdersMenuMixin {
     @Inject(method = "getRepository", at = @At("RETURN"), cancellable = true, require = 1)
     private void cointcore$prependOrders(CallbackInfoReturnable<ResourceRepository<GridResource>> callback) {
         if (!playerInventory.player.level().isClientSide()) return;
-        if (cointcore$orders == null) cointcore$orders = new RecentOrdersRepository(callback.getReturnValue());
+        if (cointcore$orders == null) {
+            cointcore$orders = new RecentOrdersRepository(callback.getReturnValue());
+        }
         callback.setReturnValue(cointcore$orders);
     }
 }

@@ -54,11 +54,13 @@ public final class BackpackInterfaceDeposit {
             var storage = network.getComponent(StorageNetworkComponent.class);
             var actor = new PlayerActor(player);
             long transferred = 0;
+            var accepted = new java.util.LinkedHashMap<ItemResource, Long>();
             for (int slot = 0; slot < inventory.getSlots(); slot++) {
                 ItemStack existing = inventory.getStackInSlot(slot);
                 if (existing.isEmpty()) continue;
                 final int sourceSlot = slot;
-                transferred += DepositTransfer.transfer(storage, new ResourceAmount(ItemResource.ofItemStack(existing), existing.getCount()), actor,
+                var resource = ItemResource.ofItemStack(existing);
+                long moved = DepositTransfer.transfer(storage, new ResourceAmount(resource, existing.getCount()), actor,
                         amount -> {
                             ItemStack removed = inventory.extractItem(sourceSlot, (int) amount, false);
                             return removed.isEmpty() ? null : new ResourceAmount(ItemResource.ofItemStack(removed), removed.getCount());
@@ -66,7 +68,11 @@ public final class BackpackInterfaceDeposit {
                             ItemStack remainder = inventory.insertItem(sourceSlot, ((ItemResource) refund.resource()).toItemStack(refund.amount()), false);
                             if (!remainder.isEmpty()) player.getInventory().placeItemBackInInventory(remainder);
                         });
+                transferred += moved;
+                if (moved > 0) accepted.merge(resource, moved, Long::sum);
             }
+            DepositUndo.remember(player, event.getItemStack(), network,
+                    net.minecraft.core.GlobalPos.of(event.getLevel().dimension(), event.getPos()), accepted);
             player.getInventory().setChanged();
             player.containerMenu.broadcastChanges();
             player.displayClientMessage(Component.translatable("message.cointcore.backpack.deposited", transferred), true);

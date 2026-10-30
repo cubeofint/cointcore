@@ -200,8 +200,9 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     );
 
     private static final Set<String> UNIVERSAL_GRID_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.refinedstorage.GridToolsAccessor",
+            "com.mawlee.cointcore.mixin.refinedstorage.AutocrafterPatternsAccessor",
             "com.mawlee.cointcore.mixin.refinedstorage.UniversalGridPatternModeMixin",
-            "com.mawlee.cointcore.mixin.refinedstorage.TerminalSlotProviderAccessor",
             "com.mawlee.cointcore.mixin.refinedstorage.RecentOrdersMenuMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.RecentOrdersScreenMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.AutocraftingRequestAccessor",

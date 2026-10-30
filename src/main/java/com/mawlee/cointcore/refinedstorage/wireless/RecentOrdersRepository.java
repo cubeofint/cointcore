@@ -2,22 +2,17 @@ package com.mawlee.cointcore.refinedstorage.wireless;
 
 import com.refinedmods.refinedstorage.api.resource.ResourceKey;
 import com.refinedmods.refinedstorage.api.resource.list.MutableResourceList;
-import com.refinedmods.refinedstorage.api.resource.repository.ResourceRepository;
-import com.refinedmods.refinedstorage.api.resource.repository.ResourceRepositoryFilter;
-import com.refinedmods.refinedstorage.api.resource.repository.SortingDirection;
+import com.refinedmods.refinedstorage.api.resource.repository.*;
 import com.refinedmods.refinedstorage.common.api.RefinedStorageApi;
 import com.refinedmods.refinedstorage.common.api.grid.view.GridResource;
 import com.refinedmods.refinedstorage.common.support.resource.ItemResource;
 import net.minecraft.world.item.Items;
-import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
-/** Client view only: sorting, filtering, amounts and all actual transfers still belong to RS. */
+/** Ghost rows precede the ordinary RS view, independently of its search and sorting. */
 public final class RecentOrdersRepository implements ResourceRepository<GridResource> {
     private final ResourceRepository<GridResource> delegate;
-    private long version = -1;
+    private long version = -1, epoch = -1;
     private List<GridResource> pinned = List.of();
     private final List<GridResource> view = new AbstractList<>() {
         @Override public GridResource get(int index) {
@@ -26,22 +21,23 @@ public final class RecentOrdersRepository implements ResourceRepository<GridReso
         }
         @Override public int size() { refresh(); return pinned.size() + delegate.getViewList().size(); }
     };
-
     public RecentOrdersRepository(ResourceRepository<GridResource> delegate) { this.delegate = delegate; }
 
     private void refresh() {
-        var history = RecentOrdersClient.HISTORY;
-        if (version == history.version()) return;
-        version = history.version();
+        var board = PinStorage.board();
+        if (version == board.version() && epoch == PinStorage.epoch()) return;
+        version = board.version();
+        epoch = PinStorage.epoch();
         var entries = new ArrayList<GridResource>();
         var mapper = RefinedStorageApi.INSTANCE.getGridResourceRepositoryMapper();
-        for (var key : history.snapshot()) {
-            GridResource resource = mapper.apply(key);
-            if (resource != null) entries.add(new RequestedGridResource(key, resource));
-        }
-        if (!entries.isEmpty()) {
-            GridResource empty = mapper.apply(new ItemResource(Items.AIR));
-            while (entries.size() % 9 != 0) entries.add(new RequestedGridResource(null, empty));
+        GridResource empty = mapper.apply(new ItemResource(Items.AIR));
+        for (var section : PinBoard.Section.values()) {
+            var cells = board.cells(section);
+            for (int slot = 0; slot < cells.size(); slot++) {
+                var key = cells.get(slot);
+                GridResource resource = key == null ? empty : mapper.apply(key);
+                entries.add(new RequestedGridResource(key, resource == null ? empty : resource, section, slot));
+            }
         }
         pinned = List.copyOf(entries);
     }

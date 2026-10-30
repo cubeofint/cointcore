@@ -16,9 +16,10 @@ public abstract class RecentOrdersRequestMixin {
 
     @Inject(method = "responseReceived(Ljava/util/UUID;Z)V", at = @At("HEAD"), require = 1)
     private void cointcore$rememberAcceptedOrder(UUID id, boolean accepted, CallbackInfo callback) {
+        if (!accepted || currentRequest == null) return;
         var request = (AutocraftingRequestAccessor) currentRequest;
-        if (accepted && request.cointcore$requestId().equals(id)) {
-            RecentOrdersClient.HISTORY.remember(request.cointcore$requestedResource());
+        if (request.cointcore$requestId().equals(id)) {
+            RecentOrdersClient.remember(request.cointcore$requestedResource());
         }
     }
 }
