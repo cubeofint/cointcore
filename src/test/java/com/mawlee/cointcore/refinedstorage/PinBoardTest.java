@@ -25,15 +25,21 @@ class PinBoardTest {
         board.addManual("hatch"); assertEquals("hatch", board.cells(MANUAL).get(0));
         board.set(MANUAL, 5, "machine"); assertEquals("machine", board.cells(MANUAL).get(5));
     }
-    @Test void allCraftResultsAreKeptBeyondOldHistoryLimitAndGrowRowsAutomatically() {
+    @Test void craftOverflowIsKeptWithoutAutomaticallyCreatingVisibleRows() {
         var board = new PinBoard<Integer>();
+        board.addRow(CRAFTING);
         for (int i = 0; i < 1000; i++) board.rememberCraft(i);
+        assertEquals(1, board.rows(CRAFTING));
+        assertEquals(9, board.cells(CRAFTING).size());
+        for (int i = 0; i < 9; i++) assertEquals(i, board.cells(CRAFTING).get(i));
+        for (int i = 1; i < 112; i++) board.addRow(CRAFTING);
         assertEquals(112, board.rows(CRAFTING));
         for (int i = 0; i < 1000; i++) assertEquals(i, board.cells(CRAFTING).get(i));
         assertEquals(0, board.rows(MANUAL));
     }
     @Test void repeatingAnOrderKeepsItsPositionAndUnpinningLeavesAHoleForTheNextOrder() {
         var board = new PinBoard<String>();
+        board.addRow(CRAFTING);
         board.rememberCraft("one"); board.rememberCraft("two");
         long version = board.version(); board.rememberCraft("one");
         assertEquals(version, board.version());
@@ -47,6 +53,21 @@ class PinBoardTest {
         board.removeRow(MANUAL);
         assertEquals(299, board.rows(MANUAL)); assertEquals("first", board.cells(MANUAL).get(0));
         assertFalse(board.cells(MANUAL).contains("last"));
+        board.addRow(MANUAL);
+        assertEquals("last", board.cells(MANUAL).get(2699));
+    }
+    @Test void ordersWithoutRowsAndPinsInHiddenRowsSurviveUntilManuallyRevealed() {
+        var board = new PinBoard<String>();
+        board.rememberCraft("order");
+        assertEquals(0, board.rows(CRAFTING));
+        board.addRow(CRAFTING);
+        assertEquals("order", board.cells(CRAFTING).get(0));
+        board.addRow(MANUAL); board.set(MANUAL, 6, "machine"); board.removeRow(MANUAL);
+        board.addManual("cable");
+        assertEquals(0, board.rows(MANUAL));
+        board.addRow(MANUAL);
+        assertEquals("cable", board.cells(MANUAL).get(0));
+        assertEquals("machine", board.cells(MANUAL).get(6));
     }
     @Test void staleVisibleCellsAfterRowRemovalCannotCrashOrCreateHiddenPins() {
         var board = new PinBoard<String>(); board.addRow(MANUAL); board.removeRow(MANUAL);

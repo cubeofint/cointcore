@@ -405,6 +405,8 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
         putAll(map, AE2_MIXINS, "ae2");
         putAll(map, EXTENDED_AE_MIXINS, "ae2", "extendedae");
         putAll(map, REFINED_STORAGE_MIXINS, "refinedstorage");
+        putAll(map, Set.of("com.mawlee.cointcore.mixin.refinedstorage.ExtraStorageFluidPatternsMixin"),
+                "refinedstorage", "extrastorage", "refinedfluidsubstitution");
         putAll(map, UNIVERSAL_GRID_MIXINS, "refinedstorage", "universalgrid");
         putAll(map, DISCORD_CHAT_MOD_MIXINS, "discord_chat_mod");
         putAll(map, MOB_GRINDING_UTILS_MIXINS, "mob_grinding_utils");

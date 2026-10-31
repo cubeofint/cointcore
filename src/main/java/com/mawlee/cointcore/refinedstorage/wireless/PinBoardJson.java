@@ -8,10 +8,10 @@ public final class PinBoardJson {
     private PinBoardJson() { }
     public static <T> JsonObject write(PinBoard<T> board, Function<T, JsonElement> encode) {
         var root = new JsonObject();
-        root.addProperty("version", 1);
+        root.addProperty("version", 2);
         for (var section : PinBoard.Section.values()) {
             var rows = new JsonArray();
-            var cells = board.cells(section);
+            var cells = board.storedCells(section);
             for (int start = 0; start < cells.size(); start += PinBoard.COLUMNS) {
                 var row = new JsonArray();
                 for (int column = 0; column < PinBoard.COLUMNS; column++) {
@@ -21,12 +21,14 @@ public final class PinBoardJson {
                 rows.add(row);
             }
             root.add(section.name().toLowerCase(java.util.Locale.ROOT), rows);
+            root.addProperty(section.name().toLowerCase(java.util.Locale.ROOT) + "_visible_rows", board.rows(section));
         }
         return root;
     }
     public static <T> PinBoard<T> read(JsonObject root, Function<JsonElement, Optional<T>> decode) {
         var board = new PinBoard<T>();
-        if (!root.has("version") || root.get("version").getAsInt() != 1) throw new IllegalArgumentException("Unsupported pin profile version");
+        if (!root.has("version") || (root.get("version").getAsInt() != 1 && root.get("version").getAsInt() != 2))
+            throw new IllegalArgumentException("Unsupported pin profile version");
         for (var section : PinBoard.Section.values()) {
             var rows = root.getAsJsonArray(section.name().toLowerCase(java.util.Locale.ROOT));
             if (rows == null) continue;
@@ -42,6 +44,12 @@ public final class PinBoardJson {
                         if (key.isPresent()) board.set(section, start + column, key.get());
                     }
                 }
+            }
+            String visibleKey = section.name().toLowerCase(java.util.Locale.ROOT) + "_visible_rows";
+            if (root.has(visibleKey)) {
+                int visible = root.get(visibleKey).getAsInt();
+                if (visible < 0 || visible > board.rows(section)) throw new IllegalArgumentException("Invalid visible pin row count");
+                while (board.rows(section) > visible) board.removeRow(section);
             }
         }
         return board;

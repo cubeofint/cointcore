@@ -43,6 +43,8 @@ public final class PinStorage {
                 var root = JsonParser.parseString(Files.readString(legacy)).getAsJsonObject();
                 for (var group : root.entrySet()) for (var value : group.getValue().getAsJsonArray())
                     ResourceCodecs.CODEC.parse(ops, value).result().ifPresent(board::addManual);
+                while (board.cells(PinBoard.Section.MANUAL).size() < board.storedCells(PinBoard.Section.MANUAL).size())
+                    board.addRow(PinBoard.Section.MANUAL);
             }
             epoch++;
             writable = true;

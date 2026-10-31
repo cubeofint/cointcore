@@ -779,7 +779,7 @@
   "tooltip.cointcore.orders.craft": "Ctrl + left-click: request crafting",
   "gui.cointcore.pins.title": "Pins section",
   "gui.cointcore.pins.count": "P:%s C:%s",
-  "tooltip.cointcore.pins.rows": "Pins section\nLeft-click: add a manual row\nRight-click: remove the last manual row\nCtrl + left-click: add a crafting row\nCtrl + right-click: remove the last crafting row\nEach row has 9 ghost cells. No configured row limit.\nRight-click an item in the main grid: pin it\nShift + right-click a pin: unpin\nAlt + right-click an item: find patterns",
+  "tooltip.cointcore.pins.rows": "Pins section\nLeft-click: add a manual row\nRight-click: hide the last manual row\nCtrl + left-click: add a crafting row\nCtrl + right-click: hide the last crafting row\nRows are added manually, with 9 cells each.\nHidden pins are kept. Add rows to reveal more orders.\nRight-click an item in the main grid: pin it\nShift + right-click a pin: unpin\nAlt + right-click an item: find patterns",
   "tooltip.cointcore.pins.manual": "Manual pins — currently available in the network",
   "tooltip.cointcore.pins.place": "Right-click with a carried item: set a ghost pin; the item is not consumed.",
   "tooltip.cointcore.tools.undo": "Undo last backpack deposit\nReturns available items to the original backpack in your inventory.\nSame network; expires after 10 minutes of server ticks.",

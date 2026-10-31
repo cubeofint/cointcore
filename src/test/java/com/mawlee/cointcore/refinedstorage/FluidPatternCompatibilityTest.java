@@ -9,6 +9,16 @@ import java.util.Arrays;
 import static org.junit.jupiter.api.Assertions.*;
 
 class FluidPatternCompatibilityTest {
+    @Test void extraStorageHasSeparateLifecycleAndUsesExpandablePatternProvider() throws IOException {
+        var crafter = read("edivad/extrastorage/autocrafting/advancedautocrafter/AdvancedAutocrafterBlockEntity");
+        assertEquals("com/refinedmods/refinedstorage/common/support/network/AbstractBaseNetworkNodeContainerBlockEntity", crafter.superName);
+        assertTrue(crafter.methods.stream().anyMatch(m -> m.name.equals("patternChanged") && m.desc.equals("(I)V")));
+        assertTrue(crafter.methods.stream().anyMatch(m -> m.name.equals("doWork") && m.desc.equals("()V")));
+        assertTrue(crafter.methods.stream().anyMatch(m -> m.name.equals("getPatternContainer")
+                && m.desc.equals("()Lcom/refinedmods/refinedstorage/common/support/FilteredContainer;")));
+        var extension = read("com/ultramega/refinedfluidsubstitution/common/util/PatternProviderNetworkNodeExtension");
+        assertTrue(extension.methods.stream().anyMatch(m -> m.name.equals("rfs$ensurePatternCapacity") && m.desc.equals("(I)V")));
+    }
     @Test void addonStillChoosesTypeFromInputOrExistingOutputAndPreservesEncodedComponents() throws IOException {
         var addon = read("com/ultramega/refinedfluidsubstitution/common/mixin/PatternGridBlockEntityMixin");
         var choose = addon.methods.stream().filter(method -> method.name.equals("rfs$rememberPatternKind")).findFirst().orElseThrow();
