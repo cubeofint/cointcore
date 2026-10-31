@@ -10,8 +10,6 @@ import com.refinedmods.refinedstorage.common.api.storage.PlayerActor;
 import com.refinedmods.refinedstorage.api.core.Action;
 import com.refinedmods.refinedstorage.api.network.node.grid.GridExtractMode;
 import com.refinedmods.refinedstorage.api.storage.limited.LimitedStorageImpl;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
@@ -28,11 +26,17 @@ public final class WirelessPatternSession {
     private boolean initialized;
     private boolean updatingPatternPreview;
     private long availablePatterns;
+    private ItemResource selected = NetworkPatternBlanks.read("");
 
     public long availablePatterns() { return availablePatterns; }
 
-    private ItemResource blankPattern() {
-        return new ItemResource(BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("refinedstorage", "pattern")));
+    public ItemResource blankPattern() { return NetworkPatternBlanks.forOutput(selected, NetworkPatternBlanks.output(backend)); }
+
+    public void selectBlank(ItemStack carried, boolean backwards) {
+        if (!canUse() || !NetworkPatternBlanks.output(backend).isEmpty()) return;
+        selected = NetworkPatternBlanks.choose(selected, carried, backwards);
+        refreshPatternPreview();
+        save();
     }
 
     public WirelessPatternSession(ServerPlayer player, ItemStack device, SlotReference reference, NetworkItemContext context) {
@@ -46,7 +50,9 @@ public final class WirelessPatternSession {
         backend = new WirelessPatternBackend(this, createNativeWirelessGrid(context), context);
         CompoundTag data = device.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         if (data.contains(WirelessPatternState.KEY, net.minecraft.nbt.Tag.TAG_COMPOUND)) {
-            backend.loadAdditional(WirelessPatternState.read(data), player.registryAccess());
+            var state = WirelessPatternState.read(data);
+            selected = NetworkPatternBlanks.read(state.getString(NetworkPatternBlanks.STATE_KEY));
+            backend.loadAdditional(state, player.registryAccess());
         }
         backend.setLevel(player.serverLevel());
         backend.refreshNetwork();
@@ -89,7 +95,7 @@ public final class WirelessPatternSession {
         if (!initialized) return;
         var blank = blankPattern();
         availablePatterns = canUse() ? backend.getItemStorage().extract(blank, Long.MAX_VALUE, Action.SIMULATE, new PlayerActor(player)) : 0;
-        ItemStack preview = availablePatterns > 0 ? blank.toItemStack(1) : ItemStack.EMPTY;
+        ItemStack preview = blank.toItemStack(1);
         if (ItemStack.matches(backend.getPatternInput().getItem(0), preview)) return;
         updatingPatternPreview = true;
         try {
@@ -113,6 +119,7 @@ public final class WirelessPatternSession {
         backend.saveAdditional(state, player.registryAccess());
         // The slot mirrors the network; virtual items must never become persistent device contents.
         state.remove("pattern_input");
+        state.putString(NetworkPatternBlanks.STATE_KEY, NetworkPatternBlanks.id(selected));
         // Preserve any other mods' custom data and Universal Grid's own components.
         CustomData.update(DataComponents.CUSTOM_DATA, device, tag -> WirelessPatternState.write(tag, state));
         player.getInventory().setChanged();

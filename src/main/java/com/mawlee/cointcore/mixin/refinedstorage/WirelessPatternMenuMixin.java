@@ -32,6 +32,7 @@ import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = PatternGridContainerMenu.class, remap = false)
 public abstract class WirelessPatternMenuMixin extends AbstractGridContainerMenu implements WirelessPatternMenu {
@@ -41,6 +42,7 @@ public abstract class WirelessPatternMenuMixin extends AbstractGridContainerMenu
     @Unique private BlockPatternSession cointcore$blockSession;
     @Shadow private PatternGridBlockEntity patternGrid;
     @Shadow @Final @Mutable private Container patternInput;
+    @Shadow @Final private Container patternOutput;
 
     @Override public long cointcore$availablePatterns() {
         if (cointcore$blockSession != null) return cointcore$blockSession.available();
@@ -97,8 +99,14 @@ public abstract class WirelessPatternMenuMixin extends AbstractGridContainerMenu
     @Override
     public void clicked(int slot, int button, ClickType type, Player player) {
         // Also reject creative clone clicks, which do not consult Slot.mayPickup.
-        if (slot >= 0 && slot < slots.size()
-                && slots.get(slot) instanceof NetworkPatternSlot) return;
+        if (slot >= 0 && slot < slots.size() && slots.get(slot) instanceof NetworkPatternSlot) {
+            if (player instanceof ServerPlayer && type == ClickType.PICKUP && (button == 0 || button == 1)) {
+                if (cointcore$session != null) cointcore$session.selectBlank(getCarried(), button == 1);
+                if (cointcore$blockSession != null) cointcore$blockSession.select(getCarried(), button == 1);
+                broadcastChanges();
+            }
+            return;
+        }
         if (cointcore$session == null || cointcore$session.canUse()) super.clicked(slot, button, type, player);
     }
 
@@ -108,6 +116,11 @@ public abstract class WirelessPatternMenuMixin extends AbstractGridContainerMenu
             if (!cointcore$session.canUse()) callback.cancel();
             else cointcore$session.refreshPatternPreview();
         }
+    }
+
+    @Inject(method = "canCreatePattern", at = @At("HEAD"), cancellable = true, require = 1)
+    private void cointcore$requireAvailableBlank(CallbackInfoReturnable<Boolean> callback) {
+        if (cointcore$availablePatterns() <= 0 && patternOutput.isEmpty()) callback.setReturnValue(false);
     }
 
     @Inject(method = "createPattern", at = @At("RETURN"), require = 1)

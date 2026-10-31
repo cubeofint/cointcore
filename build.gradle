@@ -214,6 +214,7 @@ dependencies {
     localRuntime "maven.modrinth:universal-grid:fa0WBjoC"
     localRuntime "maven.modrinth:refined-storage-quartz-arsenal:toDdIhGu"
     localRuntime "maven.modrinth:refined-storage-jei-integration:BYZmHubv"
+    localRuntime("maven.modrinth:refined-fluid-substitution:myRp1PWR") { transitive = false }
     packMods(curseMod(curse_create)) { transitive = false }
     packMods(curseMod(curse_entangled)) { transitive = false }
     packMods(curseMod(curse_supermartijn_core)) { transitive = false }
@@ -276,6 +277,7 @@ dependencies {
     testImplementation("curse.maven:modular-bees-1350380:8705124") { transitive = false }
     testImplementation("com.github.Almana-mc:logisticsnetworks:1.21.1-1.17.2") { transitive = false }
     testImplementation "maven.modrinth:universal-grid:fa0WBjoC"
+    testImplementation("maven.modrinth:refined-fluid-substitution:myRp1PWR") { transitive = false }
 
     compileOnly "mezz.jei:jei-1.21.1-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"

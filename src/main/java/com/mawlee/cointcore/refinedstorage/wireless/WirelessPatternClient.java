@@ -75,7 +75,7 @@ public final class WirelessPatternClient {
             long count = menu.cointcore$availablePatterns();
             for (var slot : screen.getMenu().slots) {
                 if (!(slot instanceof NetworkPatternSlot)) continue;
-                if (count > 0 && slot.hasItem()) {
+                if (slot.hasItem()) {
                     String label = count < 10_000 ? Long.toString(count)
                             : NumberFormat.getCompactNumberInstance(Locale.US, NumberFormat.Style.SHORT).format(count);
                     graphics.pose().pushPose();
@@ -103,6 +103,7 @@ public final class WirelessPatternClient {
     private static List<Component> patternPreviewTooltip(long count) {
         return List.of(
                 Component.translatable("tooltip.cointcore.wireless_patterns.ghost").withStyle(ChatFormatting.AQUA),
+                Component.translatable("tooltip.cointcore.wireless_patterns.select").withStyle(ChatFormatting.GRAY),
                 Component.translatable("tooltip.cointcore.wireless_patterns.read_only").withStyle(ChatFormatting.GRAY),
                 Component.translatable("tooltip.cointcore.wireless_patterns.available", NumberFormat.getIntegerInstance().format(count))
                         .withStyle(ChatFormatting.GRAY),

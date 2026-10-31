@@ -766,6 +766,7 @@
   "item.cointcore.infinity_pink_disk": "Infinite Pink Dye Disk",
   "tooltip.cointcore.infinity_disk.unavailable": "The mod providing this resource is not installed.",
   "tooltip.cointcore.wireless_patterns.ghost": "Ghost slot — patterns from the network",
+  "tooltip.cointcore.wireless_patterns.select": "Click: switch blank type. A supported pattern on the cursor selects its type without moving it. Take the output before switching.",
   "tooltip.cointcore.wireless_patterns.read_only": "Items cannot be inserted or taken out.",
   "tooltip.cointcore.wireless_patterns.available": "Available in network: %s",
   "tooltip.cointcore.wireless_patterns.consume": "Encoding automatically consumes one blank pattern.",

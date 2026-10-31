@@ -6,8 +6,6 @@ import com.refinedmods.refinedstorage.api.storage.limited.LimitedStorageImpl;
 import com.refinedmods.refinedstorage.common.api.storage.PlayerActor;
 import com.refinedmods.refinedstorage.common.autocrafting.patterngrid.PatternGridBlockEntity;
 import com.refinedmods.refinedstorage.common.support.resource.ItemResource;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
@@ -19,6 +17,7 @@ public final class BlockPatternSession {
     private final ServerPlayer player;
     private final SimpleContainer preview = new SimpleContainer(1);
     private long available;
+    private ItemResource selected = NetworkPatternBlanks.read("");
 
     public BlockPatternSession(PatternGridBlockEntity grid, ServerPlayer player) {
         this.grid = grid;
@@ -32,9 +31,12 @@ public final class BlockPatternSession {
         refresh();
     }
 
-    private ItemResource blank() {
-        return new ItemResource(BuiltInRegistries.ITEM.get(
-                ResourceLocation.fromNamespaceAndPath("refinedstorage", "pattern")));
+    public ItemResource blank() { return NetworkPatternBlanks.forOutput(selected, NetworkPatternBlanks.output(grid)); }
+
+    public void select(ItemStack carried, boolean backwards) {
+        if (!canUse() || !NetworkPatternBlanks.output(grid).isEmpty()) return;
+        selected = NetworkPatternBlanks.choose(selected, carried, backwards);
+        refresh();
     }
 
     public SimpleContainer preview() { return preview; }
@@ -48,7 +50,7 @@ public final class BlockPatternSession {
         var blank = blank();
         available = canUse() ? grid.getItemStorage().extract(blank, Long.MAX_VALUE, Action.SIMULATE,
                 new PlayerActor(player)) : 0;
-        ItemStack stack = available > 0 ? blank.toItemStack(1) : ItemStack.EMPTY;
+        ItemStack stack = blank.toItemStack(1);
         if (!ItemStack.matches(preview.getItem(0), stack)) preview.setItem(0, stack);
     }
 

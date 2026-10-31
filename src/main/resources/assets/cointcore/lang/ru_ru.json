@@ -766,6 +766,7 @@
   "item.cointcore.infinity_pink_disk": "Бесконечный диск розового красителя",
   "tooltip.cointcore.infinity_disk.unavailable": "Мод, добавляющий этот ресурс, не установлен.",
   "tooltip.cointcore.wireless_patterns.ghost": "Призрачный слот — шаблоны из сети",
+  "tooltip.cointcore.wireless_patterns.select": "Клик: сменить тип заготовки. Шаблон на курсоре выбирает его тип без переноса. Для смены заберите готовый шаблон.",
   "tooltip.cointcore.wireless_patterns.read_only": "Предметы нельзя положить или забрать.",
   "tooltip.cointcore.wireless_patterns.available": "Доступно в сети: %s",
   "tooltip.cointcore.wireless_patterns.consume": "При записи автоматически расходуется один шаблон.",

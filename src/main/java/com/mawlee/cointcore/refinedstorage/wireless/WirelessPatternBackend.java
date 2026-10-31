@@ -47,6 +47,8 @@ public final class WirelessPatternBackend extends PatternGridBlockEntity {
     public boolean consumeNetworkPattern() {
         return session.consumeNetworkPattern();
     }
+    public com.refinedmods.refinedstorage.common.support.resource.ItemResource networkPatternBlank() { return session.blankPattern(); }
+    public long availableNetworkPatterns() { return session.availablePatterns(); }
 
     @Override public void setChanged() {
         // Constructor/load callbacks occur before the session is fully initialized.
