@@ -174,6 +174,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     );
 
     private static final Set<String> AE2_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.ae2.NetworkStorageScanCacheMixin",
             "com.mawlee.cointcore.mixin.ae2.TagSearchPredicateMixin",
             "com.mawlee.cointcore.mixin.ae2.SpatialStorageHelperMixin",
             "com.mawlee.cointcore.mixin.ae2.AEItemKeyFuzzyMaxCacheMixin",
@@ -403,6 +404,9 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
         putAll(map, FORBIDDEN_ARCANUS_MIXINS, "forbidden_arcanus");
         putAll(map, APOTHIC_SPAWNERS_MIXINS, "apothic_spawners");
         putAll(map, AE2_MIXINS, "ae2");
+        putAll(map, Set.of("com.mawlee.cointcore.mixin.mekanism.ItemHandlerManagerMixin"), "mekanism");
+        putAll(map, Set.of("com.mawlee.cointcore.mixin.integratedtunnels.EmptySourceSlotMixin"),
+                "cyclopscore", "commoncapabilities", "integratedtunnels");
         putAll(map, EXTENDED_AE_MIXINS, "ae2", "extendedae");
         putAll(map, REFINED_STORAGE_MIXINS, "refinedstorage");
         putAll(map, Set.of("com.mawlee.cointcore.mixin.refinedstorage.ExtraStorageFluidPatternsMixin"),

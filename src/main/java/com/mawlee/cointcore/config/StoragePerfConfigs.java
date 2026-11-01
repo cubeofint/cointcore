@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 /**
- * Owns {@code config/cointcore/storage-perf.json} with sections {@code ae2} and {@code rs_importer}.
+ * Owns the optional storage and transfer optimizations in {@code config/cointcore/storage-perf.json}.
  */
 public final class StoragePerfConfigs {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -27,6 +27,8 @@ public final class StoragePerfConfigs {
         } catch (IOException | RuntimeException exception) {
             LOGGER.error("Failed to load {}; using defaults", FILE_NAME, exception);
             Ae2PerfConfig.applySection(Ae2PerfConfig.defaultFileData());
+            MekanismPerfConfig.applySection(MekanismPerfConfig.defaultFileData());
+            IntegratedTransferPerfConfig.applySection(IntegratedTransferPerfConfig.defaultFileData());
             RsImporterPerfConfig.applySection(RsImporterPerfConfig.defaultFileData());
             ModularBeesRsConfig.applySection(ModularBeesRsConfig.defaultFileData());
         }
@@ -53,14 +55,18 @@ public final class StoragePerfConfigs {
                 false,
                 LOGGER
         );
-        if (ConfigMergeSupport.addMissingSectionValues(root, "ae2", Ae2PerfConfig.defaultFileData()))
-            ConfigMergeSupport.writeObject(path(), root);
+        boolean updated = ConfigMergeSupport.addMissingSectionValues(root, "ae2", Ae2PerfConfig.defaultFileData());
+        updated |= ConfigMergeSupport.addMissingSectionValues(root, "mekanism", MekanismPerfConfig.defaultFileData());
+        updated |= ConfigMergeSupport.addMissingSectionValues(root, "integrated_tunnels", IntegratedTransferPerfConfig.defaultFileData());
+        if (updated) ConfigMergeSupport.writeObject(path(), root);
         return root;
     }
 
     private static JsonObject defaults() {
         JsonObject root = new JsonObject();
         root.add("ae2", ConfigMergeSupport.toJsonObject(Ae2PerfConfig.defaultFileData()));
+        root.add("mekanism", ConfigMergeSupport.toJsonObject(MekanismPerfConfig.defaultFileData()));
+        root.add("integrated_tunnels", ConfigMergeSupport.toJsonObject(IntegratedTransferPerfConfig.defaultFileData()));
         root.add("rs_importer", ConfigMergeSupport.toJsonObject(RsImporterPerfConfig.defaultFileData()));
         root.add("modularbees_rs", ConfigMergeSupport.toJsonObject(ModularBeesRsConfig.defaultFileData()));
         return root;
@@ -70,6 +76,12 @@ public final class StoragePerfConfigs {
         Ae2PerfConfig.applySection(ConfigMergeSupport.sectionOrDefault(
                 root, "ae2", Ae2PerfConfig.Data.class, Ae2PerfConfig::defaultFileData
         ));
+        MekanismPerfConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root, "mekanism", MekanismPerfConfig.Data.class, MekanismPerfConfig::defaultFileData
+        ));
+        IntegratedTransferPerfConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root, "integrated_tunnels", IntegratedTransferPerfConfig.Data.class, IntegratedTransferPerfConfig::defaultFileData
+        ));
         RsImporterPerfConfig.applySection(ConfigMergeSupport.sectionOrDefault(
                 root, "rs_importer", RsImporterPerfConfig.Data.class, RsImporterPerfConfig::defaultFileData
         ));
@@ -78,6 +90,10 @@ public final class StoragePerfConfigs {
         ));
         if (logReload) {
             Ae2PerfConfig.logReload();
+            LOGGER.info("Reloaded Mekanism perf config (directItemContainerLookup={})",
+                    MekanismPerfConfig.isDirectItemContainerLookup());
+            LOGGER.info("Reloaded Integrated Tunnels perf config (emptySourceFastPath={})",
+                    IntegratedTransferPerfConfig.isEmptySourceFastPath());
             RsImporterPerfConfig.logReload();
         }
     }

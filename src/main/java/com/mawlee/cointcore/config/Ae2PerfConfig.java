@@ -17,6 +17,7 @@ public final class Ae2PerfConfig {
 
     private static boolean cacheFuzzySearchMaxValue = true;
     private static int storageCacheIntervalTicks = 5;
+    private static boolean cacheNetworkInventoryPerTick = true;
     private static boolean sophisticatedFastExtract = true;
     private static int automaticCraftingRetryTicks = 20;
 
@@ -44,6 +45,8 @@ public final class Ae2PerfConfig {
         return storageCacheIntervalTicks;
     }
 
+    public static boolean isCacheNetworkInventoryPerTick() { return cacheNetworkInventoryPerTick; }
+
     public static Path getConfigPath() {
         return StoragePerfConfigs.path();
     }
@@ -62,23 +65,25 @@ public final class Ae2PerfConfig {
 
     static void logReload() {
         LOGGER.info(
-                "Reloaded AE2 perf config (cacheFuzzySearchMaxValue={}, storageCacheIntervalTicks={}, automaticCraftingRetryTicks={})",
+                "Reloaded AE2 perf config (cacheFuzzySearchMaxValue={}, storageCacheIntervalTicks={}, automaticCraftingRetryTicks={}, cacheNetworkInventoryPerTick={})",
                 cacheFuzzySearchMaxValue,
                 storageCacheIntervalTicks,
-                automaticCraftingRetryTicks
+                automaticCraftingRetryTicks,
+                cacheNetworkInventoryPerTick
         );
     }
 
     private static void apply(LoadedConfig loaded) {
         cacheFuzzySearchMaxValue = loaded.cacheFuzzySearchMaxValue();
         storageCacheIntervalTicks = loaded.storageCacheIntervalTicks();
+        cacheNetworkInventoryPerTick = loaded.cacheNetworkInventoryPerTick();
         sophisticatedFastExtract = loaded.sophisticatedFastExtract();
         automaticCraftingRetryTicks = loaded.automaticCraftingRetryTicks();
     }
 
     private static LoadedConfig parse(Data data) {
         return new LoadedConfig(data.cacheFuzzySearchMaxValue, Math.max(1, Math.min(40, data.storageCacheIntervalTicks)),
-                data.sophisticatedFastExtract, Math.max(1, Math.min(200, data.automaticCraftingRetryTicks)));
+                data.sophisticatedFastExtract, Math.max(1, Math.min(200, data.automaticCraftingRetryTicks)), data.cacheNetworkInventoryPerTick);
     }
 
     static Data defaultFileData() {
@@ -86,10 +91,13 @@ public final class Ae2PerfConfig {
     }
 
     private record LoadedConfig(boolean cacheFuzzySearchMaxValue, int storageCacheIntervalTicks,
-                                boolean sophisticatedFastExtract, int automaticCraftingRetryTicks) {
+                                boolean sophisticatedFastExtract, int automaticCraftingRetryTicks, boolean cacheNetworkInventoryPerTick) {
     }
 
     static final class Data {
+        /** Reuse full network inventory scans within one tick; mutations invalidate all linked snapshots. */
+        @SerializedName("cache_network_inventory_per_tick")
+        boolean cacheNetworkInventoryPerTick = true;
         @SerializedName("cache_fuzzy_search_max_value")
         boolean cacheFuzzySearchMaxValue = true;
 

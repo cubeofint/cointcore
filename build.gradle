@@ -202,6 +202,14 @@ dependencies {
     packMods(curseMod(curse_apotheosis)) { transitive = false }
     packMods(curseMod(curse_placebo)) { transitive = false }
     packMods(curseMod(curse_ae2)) { transitive = false }
+    // Same Mekanism release as the server profile; optional at runtime, never bundled.
+    compileOnly("maven.modrinth:mekanism:5KzzycBT") { transitive = false }
+    compileOnly("maven.modrinth:common-capabilities:R9PufPlP") { transitive = false }
+    localRuntime("maven.modrinth:common-capabilities:R9PufPlP") { transitive = false }
+    localRuntime(curseMod(curse_cyclops_core)) { transitive = false }
+    localRuntime("maven.modrinth:integrated-dynamics:K6fbSoc8") { transitive = false }
+    localRuntime("maven.modrinth:integrated-tunnels:ae7HKctj") { transitive = false }
+    localRuntime("maven.modrinth:mekanism:5KzzycBT") { transitive = false }
     // Pinned to the Logistics Networks build used by ATM10 and the server profile.
     compileOnly("com.github.Almana-mc:logisticsnetworks:1.21.1-1.17.2") { transitive = false }
     packMods(curseMod(curse_refined_storage)) { transitive = false }
@@ -277,6 +285,9 @@ dependencies {
     testImplementation(curseMod(curse_refined_storage)) { transitive = false }
     testImplementation(curseMod(curse_sfm)) { transitive = false }
     testImplementation(curseMod(curse_ae2)) { transitive = false }
+    testImplementation("maven.modrinth:mekanism:5KzzycBT") { transitive = false }
+    testImplementation(curseMod(curse_cyclops_core)) { transitive = false }
+    testImplementation("maven.modrinth:common-capabilities:R9PufPlP") { transitive = false }
     testImplementation("curse.maven:modular-bees-1350380:8705124") { transitive = false }
     testImplementation("com.github.Almana-mc:logisticsnetworks:1.21.1-1.17.2") { transitive = false }
     testImplementation "maven.modrinth:universal-grid:fa0WBjoC"

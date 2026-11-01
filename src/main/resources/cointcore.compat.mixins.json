@@ -15,6 +15,9 @@
     "refinedstorage.InfinityDiskStateTrackingMixin",
     "refinedstorage.InfinityDiskConfiguredStorageMixin",
     "ae2.AEItemKeyFuzzyMaxCacheMixin",
+    "ae2.NetworkStorageScanCacheMixin",
+    "mekanism.ItemHandlerManagerMixin",
+    "integratedtunnels.EmptySourceSlotMixin",
     "functionalstorage.ArmoryCabinetMenuMixin"
   ],
   "client": [

@@ -11,6 +11,7 @@ class ProfilePerfConfigTest {
         assertTrue(ConfigMergeSupport.addMissingSectionValues(root, "ae2", Ae2PerfConfig.defaultFileData()));
         var ae2 = root.getAsJsonObject("ae2");
         assertEquals(20, ae2.get("automatic_crafting_retry_ticks").getAsInt());
+        assertTrue(ae2.get("cache_network_inventory_per_tick").getAsBoolean());
         assertEquals(9, ae2.get("storage_cache_interval_ticks").getAsInt());
         assertFalse(ae2.getAsJsonObject("custom").get("keep").getAsBoolean());
         ae2.addProperty("automatic_crafting_retry_ticks", 1);
@@ -23,6 +24,9 @@ class ProfilePerfConfigTest {
         try {
             Ae2PerfConfig.applySection(gson.fromJson("{}", Ae2PerfConfig.Data.class));
             assertEquals(20, Ae2PerfConfig.getAutomaticCraftingRetryTicks());
+            assertTrue(Ae2PerfConfig.isCacheNetworkInventoryPerTick());
+            Ae2PerfConfig.applySection(gson.fromJson("{\"cache_network_inventory_per_tick\":false}", Ae2PerfConfig.Data.class));
+            assertFalse(Ae2PerfConfig.isCacheNetworkInventoryPerTick());
             Ae2PerfConfig.applySection(gson.fromJson("{\"automatic_crafting_retry_ticks\":0}", Ae2PerfConfig.Data.class));
             assertEquals(1, Ae2PerfConfig.getAutomaticCraftingRetryTicks());
             LogisticsNetworksBudgetConfig.applySection(gson.fromJson("{\"enabled\":false}", LogisticsNetworksBudgetConfig.Data.class));

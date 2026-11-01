@@ -2,6 +2,7 @@ package com.mawlee.cointcore.mixin.ae2;
 
 import appeng.me.helpers.InterestManager;
 import appeng.me.service.StorageService;
+import com.mawlee.cointcore.ae2.NetworkInventoryScanCache;
 import com.mawlee.cointcore.config.Ae2PerfConfig;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,6 +25,11 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 @Mixin(value = StorageService.class, remap = false)
 public abstract class StorageServiceCacheThrottleMixin {
+    @Inject(method = "invalidateCache", at = @At("HEAD"), require = 1)
+    private void cointcore$invalidateNetworkScan(CallbackInfo ci) {
+        NetworkInventoryScanCache.invalidate();
+    }
+
     @Shadow
     @Final
     private InterestManager<?> interestManager;

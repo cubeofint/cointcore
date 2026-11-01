@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.PriorityQueue;
+import java.util.function.Consumer;
 
 /**
  * Aggregates nanoseconds spent by block entities, entities, chunks and dimensions.
@@ -212,28 +214,43 @@ public final class OffenderAggregator {
     public List<OffenderSnapshot> top(Kind kind, int limit) {
         int capped = Math.max(0, limit);
         topBuffer.clear();
+        if (capped == 0) return List.of();
+        // Select the time threshold before resolving registry names and creating report snapshots.
+        var leaders = new PriorityQueue<MutableStat>(Math.min(capped, 128), Comparator.comparingLong(s -> s.totalNanos));
+        forEachStat(kind, stat -> {
+            if (leaders.size() < capped) leaders.add(stat);
+            else if (stat.totalNanos > leaders.peek().totalNanos) {
+                leaders.poll(); leaders.add(stat);
+            }
+        });
+        if (leaders.isEmpty()) return List.of();
+        long threshold = leaders.peek().totalNanos;
+        // Keep all boundary ties so the existing type-name tie-break and stable ordering remain intact.
+        forEachStat(kind, stat -> {
+            if (stat.totalNanos >= threshold) topBuffer.add(stat.snapshot(labels));
+        });
+        topBuffer.sort(BY_NANOS_THEN_TYPE);
+        return List.copyOf(topBuffer.subList(0, Math.min(capped, topBuffer.size())));
+    }
+
+    private void forEachStat(Kind kind, Consumer<MutableStat> visitor) {
         if (kind == null || kind == Kind.BLOCK_ENTITY || kind == Kind.ENTITY) {
             for (MutableStat stat : instances.values()) {
                 if (kind == null || stat.kind == kind) {
-                    topBuffer.add(stat.snapshot(labels));
+                    visitor.accept(stat);
                 }
             }
         }
         if (kind == null || kind == Kind.CHUNK) {
             for (MutableStat stat : chunks.values()) {
-                topBuffer.add(stat.snapshot(labels));
+                visitor.accept(stat);
             }
         }
         if (kind == null || kind == Kind.DIMENSION) {
             for (MutableStat stat : dimensions.values()) {
-                topBuffer.add(stat.snapshot(labels));
+                visitor.accept(stat);
             }
         }
-        topBuffer.sort(BY_NANOS_THEN_TYPE);
-        if (topBuffer.size() > capped) {
-            return List.copyOf(topBuffer.subList(0, capped));
-        }
-        return List.copyOf(topBuffer);
     }
 
     public List<OffenderSnapshot> topAll(int limit) {
