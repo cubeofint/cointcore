@@ -23,13 +23,7 @@ public final class TickProbe {
         }
     }
 
-    private static volatile boolean active;
-    private static volatile String kind = "";
-    private static volatile Object typeRef;
-    private static volatile Object dimensionRef;
-    private static volatile int x;
-    private static volatile int y;
-    private static volatile int z;
+    private static final PublishedWatchdogContext CONTEXT = new PublishedWatchdogContext();
     private static volatile WatchdogLabels labels = WatchdogLabels.STRINGS;
 
     private TickProbe() {
@@ -62,45 +56,35 @@ public final class TickProbe {
     }
 
     public static void enter(String kindValue, Object type, Object dimension, int posX, int posY, int posZ) {
-        kind = kindValue == null ? "" : kindValue;
-        typeRef = type;
-        dimensionRef = dimension;
-        x = posX;
-        y = posY;
-        z = posZ;
-        active = true;
+        CONTEXT.enter(1, kindValue == null ? "" : kindValue, 0, type, dimension,
+                posX, posY, posZ, "", "");
     }
 
     public static void exit() {
-        active = false;
+        CONTEXT.exit();
     }
 
     public static Snapshot snapshot() {
-        if (!active) {
+        var context = CONTEXT.snapshot();
+        if (context.kind() == 0) {
             return Snapshot.inactive();
         }
         WatchdogLabels resolver = labels;
-        String typeId = resolver.typeId(typeRef);
-        String dimension = resolver.dimensionId(dimensionRef);
+        String typeId = resolver.typeId(context.type());
+        String dimension = resolver.dimensionId(context.dimension());
         return new Snapshot(
                 true,
-                kind,
+                context.label(),
                 typeId,
                 WatchdogLabels.owningMod(typeId),
                 dimension,
-                x,
-                y,
-                z
+                context.x(),
+                context.y(),
+                context.z()
         );
     }
 
     public static void clear() {
-        active = false;
-        kind = "";
-        typeRef = null;
-        dimensionRef = null;
-        x = 0;
-        y = 0;
-        z = 0;
+        CONTEXT.clear();
     }
 }

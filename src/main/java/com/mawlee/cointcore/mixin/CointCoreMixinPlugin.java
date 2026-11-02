@@ -201,6 +201,11 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     );
 
     private static final Set<String> UNIVERSAL_GRID_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.refinedstorage.BatchAutocraftingComponentAccessor",
+            "com.mawlee.cointcore.mixin.refinedstorage.BatchAutocraftingRequestMixin",
+            "com.mawlee.cointcore.mixin.refinedstorage.BatchAutocraftingPreviewMixin",
+            "com.mawlee.cointcore.mixin.refinedstorage.BatchAutocraftingScreenMixin",
+            "com.mawlee.cointcore.mixin.refinedstorage.BatchPreviewMenuAccessor",
             "com.mawlee.cointcore.mixin.refinedstorage.GridToolsAccessor",
             "com.mawlee.cointcore.mixin.refinedstorage.AutocrafterPatternsAccessor",
             "com.mawlee.cointcore.mixin.refinedstorage.UniversalGridPatternModeMixin",
@@ -412,6 +417,8 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
         putAll(map, Set.of("com.mawlee.cointcore.mixin.refinedstorage.ExtraStorageFluidPatternsMixin"),
                 "refinedstorage", "extrastorage", "refinedfluidsubstitution");
         putAll(map, UNIVERSAL_GRID_MIXINS, "refinedstorage", "universalgrid");
+        putAll(map, Set.of("com.mawlee.cointcore.mixin.refinedstorage.BatchJeiRecipeTargetMixin"),
+                "refinedstorage", "universalgrid", "refinedstorage_jei_integration", "jei");
         putAll(map, DISCORD_CHAT_MOD_MIXINS, "discord_chat_mod");
         putAll(map, MOB_GRINDING_UTILS_MIXINS, "mob_grinding_utils");
         putAll(map, RFTOOLS_BUILDER_MIXINS, "rftoolsbuilder");

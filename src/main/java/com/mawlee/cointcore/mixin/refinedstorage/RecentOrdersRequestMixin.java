@@ -19,7 +19,10 @@ public abstract class RecentOrdersRequestMixin {
         if (!accepted || currentRequest == null) return;
         var request = (AutocraftingRequestAccessor) currentRequest;
         if (request.cointcore$requestId().equals(id)) {
-            RecentOrdersClient.remember(request.cointcore$requestedResource());
+            var batch = ((com.mawlee.cointcore.refinedstorage.batch.BatchRequestHolder) currentRequest).cointcore$batch();
+            if (batch == null) RecentOrdersClient.remember(request.cointcore$requestedResource());
+            else if (batch.recipeOutput() != null) RecentOrdersClient.remember(batch.recipeOutput().resource());
+            else batch.outputs().forEach(output -> RecentOrdersClient.remember(output.resource()));
         }
     }
 }

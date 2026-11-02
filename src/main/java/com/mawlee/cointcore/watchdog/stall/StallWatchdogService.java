@@ -218,19 +218,20 @@ public final class StallWatchdogService implements Runnable {
     }
 
     private void requestBreak() {
-        int kind = StallContext.kind();
+        var context = StallContext.snapshot();
+        int kind = context.kind();
         int depth = DamageGuard.counters().currentDepth();
         if (kind == StallContext.KIND_DAMAGE || depth > 0) {
             StallWatchdogHotFlags.ABORT_DAMAGE = true;
             LOGGER.warn("Stall break: aborting further damage processing (depth={})", depth);
         }
         if (kind == StallContext.KIND_ENTITY) {
-            StallWatchdogHotFlags.ABORT_ENTITY = true;
-            StallWatchdogHotFlags.ABORT_ENTITY_ID = StallContext.entityId();
+            StallWatchdogHotFlags.ABORT_ENTITY_ID = context.entityId();
             StallWatchdogHotFlags.DISCARD_ENTITY = StallWatchdogConfig.isDiscardOffendingEntity();
+            StallWatchdogHotFlags.ABORT_ENTITY = true;
             LOGGER.warn(
                     "Stall break: aborting entity tick #{} discard={}",
-                    StallContext.entityId(),
+                    context.entityId(),
                     StallWatchdogHotFlags.DISCARD_ENTITY
             );
         }
@@ -242,9 +243,11 @@ public final class StallWatchdogService implements Runnable {
             return "";
         }
         StringBuilder builder = new StringBuilder();
-        String dim = StallContext.dimension();
-        int cx = StallContext.x();
-        int cz = StallContext.z();
+        var context = StallContext.snapshot();
+        if (context.kind() == StallContext.KIND_NONE) return "";
+        String dim = com.mawlee.cointcore.watchdog.WatchdogWorldContext.LABELS.dimensionId(context.dimension());
+        int cx = context.x();
+        int cz = context.z();
         try {
             for (ServerPlayer player : current.getPlayerList().getPlayers()) {
                 if (!dim.isEmpty() && !player.level().dimension().location().toString().equals(dim)) {

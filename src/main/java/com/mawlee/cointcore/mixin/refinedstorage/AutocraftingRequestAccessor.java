@@ -10,4 +10,5 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface AutocraftingRequestAccessor {
     @Accessor("id") UUID cointcore$requestId();
     @Accessor("resource") ResourceKey cointcore$requestedResource();
+    @Accessor("amount") double cointcore$requestedAmount();
 }

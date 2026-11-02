@@ -61,7 +61,7 @@ public final class WatchdogHooks {
             return;
         }
         blockEntityStartNanos = System.nanoTime();
-        if (StackSampler.isCapturing()) {
+        if (!StallWatchdogHotFlags.ENABLED && StackSampler.isCapturing()) {
             BlockPos pos = blockEntity.getBlockPos();
             TickProbe.enter(
                     "block_entity",
@@ -115,7 +115,7 @@ public final class WatchdogHooks {
             return;
         }
         entityStartNanos = System.nanoTime();
-        if (StackSampler.isCapturing()) {
+        if (!StallWatchdogHotFlags.ENABLED && StackSampler.isCapturing()) {
             TickProbe.enter(
                     "entity",
                     entity.getType(),

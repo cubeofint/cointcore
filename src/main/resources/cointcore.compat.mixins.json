@@ -5,6 +5,7 @@
   "plugin": "com.mawlee.cointcore.mixin.CointCoreMixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "refinedstorage.BatchAutocraftingComponentAccessor",
     "refinedstorage.GridToolsAccessor",
     "refinedstorage.AutocrafterPatternsAccessor",
     "refinedstorage.ExtraStorageFluidPatternsMixin",
@@ -21,6 +22,11 @@
     "functionalstorage.ArmoryCabinetMenuMixin"
   ],
   "client": [
+    "refinedstorage.BatchJeiRecipeTargetMixin",
+    "refinedstorage.BatchAutocraftingRequestMixin",
+    "refinedstorage.BatchAutocraftingPreviewMixin",
+    "refinedstorage.BatchAutocraftingScreenMixin",
+    "refinedstorage.BatchPreviewMenuAccessor",
     "refinedstorage.RecentOrdersMenuMixin",
     "refinedstorage.RecentOrdersScreenMixin",
     "refinedstorage.AutocraftingRequestAccessor",

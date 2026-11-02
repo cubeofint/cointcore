@@ -9,6 +9,27 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.*;
 
 class NetworkInventoryScanCacheTest {
+    @Test void invalidationDuringScanDoesNotPublishAndTheReusableGuardRecoversAfterFailure() {
+        var cache = new NetworkInventoryScanCache();
+        var server = new Object();
+        var calls = new AtomicInteger();
+        Consumer<KeyCounter> changing = out -> {
+            calls.incrementAndGet();
+            NetworkInventoryScanCache.invalidate();
+        };
+        cache.read(server, 1, false, new KeyCounter(), changing);
+        cache.read(server, 1, false, new KeyCounter(), changing);
+        assertEquals(2, calls.get());
+        assertThrows(IllegalArgumentException.class, () -> cache.read(server, 1, false, new KeyCounter(), out -> {
+            throw new IllegalArgumentException("storage failed");
+        }));
+        for (int tick = 2; tick < 50; tick++) {
+            cache.read(server, tick, false, new KeyCounter(), out -> calls.incrementAndGet());
+            cache.read(server, tick, false, new KeyCounter(), out -> fail("expected cached result"));
+        }
+        assertEquals(50, calls.get());
+    }
+
     @Test void evenEmptyInventoryScansAreSharedOnlyWithinTheCurrentTickAndServer() {
         var cache = new NetworkInventoryScanCache();
         var server = new Object();

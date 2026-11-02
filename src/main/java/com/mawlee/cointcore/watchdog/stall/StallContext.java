@@ -1,5 +1,7 @@
 package com.mawlee.cointcore.watchdog.stall;
 
+import com.mawlee.cointcore.watchdog.PublishedWatchdogContext;
+import com.mawlee.cointcore.watchdog.StackSampler;
 import com.mawlee.cointcore.watchdog.TickProbe;
 import com.mawlee.cointcore.watchdog.WatchdogWorldContext;
 import net.minecraft.core.BlockPos;
@@ -12,10 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
-/**
- * Cheap volatile slot describing what the server thread is doing.
- * Written on the server thread, read by the stall watchdog thread.
- */
+/** Single server-thread publisher, with consistent copies for the stall watchdog thread. */
 public final class StallContext {
     public static final int KIND_NONE = 0;
     public static final int KIND_ENTITY = 1;
@@ -23,169 +22,101 @@ public final class StallContext {
     public static final int KIND_DAMAGE = 3;
     public static final int KIND_TEST = 4;
 
-    private static volatile int kind;
-    private static volatile int entityId;
-    private static volatile int x;
-    private static volatile int y;
-    private static volatile int z;
-    /** EntityType / BlockEntityType / String; resolved to an id only when read (hot path stays allocation-free). */
-    private static volatile Object typeRef = "";
-    /** ResourceKey of the level or a String. */
-    private static volatile Object dimensionRef = "";
-    private static volatile String actor = "";
-    private static volatile String weaponId = "";
+    private static final PublishedWatchdogContext CONTEXT = new PublishedWatchdogContext();
 
-    private StallContext() {
-    }
+    private StallContext() { }
 
     public static void enterEntity(Entity entity) {
-        if (entity == null) {
-            return;
+        if (entity == null) return;
+        var pos = entity.blockPosition();
+        CONTEXT.enter(KIND_ENTITY, entity.getId(), entity.getType(), entity.level().dimension(),
+                pos.getX(), pos.getY(), pos.getZ(), "", "");
+        if (StackSampler.isCapturing()) {
+            TickProbe.enter("entity", entity.getType(), entity.level().dimension(), pos.getX(), pos.getY(), pos.getZ());
         }
-        kind = KIND_ENTITY;
-        entityId = entity.getId();
-        x = entity.getBlockX();
-        y = entity.getBlockY();
-        z = entity.getBlockZ();
-        typeRef = entity.getType();
-        dimensionRef = entity.level().dimension();
-        TickProbe.enter("entity", entity.getType(), entity.level().dimension(), x, y, z);
     }
 
     public static void exitEntity(Entity entity) {
-        if (entity != null && kind == KIND_ENTITY && entityId == entity.getId()) {
-            kind = KIND_NONE;
-        }
+        if (entity != null && CONTEXT.isCurrent(KIND_ENTITY, entity.getId())) CONTEXT.exit();
         TickProbe.exit();
     }
 
     public static void enterBlockEntity(BlockEntity blockEntity) {
         Level level = blockEntity == null ? null : blockEntity.getLevel();
-        if (level == null) {
-            return;
-        }
+        if (level == null) return;
         BlockPos pos = blockEntity.getBlockPos();
-        kind = KIND_BLOCK_ENTITY;
-        entityId = 0;
-        x = pos.getX();
-        y = pos.getY();
-        z = pos.getZ();
-        typeRef = blockEntity.getType();
-        dimensionRef = level.dimension();
-        TickProbe.enter("block_entity", typeRef, dimensionRef, x, y, z);
+        CONTEXT.enter(KIND_BLOCK_ENTITY, 0, blockEntity.getType(), level.dimension(),
+                pos.getX(), pos.getY(), pos.getZ(), "", "");
+        if (StackSampler.isCapturing()) {
+            TickProbe.enter("block_entity", blockEntity.getType(), level.dimension(), pos.getX(), pos.getY(), pos.getZ());
+        }
     }
 
     public static void exitBlockEntity() {
-        if (kind == KIND_BLOCK_ENTITY) {
-            kind = KIND_NONE;
-        }
+        if (CONTEXT.isCurrent(KIND_BLOCK_ENTITY, 0)) CONTEXT.exit();
         TickProbe.exit();
     }
 
     public static void enterDamage(LivingEntity target, DamageSource source) {
-        if (target == null) {
-            return;
-        }
-        kind = KIND_DAMAGE;
-        entityId = target.getId();
-        x = target.getBlockX();
-        y = target.getBlockY();
-        z = target.getBlockZ();
-        typeRef = target.getType();
-        dimensionRef = target.level().dimension();
+        if (target == null) return;
+        String actor = "", weaponId = "";
         Entity direct = source == null ? null : source.getEntity();
         if (direct instanceof Player player) {
             actor = player.getGameProfile().getName();
             ItemStack weapon = player.getMainHandItem();
-            weaponId = weapon.isEmpty()
-                    ? ""
-                    : BuiltInRegistries.ITEM.getKey(weapon.getItem()).toString();
+            weaponId = weapon.isEmpty() ? "" : BuiltInRegistries.ITEM.getKey(weapon.getItem()).toString();
         } else if (direct != null) {
             actor = BuiltInRegistries.ENTITY_TYPE.getKey(direct.getType()).toString();
-            weaponId = "";
         }
-        TickProbe.enter("damage", target.getType(), target.level().dimension(), x, y, z);
+        var pos = target.blockPosition();
+        CONTEXT.enter(KIND_DAMAGE, target.getId(), target.getType(), target.level().dimension(),
+                pos.getX(), pos.getY(), pos.getZ(), actor, weaponId);
+        if (StackSampler.isCapturing()) {
+            TickProbe.enter("damage", target.getType(), target.level().dimension(), pos.getX(), pos.getY(), pos.getZ());
+        }
     }
 
     public static void exitDamage() {
-        if (kind == KIND_DAMAGE) {
-            kind = KIND_NONE;
-        }
+        if (CONTEXT.isCurrentKind(KIND_DAMAGE)) CONTEXT.exit();
         TickProbe.exit();
     }
 
     public static void enterTest() {
-        kind = KIND_TEST;
-        typeRef = "stall-test";
-        actor = "op";
-        weaponId = "";
-        entityId = 0;
+        CONTEXT.enter(KIND_TEST, 0, "stall-test", "", 0, 0, 0, "op", "");
     }
 
     public static void clear() {
-        kind = KIND_NONE;
-        entityId = 0;
-        x = 0;
-        y = 0;
-        z = 0;
-        typeRef = "";
-        dimensionRef = "";
-        actor = "";
-        weaponId = "";
+        CONTEXT.clear();
         TickProbe.clear();
     }
 
-    public static int kind() {
-        return kind;
-    }
-
-    public static int entityId() {
-        return entityId;
-    }
-
-    public static int x() {
-        return x;
-    }
-
-    public static int y() {
-        return y;
-    }
-
-    public static int z() {
-        return z;
-    }
-
-    public static String typeId() {
-        Object type = typeRef;
-        return type instanceof String string ? string : WatchdogWorldContext.LABELS.typeId(type);
-    }
-
-    public static String dimension() {
-        Object level = dimensionRef;
-        return level instanceof String string ? string : WatchdogWorldContext.LABELS.dimensionId(level);
-    }
-
-    public static String actor() {
-        return actor;
-    }
-
-    public static String weaponId() {
-        return weaponId;
-    }
+    public static PublishedWatchdogContext.Snapshot snapshot() { return CONTEXT.snapshot(); }
+    public static int kind() { return snapshot().kind(); }
+    public static int entityId() { return snapshot().entityId(); }
+    public static int x() { return snapshot().x(); }
+    public static int y() { return snapshot().y(); }
+    public static int z() { return snapshot().z(); }
+    public static String typeId() { return WatchdogWorldContext.LABELS.typeId(snapshot().type()); }
+    public static String dimension() { return WatchdogWorldContext.LABELS.dimensionId(snapshot().dimension()); }
+    public static String actor() { return snapshot().actor(); }
+    public static String weaponId() { return snapshot().weapon(); }
 
     public static String describe() {
-        return switch (kind) {
-            case KIND_ENTITY -> "entity " + typeId() + " #" + entityId + " @ " + pos();
-            case KIND_BLOCK_ENTITY -> "block_entity " + typeId() + " @ " + pos();
-            case KIND_DAMAGE -> "damage " + typeId() + " #" + entityId + " by " + actor + " " + weaponId + " @ " + pos();
-            case KIND_TEST -> "stall-test command";
-            default -> TickProbe.snapshot().active()
-                    ? TickProbe.snapshot().kind() + " " + TickProbe.snapshot().typeId()
-                    : "unknown";
+        var context = snapshot();
+        if (context.kind() == KIND_NONE) {
+            var probe = TickProbe.snapshot();
+            return probe.active() ? probe.kind() + " " + probe.typeId() : "unknown";
+        }
+        if (context.kind() == KIND_TEST) return "stall-test command";
+        String type = WatchdogWorldContext.LABELS.typeId(context.type());
+        String pos = WatchdogWorldContext.LABELS.dimensionId(context.dimension()) + " "
+                + context.x() + "," + context.y() + "," + context.z();
+        return switch (context.kind()) {
+            case KIND_ENTITY -> "entity " + type + " #" + context.entityId() + " @ " + pos;
+            case KIND_BLOCK_ENTITY -> "block_entity " + type + " @ " + pos;
+            case KIND_DAMAGE -> "damage " + type + " #" + context.entityId() + " by "
+                    + context.actor() + " " + context.weapon() + " @ " + pos;
+            default -> "unknown";
         };
-    }
-
-    private static String pos() {
-        return dimension() + " " + x + "," + y + "," + z;
     }
 }

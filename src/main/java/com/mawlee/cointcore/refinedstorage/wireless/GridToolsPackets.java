@@ -36,6 +36,7 @@ public final class GridToolsPackets {
     private GridToolsPackets() { }
 
     public static void register(RegisterPayloadHandlersEvent event) {
+        com.mawlee.cointcore.refinedstorage.batch.BatchCraftingPackets.register(event);
         var registrar = event.registrar(CointCore.MOD_ID);
         registrar.playToServer(Request.TYPE, Request.CODEC, (packet, context) -> context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) handle(player, packet);
