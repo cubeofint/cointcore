@@ -354,6 +354,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     );
 
     private static final Set<String> APOTHEOSIS_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.apotheosis.InvaderMissingSpawnRulesMixin",
             "com.mawlee.cointcore.mixin.apotheosis.SalvagingMenuMatchCacheMixin"
     );
 
