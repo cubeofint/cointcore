@@ -33,6 +33,9 @@ public final class CointJeiPlugin implements IModPlugin {
 
     @Override
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
+        if (net.neoforged.fml.ModList.get().isLoaded("refinedstorage")) {
+            com.mawlee.cointcore.refinedstorage.PreviewJei.register(registration);
+        }
         registration.addGhostIngredientHandler(
                 PlayerTraderManageScreen.class,
                 new PlayerTraderGhostIngredientHandler()

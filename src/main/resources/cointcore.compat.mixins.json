@@ -22,6 +22,8 @@
     "functionalstorage.ArmoryCabinetMenuMixin"
   ],
   "client": [
+    "refinedstorage.PreviewIngredientsMixin",
+    "refinedstorage.PreviewAmountFieldAccessor",
     "refinedstorage.BatchJeiRecipeTargetMixin",
     "refinedstorage.BatchAutocraftingRequestMixin",
     "refinedstorage.BatchAutocraftingPreviewMixin",
