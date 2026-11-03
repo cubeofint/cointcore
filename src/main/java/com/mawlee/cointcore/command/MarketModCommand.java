@@ -7,6 +7,9 @@ import com.mawlee.cointcore.permission.CointPermissionNodes;
 import com.mawlee.cointcore.permission.PermissionService;
 import com.mawlee.cointcore.shop.GlobalMarketListing;
 import com.mawlee.cointcore.shop.GlobalMarketService;
+import com.mawlee.cointcore.shop.CurrencyMovementSavedData;
+import com.mawlee.cointcore.shop.MarketHistory;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -45,19 +48,32 @@ public final class MarketModCommand {
 
     public static void apply(CommandDispatcher<CommandSourceStack> dispatcher) {
         CommandRegistration.replaceRootLiteral(dispatcher, "marketmod", Commands.literal("marketmod")
-                .requires(MarketModCommand::canModerate)
+                .requires(source -> canModerate(source) || canReadHistory(source))
+                .then(Commands.literal("history")
+                        .requires(MarketModCommand::canReadHistory)
+                        .executes(context -> history(context, null, 1))
+                        .then(Commands.argument("player", StringArgumentType.word())
+                                .suggests((context, builder) -> SharedSuggestionProvider.suggest(
+                                        context.getSource().getServer().getPlayerNames(), builder))
+                                .executes(context -> history(context, StringArgumentType.getString(context, "player"), 1))
+                                .then(Commands.argument("page", IntegerArgumentType.integer(1))
+                                        .executes(context -> history(context, StringArgumentType.getString(context, "player"),
+                                                IntegerArgumentType.getInteger(context, "page"))))))
                 .then(Commands.literal("list")
+                        .requires(MarketModCommand::canModerate)
                         .then(Commands.argument("player", StringArgumentType.word())
                                 .suggests((context, builder) -> SharedSuggestionProvider.suggest(
                                         GlobalMarketService.activeSellerNames(context.getSource().getServer()), builder))
                                 .executes(MarketModCommand::list)))
                 .then(Commands.literal("remove")
+                        .requires(MarketModCommand::canModerate)
                         .then(Commands.argument("lot", StringArgumentType.word())
                                 .executes(context -> remove(context, ""))
                                 .then(Commands.argument("reason", StringArgumentType.greedyString())
                                         .executes(context -> remove(context,
                                                 StringArgumentType.getString(context, "reason"))))))
                 .then(Commands.literal("exportprices")
+                        .requires(MarketModCommand::canModerate)
                         .executes(MarketModCommand::exportPrices)));
     }
 
@@ -66,6 +82,34 @@ public final class MarketModCommand {
             return PermissionService.has(player, CointPermissionNodes.MARKET_MODERATE);
         }
         return source.hasPermission(2);
+    }
+
+    private static boolean canReadHistory(CommandSourceStack source) {
+        return source.getEntity() instanceof ServerPlayer player
+                ? PermissionService.has(player, CointPermissionNodes.MARKET_HISTORY) : source.hasPermission(2);
+    }
+
+    private static int history(CommandContext<CommandSourceStack> context, String name, int page) {
+        var source = context.getSource();
+        UUID player = null;
+        if (name != null && !name.equalsIgnoreCase("all")) {
+            player = MuteService.resolvePlayerId(source.getServer(), name).orElse(null);
+            if (player == null) {
+                source.sendFailure(Component.literal("Игрок не найден: " + name));
+                return 0;
+            }
+        }
+        var rows = MarketHistory.page(CurrencyMovementSavedData.get(source.getServer()).snapshot(), player, page);
+        source.sendSuccess(() -> Component.literal("Торговые операции | " + (name == null ? "all" : name)
+                + " | страница " + page + " (последние сохранённые операции)"), false);
+        if (rows.isEmpty()) source.sendSuccess(() -> Component.literal("Нет записей на этой странице."), false);
+        for (var row : rows) {
+            String timestamp = java.time.Instant.ofEpochMilli(row.timestampMs()).toString();
+            source.sendSuccess(() -> Component.literal("#" + row.id() + " " + timestamp + " " + row.type().id()
+                    + " | " + row.fromName() + " → " + row.toName() + " | " + row.amount() + " гл. | "
+                    + (row.note() == null ? "" : row.note())), false);
+        }
+        return rows.size();
     }
 
     private static int list(CommandContext<CommandSourceStack> context) {

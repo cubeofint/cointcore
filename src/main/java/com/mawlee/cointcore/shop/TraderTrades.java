@@ -84,7 +84,7 @@ public final class TraderTrades {
                 "trader",
                 totalCost,
                 CurrencyMovementType.TRADER_BUY,
-                offer.id(),
+                MarketTradeNote.of(offer.id(), offer.display(), (long) offer.count() * units, totalFee),
                 List.of(new CurrencyMovement.Delta(player.getUUID(), -totalCost, balanceAfter)),
                 null
         );
@@ -143,7 +143,7 @@ public final class TraderTrades {
                 player.getGameProfile().getName(),
                 totalNet,
                 CurrencyMovementType.TRADER_SELL,
-                offer.id(),
+                MarketTradeNote.of(offer.id(), offer.display(), removeCount, totalFee),
                 List.of(new CurrencyMovement.Delta(player.getUUID(), totalNet, balanceAfter)),
                 null
         );

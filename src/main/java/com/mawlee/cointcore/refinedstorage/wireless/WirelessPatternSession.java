@@ -94,7 +94,8 @@ public final class WirelessPatternSession {
     public void refreshPatternPreview() {
         if (!initialized) return;
         var blank = blankPattern();
-        availablePatterns = canUse() ? backend.getItemStorage().extract(blank, Long.MAX_VALUE, Action.SIMULATE, new PlayerActor(player)) : 0;
+        // The preview must use an int-sized request: external inventories turn simulations into ItemStacks.
+        availablePatterns = canUse() ? backend.getItemStorage().extract(blank, Integer.MAX_VALUE, Action.SIMULATE, new PlayerActor(player)) : 0;
         ItemStack preview = blank.toItemStack(1);
         if (ItemStack.matches(backend.getPatternInput().getItem(0), preview)) return;
         updatingPatternPreview = true;

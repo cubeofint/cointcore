@@ -2,8 +2,7 @@ package com.mawlee.cointcore.watchdog.stall;
 
 import com.mawlee.cointcore.chat.ChatDiscordRelay;
 import com.mawlee.cointcore.config.StallWatchdogConfig;
-import com.mawlee.cointcore.permission.CointPermissionNodes;
-import com.mawlee.cointcore.permission.PermissionService;
+import com.mawlee.cointcore.watchdog.WatchdogAlertSubscriptions;
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
@@ -36,7 +35,7 @@ public final class StallStaffNotify {
             }
             for (ServerPlayer player : snapshot) {
                 try {
-                    if (isStaff(server, player)) {
+                    if (WatchdogAlertSubscriptions.isEnabled(player.getUUID())) {
                         player.connection.send(packet);
                     }
                 } catch (Throwable exception) {
@@ -49,10 +48,4 @@ public final class StallStaffNotify {
         }
     }
 
-    private static boolean isStaff(MinecraftServer server, ServerPlayer player) {
-        if (PermissionService.has(player, CointPermissionNodes.WATCHDOG)) {
-            return true;
-        }
-        return server.getPlayerList().isOp(player.getGameProfile());
-    }
 }

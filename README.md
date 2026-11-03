@@ -464,7 +464,7 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `cointcore.adminchat` | OP | Админ-чат |
 | `cointcore.invsee` | OP | InvSee: базовый просмотр (см. [InvSee](#invsee)) |
 | `cointcore.invsee.edit` | OP | InvSee: запасная правка всех разделов |
-| `cointcore.watchdog` | OP | Tick watchdog: команда и уведомления о лагах |
+| `cointcore.watchdog` | OP | Команды диагностики tick watchdog |
 | `cointcore.gluons.admin` | OP | Админ-команды `/cointcore gluons` |
 | `cointcore.gluons.balance` | все | `/balance` и `/money` |
 | `cointcore.gluons.pay` | все | `/pay` и `/transfer` |
@@ -483,6 +483,8 @@ CI на GitHub Actions собирает тот же `./gradlew build` на push 
 | `cointcore.reserved_slot.bypass` | OP | Вход даже когда заняты и резервные слоты |
 
 ## Tick watchdog
+
+Личные сообщения tick/stall watchdog переключаются `/watchdog on` и `/watchdog off`, без настройки прав. `/watchdog` показывает состояние. По умолчанию сообщения выключены; выбор сохраняется в данных игрока, переживает смерть, перезаход и перезапуск сервера. Переключатель не останавливает диагностику, запись отчётов или уведомления Discord. Глобальная настройка `notifyAdmins` в `tick-watchdog.json` по-прежнему управляет рассылкой tick-уведомлений. Доступ к `/cointcore watchdog ...` остаётся отдельным правом диагностики.
 
 Постоянный серверный монитор лагов. Когда тик тормозит, в отчёте видны **какие** block entity / entity виноваты, **где** они стоят и **какие методы каких модов** едят время. Spark для этого не нужен.
 
@@ -640,7 +642,7 @@ Retention старых отчётов: хранятся **7 дней или 512 
 | Ключ | По умолчанию | Смысл |
 |------|--------------|--------|
 | `enabled` | `true` | Включить начисление |
-| `amount` | `4` | Глюоны за один полный интервал |
+| `amount` | `10` | Глюоны за один полный интервал |
 | `intervalMinutes` | `60` | Длина интервала в минутах |
 
 **Резервные слоты** — `config/cointcore/reserved-slots.json`, перечитывается `/cointcore reload`. Онлайн считается целиком (vanish не вычитается). Пока игроков меньше `publicSlots`, заходят все. Дальше до `publicSlots + reservedSlots` пускает только `cointcore.reserved_slot`. Без узла отказ: «Сервер заполнен. Резервные слоты доступны владельцам привилегий». `cointcore.reserved_slot.bypass` пускает даже при полной занятости. Право читается в `canPlayerLogin` через LuckPerms `UserManager.loadUser` (ожидание до 2.5 с, если пользователь ещё не в памяти). `PlayerList.getMaxPlayers()` поднимается до суммы слотов, так что `max-players` в `server.properties` можно поставить равным total (или меньше — мод всё равно поднимет лимит). В server list ping max = `publicSlots`.

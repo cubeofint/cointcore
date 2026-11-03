@@ -22,6 +22,9 @@ import java.util.Set;
  */
 public final class CataclysmStructureRespawnConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static final net.minecraft.tags.TagKey<EntityType<?>> BOSSES = net.minecraft.tags.TagKey.create(
+            net.minecraft.core.registries.Registries.ENTITY_TYPE,
+            ResourceLocation.fromNamespaceAndPath("c", "bosses"));
 
     private static boolean enabled = true;
     private static int tickInterval = 600;
@@ -33,6 +36,7 @@ public final class CataclysmStructureRespawnConfig {
     private static int spawnMinDistanceFromPlayer = 6;
     /** Per-spot cooldown after spawn/death. Default 12000 ≈ 10 min. */
     private static int respawnDelayTicks = 12000;
+    private static int bossRespawnDelayTicks = 1200;
     private static int despawnDistance = 64;
     private static boolean despawnEnabled = true;
     /** How often to run far-despawn scans (ticks). Default 100 ≈ 5s (was hardcoded 20). */
@@ -75,6 +79,11 @@ public final class CataclysmStructureRespawnConfig {
 
     public static int getRespawnDelayTicks() {
         return respawnDelayTicks;
+    }
+
+    public static int getRespawnDelayTicks(ResourceLocation mob) {
+        return BuiltInRegistries.ENTITY_TYPE.getOptional(mob).filter(type -> type.is(BOSSES)).isPresent()
+                ? bossRespawnDelayTicks : respawnDelayTicks;
     }
 
     public static int getDespawnDistance() {
@@ -152,6 +161,7 @@ public final class CataclysmStructureRespawnConfig {
         structureMax = loaded.structureMax;
         spawnMinDistanceFromPlayer = loaded.spawnMinDistanceFromPlayer;
         respawnDelayTicks = loaded.respawnDelayTicks;
+        bossRespawnDelayTicks = loaded.bossRespawnDelayTicks;
         despawnDistance = loaded.despawnDistance;
         despawnEnabled = loaded.despawnEnabled;
         despawnCheckInterval = loaded.despawnCheckInterval;
@@ -186,6 +196,7 @@ public final class CataclysmStructureRespawnConfig {
                 positiveOrDefault(data.structureMax, 64),
                 nonNegativeOrDefault(data.spawnMinDistanceFromPlayer, 6),
                 nonNegativeOrDefault(data.respawnDelayTicks, 12000),
+                nonNegativeOrDefault(data.bossRespawnDelayTicks, 1200),
                 positiveOrDefault(data.despawnDistance, 64),
                 data.despawnEnabled != null ? data.despawnEnabled : true,
                 positiveOrDefault(data.despawnCheckInterval, 100),
@@ -278,6 +289,7 @@ public final class CataclysmStructureRespawnConfig {
         data.structureMax = 64;
         data.spawnMinDistanceFromPlayer = 6;
         data.respawnDelayTicks = 12000;
+        data.bossRespawnDelayTicks = 1200;
         data.despawnDistance = 64;
         data.despawnEnabled = true;
         data.despawnCheckInterval = 100;
@@ -295,6 +307,7 @@ public final class CataclysmStructureRespawnConfig {
             int structureMax,
             int spawnMinDistanceFromPlayer,
             int respawnDelayTicks,
+            int bossRespawnDelayTicks,
             int despawnDistance,
             boolean despawnEnabled,
             int despawnCheckInterval,
@@ -327,6 +340,9 @@ public final class CataclysmStructureRespawnConfig {
 
         @SerializedName("respawnDelayTicks")
         Integer respawnDelayTicks;
+
+        @SerializedName("bossRespawnDelayTicks")
+        Integer bossRespawnDelayTicks;
 
         @SerializedName("despawnDistance")
         Integer despawnDistance;

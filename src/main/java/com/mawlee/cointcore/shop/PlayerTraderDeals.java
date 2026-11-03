@@ -121,7 +121,7 @@ public final class PlayerTraderDeals {
                     sellerName,
                     totalPrice,
                     CurrencyMovementType.PLAYER_SHOP_BUY,
-                    stored.id(),
+                    MarketTradeNote.of(stored.id(), sample, (long) stored.count() * units, totalFee),
                     List.of(
                             new CurrencyMovement.Delta(player.getUUID(), -totalCost, buyerAfter),
                             new CurrencyMovement.Delta(sellerId, totalPrice, sellerAfter)
@@ -237,7 +237,7 @@ public final class PlayerTraderDeals {
                     player.getGameProfile().getName(),
                     totalNet,
                     CurrencyMovementType.PLAYER_SHOP_SELL,
-                    stored.id(),
+                    MarketTradeNote.of(stored.id(), sample, removeCount, totalFee),
                     List.of(
                             new CurrencyMovement.Delta(ownerId, -totalPrice, ownerAfter),
                             new CurrencyMovement.Delta(player.getUUID(), totalNet, buyerAfter)

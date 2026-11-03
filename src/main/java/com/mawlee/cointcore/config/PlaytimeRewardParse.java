@@ -10,7 +10,7 @@ import com.google.gson.annotations.SerializedName;
 public final class PlaytimeRewardParse {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    public static final long DEFAULT_AMOUNT = 4L;
+    public static final long DEFAULT_AMOUNT = 10L;
     public static final int DEFAULT_INTERVAL_MINUTES = 60;
 
     private PlaytimeRewardParse() {

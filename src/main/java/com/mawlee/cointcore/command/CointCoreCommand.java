@@ -98,7 +98,9 @@ public final class CointCoreCommand {
                         .then(Commands.literal("run")
                                 .executes(CointCoreCommand::runWorldCleanup)))
                 .then(Commands.literal("dimwipe")
-                        .requires(CointCoreCommand::canRestart)
+                        .requires(source -> source.getEntity() instanceof ServerPlayer player
+                                ? PermissionService.has(player, CointPermissionNodes.DIMENSION_WIPE)
+                                : source.hasPermission(2))
                         .then(Commands.literal("status")
                                 .executes(CointCoreCommand::dimWipeStatus))
                         .then(Commands.literal("now")

@@ -15,6 +15,20 @@ public final class CointPermissionNodes {
     private static final PermissionNode.PermissionResolver<Boolean> DENY_BY_DEFAULT =
             (player, uuid, context) -> false;
 
+    public static final PermissionNode<Boolean> MODE_SURVIVAL = new PermissionNode<>(
+            CointCore.MOD_ID, "staffmode.survival", PermissionTypes.BOOLEAN, OP_ONLY);
+    public static final PermissionNode<Boolean> MODE_SPECTATOR = new PermissionNode<>(
+            CointCore.MOD_ID, "staffmode.spectator", PermissionTypes.BOOLEAN, OP_ONLY);
+    public static final PermissionNode<Boolean> MODE_CREATIVE = new PermissionNode<>(
+            CointCore.MOD_ID, "staffmode.creative", PermissionTypes.BOOLEAN, OP_ONLY);
+    public static final PermissionNode<Boolean> MODE_ADVENTURE = new PermissionNode<>(
+            CointCore.MOD_ID, "staffmode.adventure", PermissionTypes.BOOLEAN, OP_ONLY);
+    public static final PermissionNode<Boolean> DIMENSION_WIPE = new PermissionNode<>(
+            CointCore.MOD_ID, "dimwipe", PermissionTypes.BOOLEAN, OP_ONLY);
+    public static final PermissionNode<Boolean> UNBAN = new PermissionNode<>(
+            CointCore.MOD_ID, "unban", PermissionTypes.BOOLEAN,
+            (player, uuid, context) -> player != null && player.hasPermissions(3));
+
     public static final PermissionNode<Boolean> VANISH = new PermissionNode<>(
             CointCore.MOD_ID, "vanish", PermissionTypes.BOOLEAN, OP_ONLY
     ).setInformation(
@@ -353,6 +367,13 @@ public final class CointPermissionNodes {
     ).setInformation(
             Component.translatable("permission.name.cointcore.watchdog"),
             Component.translatable("permission.desc.cointcore.watchdog")
+    );
+
+    public static final PermissionNode<Boolean> MARKET_HISTORY = new PermissionNode<>(
+            CointCore.MOD_ID, "market.history", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.literal("Market transaction history"),
+            Component.literal("View player purchases and sales without permission to modify lots or balances")
     );
 
     public static final PermissionNode<Boolean> GLUONS_ADMIN = new PermissionNode<>(

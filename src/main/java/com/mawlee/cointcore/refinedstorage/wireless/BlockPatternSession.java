@@ -48,7 +48,9 @@ public final class BlockPatternSession {
 
     public void refresh() {
         var blank = blank();
-        available = canUse() ? grid.getItemStorage().extract(blank, Long.MAX_VALUE, Action.SIMULATE,
+        // External item handlers convert even simulated requests to ItemStack (int count).
+        // Long.MAX_VALUE causes RS to log a truncation warning for each connected inventory every tick.
+        available = canUse() ? grid.getItemStorage().extract(blank, Integer.MAX_VALUE, Action.SIMULATE,
                 new PlayerActor(player)) : 0;
         ItemStack stack = blank.toItemStack(1);
         if (!ItemStack.matches(preview.getItem(0), stack)) preview.setItem(0, stack);

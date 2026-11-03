@@ -536,7 +536,7 @@
   "message.cointcore.trader.bought": "&aBought &f%s× %s &afor &f%s &agluons (fee %s).",
   "message.cointcore.trader.sold": "&aSold &f%s× %s &afor &f%s &agluons (fee %s).",
   "permission.name.cointcore.watchdog": "Tick Watchdog",
-  "permission.desc.cointcore.watchdog": "Allows /cointcore watchdog and lag alerts",
+  "permission.desc.cointcore.watchdog": "Allows /cointcore watchdog diagnostics; toggle personal alerts with /watchdog on or off",
   "message.cointcore.watchdog.disabled": "&cTick watchdog is disabled.",
   "message.cointcore.watchdog.no_data": "&7No watchdog samples yet. Wait for a few ticks (or a slow tick in auto mode).",
   "message.cointcore.watchdog.player_only": "&cPlayers only.",

@@ -33,7 +33,7 @@ class PlaytimeRewardRulesTest {
     void parseDefaultsAndClamps() {
         PlaytimeRewardParse.Parsed defaults = PlaytimeRewardParse.parseJson("{}");
         assertTrue(defaults.enabled());
-        assertEquals(4L, defaults.amount());
+        assertEquals(10L, defaults.amount());
         assertEquals(60, defaults.intervalMinutes());
 
         PlaytimeRewardParse.Parsed custom = PlaytimeRewardParse.parseJson("""

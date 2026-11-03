@@ -705,7 +705,7 @@ public final class CataclysmStructureRespawnService {
     }
 
     private static boolean isRespawnDelayActive(ServerLevel level, Spot spot) {
-        int delay = CataclysmStructureRespawnConfig.getRespawnDelayTicks();
+        int delay = CataclysmStructureRespawnConfig.getRespawnDelayTicks(spot.entityId());
         if (delay <= 0) {
             return false;
         }
@@ -714,7 +714,7 @@ public final class CataclysmStructureRespawnService {
     }
 
     private static long respawnDelayRemaining(ServerLevel level, Spot spot) {
-        int delay = CataclysmStructureRespawnConfig.getRespawnDelayTicks();
+        int delay = CataclysmStructureRespawnConfig.getRespawnDelayTicks(spot.entityId());
         if (delay <= 0) {
             return 0;
         }

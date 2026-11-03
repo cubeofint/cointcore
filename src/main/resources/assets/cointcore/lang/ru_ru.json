@@ -536,7 +536,7 @@
   "message.cointcore.trader.bought": "&aКуплено &f%s× %s &aза &f%s &aглюонов (комиссия %s).",
   "message.cointcore.trader.sold": "&aПродано &f%s× %s &aза &f%s &aглюонов (комиссия %s).",
   "permission.name.cointcore.watchdog": "Tick Watchdog",
-  "permission.desc.cointcore.watchdog": "Команда /cointcore watchdog и уведомления о лагах",
+  "permission.desc.cointcore.watchdog": "Команда диагностики /cointcore watchdog; сообщения переключаются через /watchdog on или off",
   "message.cointcore.watchdog.disabled": "&cTick watchdog выключен.",
   "message.cointcore.watchdog.no_data": "&7Пока нет данных. Подождите несколько тиков (в режиме auto — медленный тик).",
   "message.cointcore.watchdog.player_only": "&cТолько для игроков.",

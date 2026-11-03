@@ -1,8 +1,6 @@
 package com.mawlee.cointcore.watchdog;
 
 import com.mawlee.cointcore.config.TickWatchdogConfig;
-import com.mawlee.cointcore.permission.CointPermissionNodes;
-import com.mawlee.cointcore.permission.PermissionService;
 import com.mawlee.cointcore.watchdog.probes.WatchdogProbeConfig;
 import com.mawlee.cointcore.watchdog.probes.WatchdogProbeHub;
 import com.mojang.logging.LogUtils;
@@ -348,7 +346,7 @@ public final class TickWatchdogService {
         }
         Component message = Component.literal("§c" + line);
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            if (PermissionService.has(player, CointPermissionNodes.WATCHDOG)) {
+            if (WatchdogAlertSubscriptions.isEnabled(player.getUUID())) {
                 player.sendSystemMessage(message);
             }
         }

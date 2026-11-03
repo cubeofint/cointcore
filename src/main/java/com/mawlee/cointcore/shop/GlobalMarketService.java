@@ -571,7 +571,7 @@ public final class GlobalMarketService {
                     row.listing.sellerName(),
                     credit,
                     CurrencyMovementType.PLAYER_SHOP_BUY,
-                    row.listing.id().toString(),
+                    MarketTradeNote.of(row.listing.id().toString(), row.listing.template(), row.items, deal.fee()),
                     List.of(
                             new CurrencyMovement.Delta(player.getUUID(), -sliceDebit, buyerAfter),
                             new CurrencyMovement.Delta(row.listing.sellerId(), credit, sellerAfter)

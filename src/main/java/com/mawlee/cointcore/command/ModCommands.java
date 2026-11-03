@@ -32,6 +32,8 @@ public final class ModCommands {
         PrivilegeCommands.apply(dispatcher);
         RegularMessageCommands.apply(dispatcher);
         MarketModCommand.apply(dispatcher);
+        StaffModeCommand.apply(dispatcher);
+        WatchdogAlertsCommand.apply(dispatcher);
         BalanceTopCommand.apply(dispatcher);
         QuizCommand.apply(dispatcher);
         GhostCommand.apply(dispatcher);

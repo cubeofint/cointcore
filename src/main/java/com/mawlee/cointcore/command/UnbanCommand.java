@@ -25,12 +25,16 @@ public final class UnbanCommand {
     }
 
     public static void apply(CommandDispatcher<CommandSourceStack> dispatcher) {
-        CommandRegistration.replaceRootLiteral(dispatcher, "pardon", pardonCommand());
+        CommandRegistration.replaceRootLiteral(dispatcher, "pardon", pardonCommand("pardon"));
+        CommandRegistration.replaceRootLiteral(dispatcher, "unban", pardonCommand("unban"));
     }
 
-    private static LiteralArgumentBuilder<CommandSourceStack> pardonCommand() {
-        return Commands.literal("pardon")
-                .requires(source -> source.hasPermission(3))
+    private static LiteralArgumentBuilder<CommandSourceStack> pardonCommand(String name) {
+        return Commands.literal(name)
+                .requires(source -> source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player
+                        ? com.mawlee.cointcore.permission.PermissionService.has(player,
+                                com.mawlee.cointcore.permission.CointPermissionNodes.UNBAN)
+                        : source.hasPermission(3))
                 .then(Commands.argument("targets", GameProfileArgument.gameProfile())
                         .suggests((context, builder) -> SharedSuggestionProvider.suggest(
                                 context.getSource().getServer().getPlayerList().getBans().getUserList(),
