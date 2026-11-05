@@ -215,6 +215,7 @@ dependencies {
     packMods(curseMod(curse_refined_storage)) { transitive = false }
     localRuntime("curse.maven:modular-bees-1350380:8705124") { transitive = false }
     localRuntime("maven.modrinth:glodium:pfbmdJ3b") { transitive = false }
+    compileOnly("curse.maven:productivebees-377897:8022994") { transitive = false }
     localRuntime("curse.maven:productivebees-377897:8022994") { transitive = false }
     localRuntime(curseMod(curse_refined_storage)) { transitive = false }
     // Universal Grid 0.3.2 and Quartz Arsenal 1.0.8 for the wireless pattern editor integration.

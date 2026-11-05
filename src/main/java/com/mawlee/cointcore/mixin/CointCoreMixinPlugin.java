@@ -276,6 +276,11 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.tab.TabPlayerListFormatMixin"
     );
 
+    /** Back off hives whose bee release keeps failing (e.g. a chunk mob limit cancels the spawn). */
+    private static final Set<String> PRODUCTIVE_BEES_MIXINS = Set.of(
+            "com.mawlee.cointcore.mixin.productivebees.AdvancedBeehiveReleaseBackoffMixin"
+    );
+
     private static final Set<String> MODULAR_ROUTERS_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.modularrouters.CompiledPlayerModuleMixin"
     );
@@ -287,7 +292,8 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
 
     private static final Set<String> FUNCTIONAL_STORAGE_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.functionalstorage.ArmoryCabinetMenuMixin",
-            "com.mawlee.cointcore.mixin.functionalstorage.ArmoryCabinetScreenMixin"
+            "com.mawlee.cointcore.mixin.functionalstorage.ArmoryCabinetScreenMixin",
+            "com.mawlee.cointcore.mixin.functionalstorage.ControllerInventoryHandlerMembershipMixin"
     );
 
     /** Pipez → Armory Cabinet insert fast-reject needs both mods. */
@@ -435,6 +441,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
         putAll(map, ICE_AND_FIRE_MIXINS, "iceandfire");
         putAll(map, TAB_MIXINS, "tab");
         putAll(map, MODULAR_ROUTERS_MIXINS, "modularrouters");
+        putAll(map, PRODUCTIVE_BEES_MIXINS, "productivebees");
         putAll(map, RELICS_MIXINS, "relics");
         putAll(map, FUNCTIONAL_STORAGE_MIXINS, "functionalstorage");
         putAll(map, PIPEZ_FUNCTIONAL_STORAGE_MIXINS, "pipez", "functionalstorage");

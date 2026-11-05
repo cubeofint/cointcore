@@ -13,6 +13,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.animal.Bee;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -39,8 +40,13 @@ public final class MobLimitService {
     private MobLimitService() {
     }
 
+    /**
+     * Mobs that count toward the general and per-mod caps. Bees are left out: hive bees keep leaving and re-entering
+     * their hives, a refused release kept Productive Bees hives retrying every tick, and a cull would lose bred bees.
+     * An exact per-type limit still applies to them.
+     */
     public static boolean isMob(Entity entity) {
-        return entity instanceof Mob;
+        return entity instanceof Mob && !(entity instanceof Bee);
     }
 
     public static boolean shouldEnforce(Entity entity) {
@@ -138,12 +144,12 @@ public final class MobLimitService {
         String id = key.id();
         if (ChunkLimitConfig.ENTITY_CAP_LIMIT_ID.equals(id)) {
             return level.getEntities((Entity) null, bounds, e ->
-                    e instanceof Mob && !e.isRemoved() && e != exclude).size();
+                    isMob(e) && !e.isRemoved() && e != exclude).size();
         }
         if (id.startsWith("emod:")) {
             String ns = id.substring("emod:".length());
             return level.getEntities((Entity) null, bounds, e -> {
-                if (!(e instanceof Mob) || e.isRemoved() || e == exclude) {
+                if (!isMob(e) || e.isRemoved() || e == exclude) {
                     return false;
                 }
                 ResourceLocation typeId = BuiltInRegistries.ENTITY_TYPE.getKey(e.getType());

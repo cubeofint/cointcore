@@ -282,7 +282,7 @@ public final class ChunkLimitEvents {
             return;
         }
         ChunkPos chunkPos = mob.chunkPosition();
-        if (!MobLimitService.wouldExceedIfAdded(level, chunkPos, mob.getType(), true)) {
+        if (!MobLimitService.wouldExceedIfAdded(level, chunkPos, mob.getType(), MobLimitService.isMob(mob))) {
             return;
         }
         event.setSpawnCancelled(true);

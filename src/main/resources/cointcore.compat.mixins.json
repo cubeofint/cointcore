@@ -21,7 +21,8 @@
     "ae2.NetworkStorageScanCacheMixin",
     "mekanism.ItemHandlerManagerMixin",
     "integratedtunnels.EmptySourceSlotMixin",
-    "functionalstorage.ArmoryCabinetMenuMixin"
+    "functionalstorage.ArmoryCabinetMenuMixin",
+    "functionalstorage.ControllerInventoryHandlerMembershipMixin"
   ],
   "client": [
     "refinedstorage.PreviewIngredientsMixin",
@@ -159,6 +160,7 @@
     "tab.NeoForgeTabPlayerVanishedMixin",
     "tab.TabPlayerListFormatMixin",
     "modularrouters.CompiledPlayerModuleMixin",
+    "productivebees.AdvancedBeehiveReleaseBackoffMixin",
     "rootsclassic.RitualCauseRainMixin",
     "rootsclassic.RitualBanishRainMixin",
     "allthemodium.AtmThrownTridentMixin",
