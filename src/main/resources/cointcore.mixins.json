@@ -4,7 +4,9 @@
   "package": "com.mawlee.cointcore.mixin",
   "plugin": "com.mawlee.cointcore.mixin.CointCoreMixinPlugin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": [],
+  "mixins": [
+    "minecraft.VillagerOfferSaveGuardMixin"
+  ],
   "client": [
     "client.EntitySeeInvisibleMixin",
     "client.LivingEntitySeeInvisibleParticlesMixin",

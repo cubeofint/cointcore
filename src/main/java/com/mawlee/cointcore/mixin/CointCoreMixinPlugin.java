@@ -412,6 +412,7 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
         putAll(map, FORBIDDEN_ARCANUS_MIXINS, "forbidden_arcanus");
         putAll(map, APOTHIC_SPAWNERS_MIXINS, "apothic_spawners");
         putAll(map, AE2_MIXINS, "ae2");
+        putAll(map, Set.of("com.mawlee.cointcore.mixin.advancedae.AutoStockIdleScanMixin"), "ae2", "advanced_ae");
         putAll(map, Set.of("com.mawlee.cointcore.mixin.mekanism.ItemHandlerManagerMixin"), "mekanism");
         putAll(map, Set.of("com.mawlee.cointcore.mixin.integratedtunnels.EmptySourceSlotMixin"),
                 "cyclopscore", "commoncapabilities", "integratedtunnels");

@@ -82,7 +82,7 @@ public final class GridToolsClient {
             request(screen, key, GridToolsPackets.FIND, 0);
             event.setCanceled(true);
         } else if (!(resource instanceof RequestedGridResource) && event.getButton() == 1 && carried.isEmpty()
-                && !Screen.hasShiftDown() && !Screen.hasControlDown()) {
+                && !Screen.hasShiftDown() && Screen.hasControlDown()) {
             board.addManual(key);
             PinStorage.save();
             event.setCanceled(true);

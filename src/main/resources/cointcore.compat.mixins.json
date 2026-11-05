@@ -5,6 +5,7 @@
   "plugin": "com.mawlee.cointcore.mixin.CointCoreMixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "advancedae.AutoStockIdleScanMixin",
     "apotheosis.InvaderMissingSpawnRulesMixin",
     "refinedstorage.BatchAutocraftingComponentAccessor",
     "refinedstorage.GridToolsAccessor",

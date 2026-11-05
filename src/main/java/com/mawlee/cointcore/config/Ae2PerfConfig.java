@@ -18,6 +18,7 @@ public final class Ae2PerfConfig {
     private static boolean cacheFuzzySearchMaxValue = true;
     private static int storageCacheIntervalTicks = 5;
     private static boolean cacheNetworkInventoryPerTick = true;
+    private static boolean advancedAeAutoStockIdleFastPath = true;
     private static boolean sophisticatedFastExtract = true;
     private static int automaticCraftingRetryTicks = 20;
 
@@ -46,6 +47,7 @@ public final class Ae2PerfConfig {
     }
 
     public static boolean isCacheNetworkInventoryPerTick() { return cacheNetworkInventoryPerTick; }
+    public static boolean isAdvancedAeAutoStockIdleFastPath() { return advancedAeAutoStockIdleFastPath; }
 
     public static Path getConfigPath() {
         return StoragePerfConfigs.path();
@@ -65,11 +67,12 @@ public final class Ae2PerfConfig {
 
     static void logReload() {
         LOGGER.info(
-                "Reloaded AE2 perf config (cacheFuzzySearchMaxValue={}, storageCacheIntervalTicks={}, automaticCraftingRetryTicks={}, cacheNetworkInventoryPerTick={})",
+                "Reloaded AE2 perf config (cacheFuzzySearchMaxValue={}, storageCacheIntervalTicks={}, automaticCraftingRetryTicks={}, cacheNetworkInventoryPerTick={}, advancedAeAutoStockIdleFastPath={})",
                 cacheFuzzySearchMaxValue,
                 storageCacheIntervalTicks,
                 automaticCraftingRetryTicks,
-                cacheNetworkInventoryPerTick
+                cacheNetworkInventoryPerTick,
+                advancedAeAutoStockIdleFastPath
         );
     }
 
@@ -77,13 +80,15 @@ public final class Ae2PerfConfig {
         cacheFuzzySearchMaxValue = loaded.cacheFuzzySearchMaxValue();
         storageCacheIntervalTicks = loaded.storageCacheIntervalTicks();
         cacheNetworkInventoryPerTick = loaded.cacheNetworkInventoryPerTick();
+        advancedAeAutoStockIdleFastPath = loaded.advancedAeAutoStockIdleFastPath();
         sophisticatedFastExtract = loaded.sophisticatedFastExtract();
         automaticCraftingRetryTicks = loaded.automaticCraftingRetryTicks();
     }
 
     private static LoadedConfig parse(Data data) {
         return new LoadedConfig(data.cacheFuzzySearchMaxValue, Math.max(1, Math.min(40, data.storageCacheIntervalTicks)),
-                data.sophisticatedFastExtract, Math.max(1, Math.min(200, data.automaticCraftingRetryTicks)), data.cacheNetworkInventoryPerTick);
+                data.sophisticatedFastExtract, Math.max(1, Math.min(200, data.automaticCraftingRetryTicks)),
+                data.cacheNetworkInventoryPerTick, data.advancedAeAutoStockIdleFastPath);
     }
 
     static Data defaultFileData() {
@@ -91,10 +96,13 @@ public final class Ae2PerfConfig {
     }
 
     private record LoadedConfig(boolean cacheFuzzySearchMaxValue, int storageCacheIntervalTicks,
-                                boolean sophisticatedFastExtract, int automaticCraftingRetryTicks, boolean cacheNetworkInventoryPerTick) {
+                                boolean sophisticatedFastExtract, int automaticCraftingRetryTicks, boolean cacheNetworkInventoryPerTick,
+                                boolean advancedAeAutoStockIdleFastPath) {
     }
 
     static final class Data {
+        @SerializedName("advanced_ae_auto_stock_idle_fast_path")
+        boolean advancedAeAutoStockIdleFastPath = true;
         /** Reuse full network inventory scans within one tick; mutations invalidate all linked snapshots. */
         @SerializedName("cache_network_inventory_per_tick")
         boolean cacheNetworkInventoryPerTick = true;
