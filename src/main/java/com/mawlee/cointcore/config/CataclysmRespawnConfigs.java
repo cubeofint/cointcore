@@ -8,8 +8,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 /**
- * Owns {@code config/cointcore/cataclysm-respawn.json} with sections {@code sunken_city}, {@code structures}
- * and {@code draconic_chaos_guardian}.
+ * Owns {@code config/cointcore/cataclysm-respawn.json} with sections {@code sunken_city}, {@code structures},
+ * {@code draconic_chaos_guardian} and {@code twilight_bosses}.
  */
 public final class CataclysmRespawnConfigs {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -30,6 +30,7 @@ public final class CataclysmRespawnConfigs {
             SunkenCityRespawnConfig.applySection(SunkenCityRespawnConfig.defaultFileData());
             CataclysmStructureRespawnConfig.applySection(CataclysmStructureRespawnConfig.defaultFileData());
             ChaosGuardianRespawnConfig.applySection(ChaosGuardianRespawnConfig.defaultFileData());
+            TwilightBossRespawnConfig.applySection(TwilightBossRespawnConfig.defaultFileData());
         }
     }
 
@@ -61,6 +62,7 @@ public final class CataclysmRespawnConfigs {
         root.add("sunken_city", ConfigMergeSupport.toJsonObject(SunkenCityRespawnConfig.defaultFileData()));
         root.add("structures", ConfigMergeSupport.toJsonObject(CataclysmStructureRespawnConfig.defaultFileData()));
         root.add("draconic_chaos_guardian", ConfigMergeSupport.toJsonObject(ChaosGuardianRespawnConfig.defaultFileData()));
+        root.add("twilight_bosses", ConfigMergeSupport.toJsonObject(TwilightBossRespawnConfig.defaultFileData()));
         return root;
     }
 
@@ -76,10 +78,15 @@ public final class CataclysmRespawnConfigs {
                 root, "draconic_chaos_guardian", ChaosGuardianRespawnConfig.FileData.class,
                 ChaosGuardianRespawnConfig::defaultFileData
         ));
+        TwilightBossRespawnConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root, "twilight_bosses", TwilightBossRespawnConfig.FileData.class,
+                TwilightBossRespawnConfig::defaultFileData
+        ));
         if (logReload) {
             SunkenCityRespawnConfig.logReload();
             CataclysmStructureRespawnConfig.logReload();
             ChaosGuardianRespawnConfig.logReload();
+            TwilightBossRespawnConfig.logReload();
         }
     }
 }

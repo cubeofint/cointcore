@@ -131,7 +131,8 @@ public final class CointCoreCommand {
                 .then(SoulSurgeCommand.branch())
                 .then(GluonWalletCommand.branch())
                 .then(PrefixAdminCommand.branch())
-                .then(QuestRankCommand.branch());
+                .then(QuestRankCommand.branch())
+                .then(TwilightBossCommand.branch());
 
         var claimFlags = ClaimFlagCommand.claimFlagCommand();
         if (claimFlags != null) {
