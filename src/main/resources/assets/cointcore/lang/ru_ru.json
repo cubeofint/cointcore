@@ -11,6 +11,8 @@
   "permission.desc.cointcore.vanish.see": "Позволяет видеть игроков в режиме невидимости",
   "permission.name.cointcore.reload": "Перезагрузка конфига",
   "permission.desc.cointcore.reload": "Разрешает /cointcore reload",
+  "permission.name.cointcore.bossrespawn": "Респавн боссов",
+  "permission.desc.cointcore.bossrespawn": "Разрешает /cointcore tfbosses и /cointcore cataclysmspots (отметка и респавн боссов, напр. Эндер-голем)",
   "message.cointcore.config.reload.success": "Конфиг приветственных сообщений CointCore перезагружен.",
   "message.cointcore.config.reload.failed": "Не удалось перезагрузить конфиг приветственных сообщений. Смотрите лог сервера.",
   "message.cointcore.nv.enabled": "Ночное зрение включено.",
@@ -806,5 +808,11 @@
   "message.cointcore.sfm.block_limit_paused": "Менеджер SFM приостановлен: привязано больше %s уникальных блоков. Уменьшите привязки; метки сохранены.",
   "tooltip.cointcore.modularbees_rs.connection": "Поддерживает AE2 и Refined Storage. Подключите кабель к лицевой стороне хатча.",
   "tooltip.cointcore.modularbees_rs.schedule": "Работающая AE2 имеет приоритет. RS передаёт ресурсы пакетами с настраиваемым интервалом.",
+  "tooltip.cointcore.import_amount.default": "Держать в хатче: %s (по умолчанию)",
+  "tooltip.cointcore.import_amount.custom": "Держать в хатче: %s",
+  "tooltip.cointcore.import_amount.hint": "СКМ — изменить количество",
+  "gui.cointcore.import_amount.title": "Сколько держать в хатче",
+  "gui.cointcore.import_amount.default": "Сбросить",
+  "gui.cointcore.import_amount.hint": "По умолчанию %s, максимум %s",
   "gui.cointcore.batch.title": "Общий заказ: %s поз. (×)"
 }

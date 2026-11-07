@@ -113,7 +113,7 @@ public final class CointCoreCommand {
                         .then(Commands.literal("force")
                                 .executes(CointCoreCommand::sunkenCityForce)))
                 .then(Commands.literal("cataclysmspots")
-                        .requires(CointCoreCommand::canReload)
+                        .requires(CointCoreCommand::canRespawnBosses)
                         .then(Commands.literal("status")
                                 .executes(CointCoreCommand::cataclysmSpotsStatus))
                         .then(Commands.literal("force")
@@ -150,6 +150,14 @@ public final class CointCoreCommand {
     private static boolean canReload(CommandSourceStack source) {
         if (source.getEntity() instanceof ServerPlayer player) {
             return PermissionService.has(player, CointPermissionNodes.RELOAD);
+        }
+        return source.hasPermission(2);
+    }
+
+    private static boolean canRespawnBosses(CommandSourceStack source) {
+        if (source.getEntity() instanceof ServerPlayer player) {
+            return PermissionService.has(player, CointPermissionNodes.BOSS_RESPAWN)
+                    || PermissionService.has(player, CointPermissionNodes.RELOAD);
         }
         return source.hasPermission(2);
     }
@@ -415,22 +423,14 @@ public final class CointCoreCommand {
 
     private static int cataclysmSpotsStatus(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
-        if (!(source.getEntity() instanceof ServerPlayer player)) {
-            source.sendFailure(Component.literal("Player only"));
-            return 0;
-        }
-        String status = CataclysmStructureRespawnService.statusNear(player);
+        String status = CataclysmStructureRespawnService.statusNear(source.getLevel(), source.getPosition());
         source.sendSuccess(() -> Component.literal(status), false);
         return 1;
     }
 
     private static int cataclysmSpotsForce(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
-        if (!(source.getEntity() instanceof ServerPlayer player)) {
-            source.sendFailure(Component.literal("Player only"));
-            return 0;
-        }
-        String result = CataclysmStructureRespawnService.forceRepopulate(player);
+        String result = CataclysmStructureRespawnService.forceRepopulate(source.getLevel(), source.getPosition());
         source.sendSuccess(() -> Component.literal(result), true);
         return 1;
     }

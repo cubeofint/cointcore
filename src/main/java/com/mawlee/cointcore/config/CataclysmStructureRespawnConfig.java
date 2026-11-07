@@ -251,7 +251,8 @@ public final class CataclysmStructureRespawnConfig {
                 "cataclysm:acropolis",
                 "cataclysm:ancient_factory",
                 "cataclysm:soul_black_smith",
-                "cataclysm:sunken_city"
+                "cataclysm:sunken_city",
+                "cataclysm:ruined_citadel"
         );
     }
 
@@ -275,7 +276,8 @@ public final class CataclysmStructureRespawnConfig {
                 "cataclysm:the_harbinger",
                 "cataclysm:netherite_ministrosity",
                 "cataclysm:netherite_monstrosity",
-                "cataclysm:coralssus"
+                "cataclysm:coralssus",
+                "cataclysm:ender_golem"
         );
     }
 

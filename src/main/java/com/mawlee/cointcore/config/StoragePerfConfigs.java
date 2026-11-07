@@ -58,6 +58,7 @@ public final class StoragePerfConfigs {
         boolean updated = ConfigMergeSupport.addMissingSectionValues(root, "ae2", Ae2PerfConfig.defaultFileData());
         updated |= ConfigMergeSupport.addMissingSectionValues(root, "mekanism", MekanismPerfConfig.defaultFileData());
         updated |= ConfigMergeSupport.addMissingSectionValues(root, "integrated_tunnels", IntegratedTransferPerfConfig.defaultFileData());
+        updated |= ConfigMergeSupport.addMissingSectionValues(root, "modularbees_rs", ModularBeesRsConfig.defaultFileData());
         if (updated) ConfigMergeSupport.writeObject(path(), root);
         return root;
     }

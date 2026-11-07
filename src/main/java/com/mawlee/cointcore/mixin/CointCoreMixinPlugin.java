@@ -356,7 +356,8 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
     private static final Set<String> MODULAR_BEES_RS_MIXINS = Set.of(
             "com.mawlee.cointcore.mixin.modularbees.TileAENetworkHostRsMixin",
             "com.mawlee.cointcore.mixin.modularbees.TileMEExportRsMixin",
-            "com.mawlee.cointcore.mixin.modularbees.TileMEImportRsMixin"
+            "com.mawlee.cointcore.mixin.modularbees.TileMEImportRsMixin",
+            "com.mawlee.cointcore.mixin.modularbees.ContainerMEImportAmountMixin"
     );
 
     private static final Set<String> APOTHEOSIS_MIXINS = Set.of(

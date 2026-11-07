@@ -18,6 +18,9 @@ public final class ModularBeesRsIntegration {
     public static void register(IEventBus bus) {
         bus.addListener(ModularBeesRsIntegration::capabilities);
         NeoForge.EVENT_BUS.addListener(ModularBeesRsIntegration::tooltip);
+        if (net.neoforged.fml.loading.FMLEnvironment.dist.isClient()) {
+            com.mawlee.cointcore.modularbees.client.ImportAmountClient.register();
+        }
     }
 
     private static void capabilities(RegisterCapabilitiesEvent event) {

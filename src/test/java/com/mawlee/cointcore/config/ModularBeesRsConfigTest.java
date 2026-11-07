@@ -18,6 +18,11 @@ class ModularBeesRsConfigTest {
             assertEquals(1, ModularBeesRsConfig.getIntervalTicks());
             ModularBeesRsConfig.applySection(gson.fromJson("{\"transfer_interval_ticks\":999999}", ModularBeesRsConfig.Data.class));
             assertEquals(1200, ModularBeesRsConfig.getIntervalTicks());
+            assertEquals(ModularBeesRsConfig.DEFAULT_IMPORT_BUFFER_STACKS, ModularBeesRsConfig.getImportBufferStacks());
+            ModularBeesRsConfig.applySection(gson.fromJson("{\"import_buffer_stacks\":0}", ModularBeesRsConfig.Data.class));
+            assertEquals(1, ModularBeesRsConfig.getImportBufferStacks());
+            ModularBeesRsConfig.applySection(gson.fromJson("{\"import_buffer_stacks\":5000}", ModularBeesRsConfig.Data.class));
+            assertEquals(1024, ModularBeesRsConfig.getImportBufferStacks());
         } finally {
             ModularBeesRsConfig.applySection(ModularBeesRsConfig.defaultFileData());
         }

@@ -45,7 +45,8 @@ public final class TwilightBossCommand {
 
     private static boolean canAdmin(CommandSourceStack source) {
         if (source.getEntity() instanceof ServerPlayer player) {
-            return PermissionService.has(player, CointPermissionNodes.RELOAD);
+            return PermissionService.has(player, CointPermissionNodes.BOSS_RESPAWN)
+                    || PermissionService.has(player, CointPermissionNodes.RELOAD);
         }
         return source.hasPermission(2);
     }

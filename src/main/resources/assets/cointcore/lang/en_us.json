@@ -11,6 +11,8 @@
   "permission.desc.cointcore.vanish.see": "Allows seeing vanished players",
   "permission.name.cointcore.reload": "Reload Config",
   "permission.desc.cointcore.reload": "Allows using /cointcore reload",
+  "permission.name.cointcore.bossrespawn": "Boss Respawn",
+  "permission.desc.cointcore.bossrespawn": "Allows /cointcore tfbosses and /cointcore cataclysmspots (mark and respawn bosses, e.g. Ender Golem)",
   "message.cointcore.config.reload.success": "CointCore join messages config reloaded.",
   "message.cointcore.config.reload.failed": "Failed to reload CointCore join messages config. Check server logs.",
   "message.cointcore.nv.enabled": "Night vision enabled.",
@@ -806,5 +808,11 @@
   "message.cointcore.sfm.block_limit_paused": "SFM manager paused: more than %s unique blocks are bound. Reduce the bindings; all labels are preserved.",
   "tooltip.cointcore.modularbees_rs.connection": "Supports AE2 or Refined Storage. Connect the cable to the hatch's front.",
   "tooltip.cointcore.modularbees_rs.schedule": "Online AE2 takes priority. RS transfers in configurable batches.",
+  "tooltip.cointcore.import_amount.default": "Keeps in stock: %s (default)",
+  "tooltip.cointcore.import_amount.custom": "Keeps in stock: %s",
+  "tooltip.cointcore.import_amount.hint": "Middle-click to change the amount",
+  "gui.cointcore.import_amount.title": "Amount to keep in the hatch",
+  "gui.cointcore.import_amount.default": "Default",
+  "gui.cointcore.import_amount.hint": "Default %s, max %s",
   "gui.cointcore.batch.title": "Batch order: %s types (×)"
 }

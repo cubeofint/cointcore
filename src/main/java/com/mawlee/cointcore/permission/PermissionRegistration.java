@@ -12,6 +12,7 @@ public final class PermissionRegistration {
                 CointPermissionNodes.VANISH_MOBS,
                 CointPermissionNodes.SEE_VANISHED,
                 CointPermissionNodes.RELOAD,
+                CointPermissionNodes.BOSS_RESPAWN,
                 CointPermissionNodes.NIGHT_VISION,
                 CointPermissionNodes.FLY,
                 CointPermissionNodes.GOD,

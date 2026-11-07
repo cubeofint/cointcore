@@ -20,18 +20,21 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
+import net.minecraft.world.level.levelgen.structure.TemplateStructurePiece;
 import net.minecraft.world.level.levelgen.structure.pools.SinglePoolElement;
 import net.minecraft.world.level.levelgen.structure.pools.StructurePoolElement;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.fml.ModList;
 import org.slf4j.Logger;
 
@@ -84,6 +87,13 @@ public final class CataclysmStructureRespawnService {
             ResourceLocation.fromNamespaceAndPath("cataclysm", "drowned_host");
 
     private static final BlockPos ENTITY_LOCAL = new BlockPos(0, 1, 0);
+    /**
+     * Template (non-jigsaw) pieces that place their mobs from DATA structure blocks at worldgen, like the Ruined
+     * Citadel's "golem" markers: marker name to entity, which stood on the marker's own block.
+     */
+    private static final Map<String, ResourceLocation> DATA_MARKER_TO_ENTITY = Map.of(
+            "golem", ResourceLocation.fromNamespaceAndPath("cataclysm", "ender_golem")
+    );
     private static final Pattern TEMPLATE_ID_PATTERN = Pattern.compile("([a-z0-9_.-]+:[a-z0-9_./-]+)");
     private static final double SPOT_OCCUPIED_DIST_SQ = 3.0D * 3.0D;
 
@@ -230,32 +240,30 @@ public final class CataclysmStructureRespawnService {
         }
     }
 
-    public static String forceRepopulate(ServerPlayer player) {
+    public static String forceRepopulate(ServerLevel level, Vec3 origin) {
         if (!ModList.get().isLoaded("cataclysm")) {
             return "cataclysm not loaded";
         }
         if (!CataclysmStructureRespawnConfig.isEnabled()) {
             return "cataclysm-structure-respawn disabled";
         }
-        ServerLevel level = player.serverLevel();
         if (level.getDifficulty() == Difficulty.PEACEFUL) {
             return "difficulty is peaceful";
         }
-        StructureStart start = findTrackedStructureNear(level, player);
+        StructureStart start = findTrackedStructureNear(level, origin);
         if (start == null || !start.isValid()) {
             return "no tracked cataclysm structure nearby";
         }
-        SpawnResult result = repopulate(level, start, player, true);
+        SpawnResult result = repopulate(level, start, true);
         return "spots=" + result.spots()
                 + " empty=" + result.empty()
                 + " spawned=" + result.spawned()
                 + " " + result.detail();
     }
 
-    public static String statusNear(ServerPlayer player) {
-        ServerLevel level = player.serverLevel();
+    public static String statusNear(ServerLevel level, Vec3 origin) {
         boolean enabled = CataclysmStructureRespawnConfig.isEnabled() && ModList.get().isLoaded("cataclysm");
-        StructureStart start = findTrackedStructureNear(level, player);
+        StructureStart start = findTrackedStructureNear(level, origin);
         if (start == null || !start.isValid()) {
             return "enabled=" + enabled + " structure=none"
                     + " mobs=" + CataclysmStructureRespawnConfig.getMobIds().size()
@@ -295,7 +303,7 @@ public final class CataclysmStructureRespawnService {
         }
 
         BoundingBox box = start.getBoundingBox();
-        double dist = distanceToBox(player.getX(), player.getY(), player.getZ(), box);
+        double dist = distanceToBox(origin.x, origin.y, origin.z, box);
         return "enabled=" + enabled
                 + " structureDist=" + Mth.floor(dist)
                 + " spots=" + spots.size()
@@ -354,7 +362,7 @@ public final class CataclysmStructureRespawnService {
             Set<String> processed,
             boolean force
     ) {
-        StructureStart start = findTrackedStructureNear(level, player);
+        StructureStart start = findTrackedStructureNear(level, player.position());
         if (start == null || !start.isValid()) {
             return;
         }
@@ -370,7 +378,7 @@ public final class CataclysmStructureRespawnService {
             return;
         }
 
-        SpawnResult result = repopulate(level, start, player, force);
+        SpawnResult result = repopulate(level, start, force);
         if (result.spawned() > 0 || debugLogCooldown <= 0) {
             LOGGER.info(
                     "Cataclysm structure respawn: player={} dim={} dist={} spots={} empty={} spawned={} {}",
@@ -389,7 +397,6 @@ public final class CataclysmStructureRespawnService {
     private static SpawnResult repopulate(
             ServerLevel level,
             StructureStart start,
-            ServerPlayer player,
             boolean force
     ) {
         List<Spot> spots = collectSpawnSpots(level, start);
@@ -478,6 +485,10 @@ public final class CataclysmStructureRespawnService {
         Set<String> seen = new HashSet<>();
 
         for (StructurePiece piece : start.getPieces()) {
+            if (piece instanceof TemplateStructurePiece templatePiece) {
+                collectDataMarkerSpots(templatePiece, fromChildren, seen);
+                continue;
+            }
             if (!(piece instanceof PoolElementStructurePiece poolPiece)) {
                 continue;
             }
@@ -560,6 +571,28 @@ public final class CataclysmStructureRespawnService {
         }
 
         return fromChildren.isEmpty() ? fromParents : fromChildren;
+    }
+
+    private static void collectDataMarkerSpots(TemplateStructurePiece piece, List<Spot> out, Set<String> seen) {
+        StructureTemplate template = piece.template();
+        if (template == null) {
+            return;
+        }
+        for (StructureTemplate.StructureBlockInfo info : template.filterBlocks(
+                piece.templatePosition(), piece.placeSettings(), Blocks.STRUCTURE_BLOCK)) {
+            CompoundTag nbt = info.nbt();
+            if (nbt == null || !"DATA".equals(nbt.getString("mode"))) {
+                continue;
+            }
+            ResourceLocation entityId = DATA_MARKER_TO_ENTITY.get(nbt.getString("metadata"));
+            if (entityId == null || !CataclysmStructureRespawnConfig.tracksMob(entityId)) {
+                continue;
+            }
+            Spot spot = new Spot(info.pos(), entityId);
+            if (seen.add(spotKey(spot))) {
+                out.add(spot);
+            }
+        }
     }
 
     private static BlockPos transformLocal(PoolElementStructurePiece piece, BlockPos local) {
@@ -725,14 +758,14 @@ public final class CataclysmStructureRespawnService {
         return Math.max(0, delay - (level.getGameTime() - started));
     }
 
-    private static StructureStart findTrackedStructureNear(ServerLevel level, ServerPlayer player) {
-        StructureStart atPlayer = findTrackedStructureAt(level, player.blockPosition());
+    private static StructureStart findTrackedStructureNear(ServerLevel level, Vec3 origin) {
+        StructureStart atPlayer = findTrackedStructureAt(level, BlockPos.containing(origin));
         if (atPlayer != null && atPlayer.isValid()) {
             return atPlayer;
         }
 
         int radius = Math.max(1, CataclysmStructureRespawnConfig.getChunkScanRadius());
-        ChunkPos chunkOrigin = player.chunkPosition();
+        ChunkPos chunkOrigin = new ChunkPos(BlockPos.containing(origin));
         StructureStart best = StructureStart.INVALID_START;
         double bestDistance = Double.MAX_VALUE;
 
@@ -749,7 +782,7 @@ public final class CataclysmStructureRespawnService {
                         continue;
                     }
                     double distance = distanceToBox(
-                            player.getX(), player.getY(), player.getZ(), start.getBoundingBox()
+                            origin.x, origin.y, origin.z, start.getBoundingBox()
                     );
                     if (distance < bestDistance) {
                         bestDistance = distance;

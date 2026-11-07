@@ -57,6 +57,14 @@ public final class CointPermissionNodes {
             Component.translatable("permission.desc.cointcore.reload")
     );
 
+    /** Twilight Forest boss arenas and Cataclysm Ender Golem spots: /cointcore tfbosses, /cointcore cataclysmspots. */
+    public static final PermissionNode<Boolean> BOSS_RESPAWN = new PermissionNode<>(
+            CointCore.MOD_ID, "bossrespawn", PermissionTypes.BOOLEAN, OP_ONLY
+    ).setInformation(
+            Component.translatable("permission.name.cointcore.bossrespawn"),
+            Component.translatable("permission.desc.cointcore.bossrespawn")
+    );
+
     public static final PermissionNode<Boolean> NIGHT_VISION = new PermissionNode<>(
             CointCore.MOD_ID, "nv", PermissionTypes.BOOLEAN, OP_ONLY
     ).setInformation(

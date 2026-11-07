@@ -196,6 +196,7 @@
     "modularbees.TileAENetworkHostRsMixin",
     "modularbees.TileMEExportRsMixin",
     "modularbees.TileMEImportRsMixin",
+    "modularbees.ContainerMEImportAmountMixin",
     "ae2.StorageExportStrategyArmoryRejectMixin",
     "ae2.StorageServiceCacheThrottleMixin",
     "ae2.MultiCraftingRetryMixin",
