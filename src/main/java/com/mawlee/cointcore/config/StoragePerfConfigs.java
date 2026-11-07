@@ -31,6 +31,7 @@ public final class StoragePerfConfigs {
             IntegratedTransferPerfConfig.applySection(IntegratedTransferPerfConfig.defaultFileData());
             RsImporterPerfConfig.applySection(RsImporterPerfConfig.defaultFileData());
             ModularBeesRsConfig.applySection(ModularBeesRsConfig.defaultFileData());
+            MultiCrafterConfig.applySection(MultiCrafterConfig.defaultFileData());
         }
     }
 
@@ -59,6 +60,7 @@ public final class StoragePerfConfigs {
         updated |= ConfigMergeSupport.addMissingSectionValues(root, "mekanism", MekanismPerfConfig.defaultFileData());
         updated |= ConfigMergeSupport.addMissingSectionValues(root, "integrated_tunnels", IntegratedTransferPerfConfig.defaultFileData());
         updated |= ConfigMergeSupport.addMissingSectionValues(root, "modularbees_rs", ModularBeesRsConfig.defaultFileData());
+        updated |= ConfigMergeSupport.addMissingSectionValues(root, "multicrafter", MultiCrafterConfig.defaultFileData());
         if (updated) ConfigMergeSupport.writeObject(path(), root);
         return root;
     }
@@ -70,6 +72,7 @@ public final class StoragePerfConfigs {
         root.add("integrated_tunnels", ConfigMergeSupport.toJsonObject(IntegratedTransferPerfConfig.defaultFileData()));
         root.add("rs_importer", ConfigMergeSupport.toJsonObject(RsImporterPerfConfig.defaultFileData()));
         root.add("modularbees_rs", ConfigMergeSupport.toJsonObject(ModularBeesRsConfig.defaultFileData()));
+        root.add("multicrafter", ConfigMergeSupport.toJsonObject(MultiCrafterConfig.defaultFileData()));
         return root;
     }
 
@@ -88,6 +91,9 @@ public final class StoragePerfConfigs {
         ));
         ModularBeesRsConfig.applySection(ConfigMergeSupport.sectionOrDefault(
                 root, "modularbees_rs", ModularBeesRsConfig.Data.class, ModularBeesRsConfig::defaultFileData
+        ));
+        MultiCrafterConfig.applySection(ConfigMergeSupport.sectionOrDefault(
+                root, "multicrafter", MultiCrafterConfig.Data.class, MultiCrafterConfig::defaultFileData
         ));
         if (logReload) {
             Ae2PerfConfig.logReload();

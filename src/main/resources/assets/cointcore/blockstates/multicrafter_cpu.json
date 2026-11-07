@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "cointcore:block/multicrafter_cpu" }
+  }
+}

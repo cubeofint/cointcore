@@ -47,6 +47,7 @@ public class CointCore {
         modEventBus.addListener(com.mawlee.cointcore.radio.CointRadioNetwork::register);
         if (net.neoforged.fml.ModList.get().isLoaded("refinedstorage")) {
             com.mawlee.cointcore.refinedstorage.InfinityDisks.register(modEventBus);
+            com.mawlee.cointcore.refinedstorage.multicrafter.MultiCrafters.register(modEventBus);
             if (net.neoforged.fml.ModList.get().isLoaded("universalgrid")) {
                 com.mawlee.cointcore.refinedstorage.wireless.WirelessPatternIntegration.register(modEventBus);
             }

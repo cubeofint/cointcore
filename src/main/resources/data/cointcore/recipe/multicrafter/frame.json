@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "refinedstorage" }
+  ],
+  "pattern": [ "MBM", "BSB", "MBM" ],
+  "key": {
+    "M": { "item": "refinedstorage:machine_casing" },
+    "B": { "item": "refinedstorage:improved_processor" },
+    "S": { "tag": "c:silicon" }
+  },
+  "result": { "id": "cointcore:multicrafter_frame", "count": 6 }
+}

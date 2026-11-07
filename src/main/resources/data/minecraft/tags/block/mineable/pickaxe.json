@@ -2,6 +2,10 @@
   "replace": false,
   "values": [
     "cointcore:trader",
-    "cointcore:player_trader"
+    "cointcore:player_trader",
+    { "id": "cointcore:multicrafter_frame", "required": false },
+    { "id": "cointcore:multicrafter_vent", "required": false },
+    { "id": "cointcore:multicrafter_cpu", "required": false },
+    { "id": "cointcore:multicrafter_storage", "required": false }
   ]
 }
