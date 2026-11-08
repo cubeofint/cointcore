@@ -22,7 +22,9 @@ public final class ImportAmountClient {
     }
 
     public static void register() {
-        NeoForge.EVENT_BUS.addListener(ImportAmountClient::mouseClicked);
+        // Highest priority and receiveCanceled: mods that use the middle button in inventories (sorting, item pick)
+        // must not swallow the click on a hatch config slot.
+        NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.HIGHEST, true, ImportAmountClient::mouseClicked);
         NeoForge.EVENT_BUS.addListener(ImportAmountClient::renderAmounts);
         NeoForge.EVENT_BUS.addListener(ImportAmountClient::tooltip);
     }
@@ -38,7 +40,10 @@ public final class ImportAmountClient {
     }
 
     private static void mouseClicked(ScreenEvent.MouseButtonPressed.Pre event) {
-        if (event.getButton() != GLFW.GLFW_MOUSE_BUTTON_MIDDLE || !(event.getScreen() instanceof MEImportGUI gui)) return;
+        boolean middle = event.getButton() == GLFW.GLFW_MOUSE_BUTTON_MIDDLE;
+        // Alt + left click is the fallback when the middle button is taken or missing.
+        boolean altLeft = event.getButton() == GLFW.GLFW_MOUSE_BUTTON_LEFT && net.minecraft.client.gui.screens.Screen.hasAltDown();
+        if (!(middle || altLeft) || !(event.getScreen() instanceof MEImportGUI gui)) return;
         DisplaySlot slot = configSlot(gui, gui.getSlotUnderMouse());
         ImportAmountHost host = host(gui);
         if (slot == null || host == null || !slot.hasItem()) return;

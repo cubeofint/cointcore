@@ -810,7 +810,7 @@
   "tooltip.cointcore.modularbees_rs.schedule": "Работающая AE2 имеет приоритет. RS передаёт ресурсы пакетами с настраиваемым интервалом.",
   "tooltip.cointcore.import_amount.default": "Держать в хатче: %s (по умолчанию)",
   "tooltip.cointcore.import_amount.custom": "Держать в хатче: %s",
-  "tooltip.cointcore.import_amount.hint": "СКМ — изменить количество",
+  "tooltip.cointcore.import_amount.hint": "СКМ или Alt + ЛКМ — изменить количество",
   "gui.cointcore.import_amount.title": "Сколько держать в хатче",
   "gui.cointcore.import_amount.default": "Сбросить",
   "gui.cointcore.import_amount.hint": "По умолчанию %s, максимум %s",

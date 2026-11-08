@@ -810,7 +810,7 @@
   "tooltip.cointcore.modularbees_rs.schedule": "Online AE2 takes priority. RS transfers in configurable batches.",
   "tooltip.cointcore.import_amount.default": "Keeps in stock: %s (default)",
   "tooltip.cointcore.import_amount.custom": "Keeps in stock: %s",
-  "tooltip.cointcore.import_amount.hint": "Middle-click to change the amount",
+  "tooltip.cointcore.import_amount.hint": "Middle-click or Alt + left click to change the amount",
   "gui.cointcore.import_amount.title": "Amount to keep in the hatch",
   "gui.cointcore.import_amount.default": "Default",
   "gui.cointcore.import_amount.hint": "Default %s, max %s",
