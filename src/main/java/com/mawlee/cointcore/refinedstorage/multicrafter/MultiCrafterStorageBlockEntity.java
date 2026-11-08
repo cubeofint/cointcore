@@ -44,6 +44,8 @@ import java.lang.reflect.Method;
 public final class MultiCrafterStorageBlockEntity extends AbstractBaseNetworkNodeContainerBlockEntity<PatternProviderNetworkNode>
         implements StepBehavior {
     public static final int PATTERNS = 78;
+    // Extra provider slots for the helper patterns Refined Fluid Substitution patterns need.
+    private static final int HELPER_PATTERNS = PATTERNS;
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final String TAG_PATTERNS = "patterns";
     private static final String TAG_TASKS = "tasks";
@@ -54,12 +56,13 @@ public final class MultiCrafterStorageBlockEntity extends AbstractBaseNetworkNod
     private MultiCrafterShape.Result structure;
     private int structureVersion = -1;
     private int ticks;
+    private boolean substitutionsPending;
     // Hidden by default: big crafters with many storages make the Autocrafter Manager slow to open.
     private boolean visibleInManager;
 
     public MultiCrafterStorageBlockEntity(BlockPos pos, BlockState state) {
         super(MultiCrafters.STORAGE_BLOCK_ENTITY.get(), pos, state,
-                new PatternProviderNetworkNode(MultiCrafterConfig.getStorageEnergy(), PATTERNS));
+                new PatternProviderNetworkNode(MultiCrafterConfig.getStorageEnergy(), PATTERNS + HELPER_PATTERNS));
         patternContainer.setListener(this::patternChanged);
         patternContainer.addListener(container -> {
             updateEnergyUsage();
@@ -96,6 +99,7 @@ public final class MultiCrafterStorageBlockEntity extends AbstractBaseNetworkNod
 
     void serverTick() {
         refreshStructure();
+        refreshSubstitutions();
         updateActiveness(getBlockState(), null);
         doWork();
     }
@@ -140,6 +144,34 @@ public final class MultiCrafterStorageBlockEntity extends AbstractBaseNetworkNod
                 .filter(MultiCrafterStorageBlockEntity::isCraftingPattern)
                 .orElse(null);
         mainNetworkNode.setPattern(slot, pattern);
+        substitutionsPending = true;
+    }
+
+    /**
+     * Fluid Substitution patterns resolve to a pattern with fluid ingredients plus helper patterns. Done on the tick,
+     * outside any slot transfer, the same way that mod does it for RS autocrafters.
+     */
+    private void refreshSubstitutions() {
+        if (!substitutionsPending || level == null) return;
+        substitutionsPending = false;
+        java.util.Map<Object, Pattern> helpers = new java.util.LinkedHashMap<>();
+        for (int slot = 0; slot < PATTERNS; slot++) {
+            ItemStack stack = patternContainer.getItem(slot);
+            if (!FluidSubstitutionCompat.isSubstitutionPattern(stack)) continue;
+            int patternSlot = slot;
+            FluidSubstitutionCompat.resolve(stack, level).ifPresent(resolved -> {
+                mainNetworkNode.setPattern(patternSlot, resolved.pattern());
+                resolved.helpers().forEach(helper -> helpers.putIfAbsent(helper.layout(), helper));
+            });
+        }
+        int helperSlot = PATTERNS;
+        for (Pattern helper : helpers.values()) {
+            if (helperSlot >= PATTERNS + HELPER_PATTERNS) break;
+            mainNetworkNode.setPattern(helperSlot++, helper);
+        }
+        while (helperSlot < PATTERNS + HELPER_PATTERNS) {
+            mainNetworkNode.setPattern(helperSlot++, null);
+        }
     }
 
     private static boolean isCraftingPattern(Pattern pattern) {

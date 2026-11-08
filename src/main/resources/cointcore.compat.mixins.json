@@ -106,6 +106,8 @@
     "ae2.SpatialStorageHelperMixin",
     "ae2.ChunkLoadingServiceMixin",
     "refinedstorage.ImporterNetworkNodeIdleSkipMixin",
+    "refinedstorage.PatternProviderStepSpeedMixin",
+    "refinedstorage.ExternalPatternBatchMixin",
     "computercraft.TurtleToolMixin",
     "draconicevolution.ModularMiningToolMixin",
     "draconicevolution.StabilizedSpawnerLogicMixin",

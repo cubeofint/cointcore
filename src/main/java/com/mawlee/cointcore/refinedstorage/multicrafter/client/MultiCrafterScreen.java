@@ -14,7 +14,8 @@ import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 
 /** RebornStorage's multiblock crafter window: a page of 13×6 pattern slots per storage, paged with ‹ and ›. */
-public final class MultiCrafterScreen extends AbstractContainerScreen<MultiCrafterMenu> {
+public final class MultiCrafterScreen extends AbstractContainerScreen<MultiCrafterMenu>
+        implements com.refinedmods.refinedstorage.common.api.autocrafting.PatternOutputRenderingScreen {
     // Background sheet from RebornStorage (MIT): a 150×150 panel at 0,0 and a slot frame at 150,0.
     private static final ResourceLocation SHEET =
             ResourceLocation.fromNamespaceAndPath(CointCore.MOD_ID, "textures/gui/multicrafter.png");
@@ -31,6 +32,16 @@ public final class MultiCrafterScreen extends AbstractContainerScreen<MultiCraft
         imageHeight = 240;
         inventoryLabelX = 45;
         inventoryLabelY = 130;
+    }
+
+    /** Like the RS autocrafter: patterns in the crafter slots show what they make, the player inventory stays as is. */
+    @Override
+    public boolean canDisplayOutput(net.minecraft.world.item.ItemStack stack) {
+        int patternSlots = MultiCrafterMenu.COLUMNS * MultiCrafterMenu.ROWS;
+        for (int i = 0; i < patternSlots; i++) {
+            if (menu.slots.get(i).getItem() == stack) return true;
+        }
+        return false;
     }
 
     public static void register(RegisterMenuScreensEvent event) {

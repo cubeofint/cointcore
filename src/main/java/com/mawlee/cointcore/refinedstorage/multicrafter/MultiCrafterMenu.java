@@ -150,13 +150,34 @@ public final class MultiCrafterMenu extends AbstractContainerMenu {
         if (!slot.hasItem()) return ItemStack.EMPTY;
         ItemStack stack = slot.getItem();
         ItemStack original = stack.copy();
-        boolean moved = index < SLOTS
-                ? moveItemStackTo(stack, SLOTS, slots.size(), true)
-                : moveItemStackTo(stack, 0, SLOTS, false);
+        boolean moved;
+        if (index < SLOTS) {
+            moved = moveItemStackTo(stack, SLOTS, slots.size(), true);
+        } else {
+            moved = moveItemStackTo(stack, 0, SLOTS, false);
+            // The page is full: go on to the next storages in page order. Only the server sees them; the client gets
+            // the result in the next sync.
+            if (!stack.isEmpty() && !level.isClientSide) moved |= moveToOtherStorages(stack);
+        }
         if (!moved) return ItemStack.EMPTY;
         if (stack.isEmpty()) slot.setByPlayer(ItemStack.EMPTY);
         else slot.setChanged();
         return original;
+    }
+
+    private boolean moveToOtherStorages(ItemStack stack) {
+        boolean moved = false;
+        int current = pageIndex.get();
+        for (int offset = 1; offset < storages.size() && !stack.isEmpty(); offset++) {
+            if (!(level.getBlockEntity(storages.get((current + offset) % storages.size())) instanceof MultiCrafterStorageBlockEntity storage)) continue;
+            Container container = storage.getPatternContainer();
+            for (int slot = 0; slot < container.getContainerSize() && !stack.isEmpty(); slot++) {
+                if (!container.getItem(slot).isEmpty() || !container.canPlaceItem(slot, stack)) continue;
+                container.setItem(slot, stack.split(Math.min(stack.getCount(), container.getMaxStackSize(stack))));
+                moved = true;
+            }
+        }
+        return moved;
     }
 
     private static final class PatternSlot extends Slot {

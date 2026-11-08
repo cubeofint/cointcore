@@ -198,6 +198,8 @@ public final class CointCoreMixinPlugin implements IMixinConfigPlugin {
             "com.mawlee.cointcore.mixin.refinedstorage.InfinityDiskStateTrackingMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.InfinityDiskConfiguredStorageMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.ImporterNetworkNodeIdleSkipMixin",
+            "com.mawlee.cointcore.mixin.refinedstorage.PatternProviderStepSpeedMixin",
+            "com.mawlee.cointcore.mixin.refinedstorage.ExternalPatternBatchMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternEncodingMixin",
             "com.mawlee.cointcore.mixin.refinedstorage.WirelessPatternMenuMixin"
     );
